@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 // GOOD: 2x .. en geen /ui/
-import BrikxHeaderLanding from "../../../components/BrikxHeaderLanding";
-import Footer from "../../../components/Footer";
+import BrikxHeaderLanding from "@/components/BrikxHeaderLanding";
+import Footer from "@/components/Footer";
 
 import FAQClient from "./FAQClient";
 

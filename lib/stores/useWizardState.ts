@@ -1,12 +1,25 @@
-// lib/stores/useWizardState.ts
 'use client';
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 
-/* ------------------------------------------------------------------
- * Types – afgestemd op jouw hoofdstukken/flow
- * ------------------------------------------------------------------ */
+/** ----------------
+ *  Types
+ *  ---------------- */
+export type Archetype =
+  | 'nieuwbouw_woning'
+  | 'complete_renovatie'
+  | 'bijgebouw'
+  | 'verbouwing_zolder'
+  | 'hybride_project'
+  | null;
+
+export type TriageState = {
+  projectType: Archetype;
+  projectSize: 'klein' | 'midden' | 'groot' | null;
+  urgentie: 'laag' | 'middel' | 'hoog' | null;
+  intent: Array<'architect_start' | 'contractor_quote' | 'scenario_exploration'>;
+};
+
 export type ChapterKey =
   | 'basis'
   | 'wensen'
@@ -17,262 +30,261 @@ export type ChapterKey =
   | 'risico'
   | 'preview';
 
-export type Mode = 'preview' | 'premium';
-export type Archetype =
-  | 'nieuwbouw_woning'
-  | 'complete_renovatie'
-  | 'bijgebouw'
-  | 'verbouwing_zolder'
-  | 'hybride_project'
-  | null;
+export type Room = {
+  id: string;
+  type: 'woonkamer' | 'keuken' | 'slaapkamer' | 'badkamer' | 'overig';
+  naam?: string;
+  oppM2?: number;
+  wensen?: string[];
+};
 
-export interface TriageState {
-  projectType: Archetype | null;
-  projectSize?: 'klein' | 'midden' | 'groot' | null;
-  intent?: ('architect_start' | 'contractor_quote' | 'scenario_exploration')[];
-  urgentie?: 'laag' | 'middel' | 'hoog' | null;
+type BasisAnswers = { projectNaam?: string; locatie?: string };
+type BudgetAnswers = { bedrag?: number | null };
+type TechniekAnswers = { isolatie?: string | null; installaties?: string | null };
+type DuurzaamheidAnswers = Record<string, unknown>;
+type RisicoAnswers = Record<string, unknown>;
+
+/** ----------------
+ *  Helpers
+ *  ---------------- */
+function safeFlow(archetype: Archetype): ChapterKey[] {
+  if (archetype === 'bijgebouw') {
+    return ['basis', 'wensen', 'budget', 'ruimtes', 'techniek', 'preview'];
+  }
+  return ['basis', 'wensen', 'budget', 'ruimtes', 'techniek', 'duurzaamheid', 'risico', 'preview'];
 }
 
+function uuid() {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
+  return Math.random().toString(36).slice(2);
+}
+
+/** ----------------
+ *  State shape
+ *  ---------------- */
 export interface WizardState {
-  mode: Mode;
-  archetype: Archetype;
+  projectId?: string | null;
+
   triage: TriageState;
 
+  // Flow & nav
   chapterFlow: ChapterKey[];
   currentChapter: ChapterKey;
+  goToChapter: (ch: ChapterKey) => void;
+  setChapterFlow: (flow: ChapterKey[]) => void;
+  setTriage: (patch: Partial<TriageState>) => void;
 
-  /** Vrije shape per chapter (we normaliseren op bekende paden) */
-  chapterAnswers: Record<string, any>;
+  // Hoofdstukken (top-level)
+  basis: BasisAnswers;
+  setBasis: (patch: Partial<BasisAnswers>) => void;
 
-  /* --- Router & mode --- */
-  setMode: (m: Mode) => void;
-  setArchetype: (a: Archetype) => void;
-  patchTriage: (patch: Partial<TriageState>) => void;
-  goToChapter: (id: ChapterKey) => void;
+  budget: BudgetAnswers;
+  setBudget: (euro: number | null) => void;
 
-  /* --- Antwoorden API (nieuw) --- */
-  setChapterAnswer: (key: ChapterKey, value: any) => void;
-  patchChapterAnswer: (key: ChapterKey, patch: Record<string, any>) => void;
+  ruimtes: Room[];
+  addRoom: (room: Partial<Room> & { type: Room['type'] }) => string;
+  patchRoom: (id: string, patch: Partial<Room>) => void;
 
-  /* --- Legacy/compat (meervoud) --- */
-  setChapterAnswers: {
-    (all: Record<string, any>): void;           // hele object
-    (key: ChapterKey, value: any): void;        // per chapter
+  techniek: TechniekAnswers;
+  setTechniek: (patch: Partial<TechniekAnswers>) => void;
+
+  duurzaamheid: DuurzaamheidAnswers;
+  setDuurzaamheid: (patch: Partial<DuurzaamheidAnswers>) => void;
+
+  risico: RisicoAnswers;
+  setRisico: (patch: Partial<RisicoAnswers>) => void;
+
+  // 🔰 Back-compat containers + aliassen (nooit undefined)
+  answers: {
+    basis: BasisAnswers;
+    wensen: string[];
+    budget: BudgetAnswers;
+    ruimtes: Room[];
+    techniek: TechniekAnswers;
+    duurzaamheid: DuurzaamheidAnswers;
+    risico: RisicoAnswers;
   };
-  patchChapterAnswers: (key: ChapterKey, patch: Record<string, any>) => void;
 
-  /* --- Budget helpers (synced) --- */
-  getBudgetValue: () => number | null;
-  setBudgetValue: (val: number | null) => void;
+  /** Vroegere naam die sommige hoofdstukken gebruiken */
+  chapterAnswers: WizardState['answers'];
 
-  /* --- Safety & reset --- */
-  ensureSafety: () => void;
-  resetAll: () => void;
+  /** Losse alias voor wensen, voor hoofdstukken die `state.wensen` lezen */
+  wensen: string[];
+  addWens: (label: string) => void;
+  removeWens: (label: string) => void;
+  setWensen: (all: string[]) => void;
+
+  // Telemetry (optioneel)
+  completedSteps?: number;
+  totalSteps?: number;
+  progress?: number;
 }
 
-/* ------------------------------------------------------------------
- * Defaults
- * ------------------------------------------------------------------ */
-const FLOW_DEFAULT: ChapterKey[] = [
-  'basis',
-  'wensen',
-  'budget',
-  'ruimtes',
-  'techniek',
-  'duurzaamheid',
-  'risico',
-  'preview',
-];
+/** ----------------
+ *  Store
+ *  ---------------- */
+export const useWizardState = create<WizardState>()((set, get) => ({
+  projectId: null,
 
-// Bewuste defaults zodat we jouw shapes niet “dichtsmeren”
-const defaultAnswers = (): Record<string, any> => ({
-  basis: {
-    // belangrijk: oude/bestaande componenten gebruiken dit pad
-    budgetIndicatie: null as number | null,
+  triage: {
+    projectType: null,
+    projectSize: null,
+    urgentie: null,
+    intent: [],
   },
-  wensen: [],
-  budget: {
-    budgetTotaal: null as number | null,
-    bandbreedte: null as [number, number] | null,
+
+  chapterFlow: safeFlow(null),
+  currentChapter: 'basis',
+  goToChapter: (ch) => set({ currentChapter: ch }),
+  setChapterFlow: (flow) =>
+    set({ chapterFlow: Array.isArray(flow) && flow.length ? flow : safeFlow(get().triage.projectType) }),
+
+  setTriage: (patch) => {
+    const next = { ...get().triage, ...patch };
+    set({ triage: next, chapterFlow: safeFlow(next.projectType) });
   },
-  ruimtes: [],
-  techniek: {},
-  duurzaamheid: {},
-  risico: {},
-  preview: {},
-});
 
-/* ------------------------------------------------------------------
- * Normalisatie + Budget Sync
- * ------------------------------------------------------------------ */
-
-/** Normaliseer bekende paden (arrays/objects) */
-function normalizeAnswers(a: any): Record<string, any> {
-  const d = defaultAnswers();
-  const out: Record<string, any> = { ...d, ...(a ?? {}) };
-
-  // Arrays borgen
-  if (!Array.isArray(out.wensen)) out.wensen = [];
-  if (!Array.isArray(out.ruimtes)) out.ruimtes = [];
-
-  // Objecten borgen
-  for (const k of ['basis', 'budget', 'techniek', 'duurzaamheid', 'risico', 'preview'] as const) {
-    if (!out[k] || typeof out[k] !== 'object' || Array.isArray(out[k])) out[k] = d[k];
-  }
-
-  // Bekende velden borgen
-  if (typeof out.basis.budgetIndicatie !== 'number' && out.basis.budgetIndicatie !== null) {
-    out.basis.budgetIndicatie = d.basis.budgetIndicatie;
-  }
-  if (
-    (typeof out.budget.budgetTotaal !== 'number' && out.budget.budgetTotaal !== null) ||
-    Number.isNaN(out.budget.budgetTotaal)
-  ) {
-    out.budget.budgetTotaal = d.budget.budgetTotaal;
-  }
-  if (!Array.isArray(out.budget.bandbreedte) && out.budget.bandbreedte !== null) {
-    out.budget.bandbreedte = d.budget.bandbreedte;
-  }
-
-  // Budget sync bij normalisatie
-  return syncBudget(out);
-}
-
-/** Centrale budget-sync: basis.budgetIndicatie ↔ budget.budgetTotaal */
-function syncBudget(answers: Record<string, any>): Record<string, any> {
-  const a = { ...answers };
-  const basisVal = a?.basis?.budgetIndicatie;
-  const budVal = a?.budget?.budgetTotaal;
-
-  // Kies gezaghebbende bron (als één van beide gezet is)
-  const resolved =
-    typeof budVal === 'number'
-      ? budVal
-      : typeof basisVal === 'number'
-      ? basisVal
-      : (budVal ?? basisVal ?? null);
-
-  // Schrijf naar beide paden (alleen als er een waarde is of expliciet null)
-  if (resolved !== undefined) {
-    a.basis = { ...(a.basis ?? {}), budgetIndicatie: resolved };
-    a.budget = { ...(a.budget ?? {}), budgetTotaal: resolved };
-  }
-  return a;
-}
-
-/* ------------------------------------------------------------------
- * Store
- * ------------------------------------------------------------------ */
-export const useWizardState = create<WizardState>()(
-  persist(
-    (set, get) => ({
-      mode: 'preview',
-      archetype: null,
-      triage: { projectType: null, projectSize: null, intent: [], urgentie: null },
-
-      chapterFlow: FLOW_DEFAULT,
-      currentChapter: 'basis',
-
-      chapterAnswers: defaultAnswers(),
-
-      setMode: (m) => set({ mode: m }),
-      setArchetype: (a) => set({ archetype: a }),
-      patchTriage: (patch) => set((s) => ({ triage: { ...s.triage, ...patch } })),
-
-      goToChapter: (id) =>
-        set((s) => {
-          const flow = Array.isArray(s.chapterFlow) && s.chapterFlow.length ? s.chapterFlow : FLOW_DEFAULT;
-          return { currentChapter: flow.includes(id) ? id : s.currentChapter };
-        }),
-
-      /* ----------------- Nieuwe API ----------------- */
-      setChapterAnswer: (key, value) =>
-        set((s) => {
-          const next = { ...s.chapterAnswers, [key]: value };
-          // Budget sync als basis of budget wordt gezet
-          if (key === 'basis' || key === 'budget') return { chapterAnswers: syncBudget(next) };
-          return { chapterAnswers: next };
-        }),
-
-      patchChapterAnswer: (key, patch) =>
-        set((s) => {
-          const prev = (s.chapterAnswers ?? {})[key] ?? {};
-          const next = { ...s.chapterAnswers, [key]: { ...prev, ...(patch ?? {}) } };
-          if (key === 'basis' || key === 'budget') return { chapterAnswers: syncBudget(next) };
-          return { chapterAnswers: next };
-        }),
-
-      /* -------- Legacy/compat overloads -------- */
-      setChapterAnswers: ((a: any, b?: any) => {
-        // 1 arg → hele object vervangen
-        if (b === undefined && typeof a === 'object' && a !== null && !Array.isArray(a)) {
-          set(() => ({ chapterAnswers: normalizeAnswers(a) }));
-          return;
-        }
-        // 2 args → per chapter
-        const key = a as ChapterKey;
-        const value = b;
-        set((s) => {
-          const next = { ...s.chapterAnswers, [key]: value };
-          if (key === 'basis' || key === 'budget') {
-            return { chapterAnswers: syncBudget(next) };
-          }
-          return { chapterAnswers: next };
-        });
-      }) as WizardState['setChapterAnswers'],
-
-      patchChapterAnswers: (key, patch) =>
-        set((s) => {
-          const prev = (s.chapterAnswers ?? {})[key] ?? {};
-          const next = { ...s.chapterAnswers, [key]: { ...prev, ...(patch ?? {}) } };
-          if (key === 'basis' || key === 'budget') return { chapterAnswers: syncBudget(next) };
-          return { chapterAnswers: next };
-        }),
-
-      /* ----------------- Budget helpers ----------------- */
-      getBudgetValue: () => {
-        const a = get().chapterAnswers;
-        const v = a?.budget?.budgetTotaal ?? a?.basis?.budgetIndicatie ?? null;
-        return typeof v === 'number' ? v : null;
-      },
-
-      setBudgetValue: (val) =>
-        set((s) => {
-          const num = val === null ? null : Number(val);
-          const next = {
-            ...s.chapterAnswers,
-            basis: { ...(s.chapterAnswers?.basis ?? {}), budgetIndicatie: num },
-            budget: { ...(s.chapterAnswers?.budget ?? {}), budgetTotaal: num },
-          };
-          return { chapterAnswers: syncBudget(next) };
-        }),
-
-      /* ----------------- Safety & reset ----------------- */
-      ensureSafety: () => {
-        const s = get();
-        const flow = Array.isArray(s.chapterFlow) && s.chapterFlow.length ? s.chapterFlow : FLOW_DEFAULT;
-        const answers = normalizeAnswers(s.chapterAnswers);
-        const current = flow.includes(s.currentChapter) ? s.currentChapter : flow[0];
-        set({ chapterFlow: flow, currentChapter: current, chapterAnswers: answers });
-      },
-
-      resetAll: () => set({
-        mode: 'preview',
-        archetype: null,
-        triage: { projectType: null, projectSize: null, intent: [], urgentie: null },
-        chapterFlow: FLOW_DEFAULT,
-        currentChapter: 'basis',
-        chapterAnswers: defaultAnswers(),
-      }),
+  // ---- Top-level hoofdstukdata (safe defaults) ----
+  basis: {},
+  setBasis: (patch) =>
+    set((s) => {
+      const basis = { ...s.basis, ...patch };
+      return {
+        basis,
+        answers: { ...s.answers, basis },
+        chapterAnswers: { ...s.chapterAnswers, basis },
+      };
     }),
-    {
-      name: 'brikx-wizard-state',
-      version: 8, // bump: forceer migratie & sync bij bestaande users
-      partialize: (s) => s,
-      onRehydrateStorage: () => (state) => {
-        // Normaliseer & sync direct na hydrate (dus na refresh ook correct)
-        setTimeout(() => state?.ensureSafety?.(), 0);
-      },
-    }
-  )
-);
+
+  budget: { bedrag: null },
+  setBudget: (euro) =>
+    set((s) => {
+      const budget = { bedrag: euro };
+      return {
+        budget,
+        answers: { ...s.answers, budget },
+        chapterAnswers: { ...s.chapterAnswers, budget },
+      };
+    }),
+
+  ruimtes: [],
+  addRoom: (room) => {
+    const id = uuid();
+    const r: Room = {
+      id,
+      type: room.type,
+      naam: room.naam ?? room.type,
+      oppM2: room.oppM2,
+      wensen: room.wensen ?? [],
+    };
+    set((s) => {
+      const next = [...s.ruimtes, r];
+      return {
+        ruimtes: next,
+        answers: { ...s.answers, ruimtes: next },
+        chapterAnswers: { ...s.chapterAnswers, ruimtes: next },
+      };
+    });
+    return id;
+  },
+  patchRoom: (id, patch) =>
+    set((s) => {
+      const next = s.ruimtes.map((r) => (r.id === id ? { ...r, ...patch } : r));
+      return {
+        ruimtes: next,
+        answers: { ...s.answers, ruimtes: next },
+        chapterAnswers: { ...s.chapterAnswers, ruimtes: next },
+      };
+    }),
+
+  techniek: {},
+  setTechniek: (patch) =>
+    set((s) => {
+      const techniek = { ...s.techniek, ...patch };
+      return {
+        techniek,
+        answers: { ...s.answers, techniek },
+        chapterAnswers: { ...s.chapterAnswers, techniek },
+      };
+    }),
+
+  duurzaamheid: {},
+  setDuurzaamheid: (patch) =>
+    set((s) => {
+      const duurzaamheid = { ...s.duurzaamheid, ...patch };
+      return {
+        duurzaamheid,
+        answers: { ...s.answers, duurzaamheid },
+        chapterAnswers: { ...s.chapterAnswers, duurzaamheid },
+      };
+    }),
+
+  risico: {},
+  setRisico: (patch) =>
+    set((s) => {
+      const risico = { ...s.risico, ...patch };
+      return {
+        risico,
+        answers: { ...s.answers, risico },
+        chapterAnswers: { ...s.chapterAnswers, risico },
+      };
+    }),
+
+  // ---- Back-compat containers + aliassen (NOOIT undefined) ----
+  answers: {
+    basis: {},
+    wensen: [],
+    budget: { bedrag: null },
+    ruimtes: [],
+    techniek: {},
+    duurzaamheid: {},
+    risico: {},
+  },
+
+  chapterAnswers: {
+    basis: {},
+    wensen: [],
+    budget: { bedrag: null },
+    ruimtes: [],
+    techniek: {},
+    duurzaamheid: {},
+    risico: {},
+  },
+
+  wensen: [],
+  addWens: (label) =>
+    set((s) => {
+      const setdedup = (arr: string[]) => Array.from(new Set(arr.filter(Boolean)));
+      const wensen = setdedup([...(s.wensen ?? []), label]);
+      return {
+        wensen,
+        answers: { ...s.answers, wensen },
+        chapterAnswers: { ...s.chapterAnswers, wensen },
+      };
+    }),
+  removeWens: (label) =>
+    set((s) => {
+      const wensen = (s.wensen ?? []).filter((w) => w !== label);
+      return {
+        wensen,
+        answers: { ...s.answers, wensen },
+        chapterAnswers: { ...s.chapterAnswers, wensen },
+      };
+    }),
+  setWensen: (all) =>
+    set((s) => {
+      const wensen = Array.isArray(all) ? all : [];
+      return {
+        wensen,
+        answers: { ...s.answers, wensen },
+        chapterAnswers: { ...s.chapterAnswers, wensen },
+      };
+    }),
+
+  // Telemetry
+  completedSteps: 0,
+  totalSteps: 8,
+  progress: 0,
+}));
+
+export default useWizardState;

@@ -4,6 +4,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useWizardState } from '@/lib/stores/useWizardState';
+import { useUiStore } from '@/lib/stores/useUiStore';
 
 type Chapter = { id: string; title: string; Comp: React.ComponentType<any> };
 type Props = { activeId?: string; onChange?: (id: string) => void };
@@ -55,7 +56,7 @@ class ErrorCatcher extends React.Component<{ onError: (e: Error) => void }, { ha
     this.props.onError(error);
   }
   render() {
-    return this.state.hasError ? null : this.props.children as React.ReactNode;
+    return this.state.hasError ? null : (this.props.children as React.ReactNode);
   }
 }
 
@@ -64,9 +65,23 @@ export default function WizardRouter({ activeId, onChange }: Props) {
   const currentChapter = useWizardState((s) => s.currentChapter);
   const goToChapter = useWizardState((s) => s.goToChapter);
 
-  const ids = useMemo(() => (Array.isArray(chapterFlow) && chapterFlow.length ? chapterFlow : CHAPTERS.map(c => c.id)), [chapterFlow]);
+  const ids = useMemo(
+    () => (Array.isArray(chapterFlow) && chapterFlow.length ? chapterFlow : CHAPTERS.map((c) => c.id)),
+    [chapterFlow]
+  );
   const idSet = useMemo(() => new Set(ids), [ids]);
   const firstId = ids[0] ?? 'basis';
+
+  // 🔗 Chat/Expert focus → automatisch naar juiste hoofdstuk
+  const focusedField = useUiStore((s) => s.focusedField);
+  useEffect(() => {
+    if (!focusedField) return;
+    const [chapter] = focusedField.split(':');
+    if (chapter && idSet.has(chapter) && chapter !== currentChapter) {
+      goToChapter(chapter as any);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusedField, idSet]);
 
   // sync externe activeId naar store (indien geldig)
   useEffect(() => {
@@ -76,7 +91,7 @@ export default function WizardRouter({ activeId, onChange }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId, idSet]);
 
-  const effective = useMemo< string>(() => {
+  const effective = useMemo<string>(() => {
     if (activeId && idSet.has(activeId)) return activeId;
     if (currentChapter && idSet.has(currentChapter)) return currentChapter;
     return firstId;
@@ -85,12 +100,14 @@ export default function WizardRouter({ activeId, onChange }: Props) {
   const setActive = (id: string) => {
     if (!idSet.has(id)) return;
     goToChapter(id as any);
-    try { onChange?.(id); } catch {}
+    try {
+      onChange?.(id);
+    } catch {}
   };
 
   return (
     <div className="space-y-3">
-      {CHAPTERS.filter(c => idSet.has(c.id)).map((c, i) => {
+      {CHAPTERS.filter((c) => idSet.has(c.id)).map((c, i) => {
         const open = c.id === effective;
         const Comp = c.Comp;
 

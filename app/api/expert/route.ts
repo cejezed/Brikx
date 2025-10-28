@@ -2,7 +2,7 @@
 export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { queryRag } from "@/lib/ai/rag";
-import { serverLog } from "@/lib/server/log";
+import { logEvent } from "@/lib/server/log";
 
 export async function POST(req: Request) {
   try {
