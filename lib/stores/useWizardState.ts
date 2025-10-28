@@ -1,10 +1,9 @@
+// lib/stores/useWizardState.ts
 'use client';
 
 import { create } from 'zustand';
 
-/** ----------------
- *  Types
- *  ---------------- */
+/** ---------------- Types ---------------- */
 export type Archetype =
   | 'nieuwbouw_woning'
   | 'complete_renovatie'
@@ -44,9 +43,11 @@ type TechniekAnswers = { isolatie?: string | null; installaties?: string | null 
 type DuurzaamheidAnswers = Record<string, unknown>;
 type RisicoAnswers = Record<string, unknown>;
 
-/** ----------------
- *  Helpers
- *  ---------------- */
+/** --------------- Helpers --------------- */
+function uuid() {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
+  return Math.random().toString(36).slice(2);
+}
 function safeFlow(archetype: Archetype): ChapterKey[] {
   if (archetype === 'bijgebouw') {
     return ['basis', 'wensen', 'budget', 'ruimtes', 'techniek', 'preview'];
@@ -54,37 +55,42 @@ function safeFlow(archetype: Archetype): ChapterKey[] {
   return ['basis', 'wensen', 'budget', 'ruimtes', 'techniek', 'duurzaamheid', 'risico', 'preview'];
 }
 
-function uuid() {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
-  return Math.random().toString(36).slice(2);
-}
-
-/** ----------------
- *  State shape
- *  ---------------- */
+/** --------------- State --------------- */
 export interface WizardState {
   projectId?: string | null;
 
   triage: TriageState;
 
-  // Flow & nav
   chapterFlow: ChapterKey[];
   currentChapter: ChapterKey;
+
+  // canonieke API
   goToChapter: (ch: ChapterKey) => void;
   setChapterFlow: (flow: ChapterKey[]) => void;
   setTriage: (patch: Partial<TriageState>) => void;
 
-  // Hoofdstukken (top-level)
+  // 🔰 compat-aliases voor oudere hoofdstukken
+  setCurrentChapter: (ch: ChapterKey) => void; // = goToChapter
+  setChapter: (ch: ChapterKey) => void;        // = goToChapter
+
+  // basis
   basis: BasisAnswers;
   setBasis: (patch: Partial<BasisAnswers>) => void;
 
+  // budget
   budget: BudgetAnswers;
   setBudget: (euro: number | null) => void;
 
+  // 🔰 compat-getters/setters die sommige hoofdstukken verwachten
+  getBudgetValue: () => number | null;
+  setBudgetValue: (euro: number | null) => void;
+
+  // ruimtes
   ruimtes: Room[];
   addRoom: (room: Partial<Room> & { type: Room['type'] }) => string;
   patchRoom: (id: string, patch: Partial<Room>) => void;
 
+  // techniek / duurzaamheid / risico
   techniek: TechniekAnswers;
   setTechniek: (patch: Partial<TechniekAnswers>) => void;
 
@@ -94,7 +100,7 @@ export interface WizardState {
   risico: RisicoAnswers;
   setRisico: (patch: Partial<RisicoAnswers>) => void;
 
-  // 🔰 Back-compat containers + aliassen (nooit undefined)
+  // 🔰 back-compat containers (nooit undefined)
   answers: {
     basis: BasisAnswers;
     wensen: string[];
@@ -104,25 +110,19 @@ export interface WizardState {
     duurzaamheid: DuurzaamheidAnswers;
     risico: RisicoAnswers;
   };
-
-  /** Vroegere naam die sommige hoofdstukken gebruiken */
-  chapterAnswers: WizardState['answers'];
-
-  /** Losse alias voor wensen, voor hoofdstukken die `state.wensen` lezen */
+  chapterAnswers: WizardState['answers']; // alias
   wensen: string[];
   addWens: (label: string) => void;
   removeWens: (label: string) => void;
   setWensen: (all: string[]) => void;
 
-  // Telemetry (optioneel)
+  // UI metrics
   completedSteps?: number;
   totalSteps?: number;
   progress?: number;
 }
 
-/** ----------------
- *  Store
- *  ---------------- */
+/** --------------- Store --------------- */
 export const useWizardState = create<WizardState>()((set, get) => ({
   projectId: null,
 
@@ -135,7 +135,11 @@ export const useWizardState = create<WizardState>()((set, get) => ({
 
   chapterFlow: safeFlow(null),
   currentChapter: 'basis',
+
   goToChapter: (ch) => set({ currentChapter: ch }),
+  setCurrentChapter: (ch) => set({ currentChapter: ch }), // compat
+  setChapter: (ch) => set({ currentChapter: ch }),        // compat
+
   setChapterFlow: (flow) =>
     set({ chapterFlow: Array.isArray(flow) && flow.length ? flow : safeFlow(get().triage.projectType) }),
 
@@ -144,29 +148,26 @@ export const useWizardState = create<WizardState>()((set, get) => ({
     set({ triage: next, chapterFlow: safeFlow(next.projectType) });
   },
 
-  // ---- Top-level hoofdstukdata (safe defaults) ----
+  // basis
   basis: {},
   setBasis: (patch) =>
     set((s) => {
       const basis = { ...s.basis, ...patch };
-      return {
-        basis,
-        answers: { ...s.answers, basis },
-        chapterAnswers: { ...s.chapterAnswers, basis },
-      };
+      return { basis, answers: { ...s.answers, basis }, chapterAnswers: { ...s.chapterAnswers, basis } };
     }),
 
+  // budget
   budget: { bedrag: null },
   setBudget: (euro) =>
     set((s) => {
       const budget = { bedrag: euro };
-      return {
-        budget,
-        answers: { ...s.answers, budget },
-        chapterAnswers: { ...s.chapterAnswers, budget },
-      };
+      return { budget, answers: { ...s.answers, budget }, chapterAnswers: { ...s.chapterAnswers, budget } };
     }),
 
+  getBudgetValue: () => get().budget?.bedrag ?? null,       // compat
+  setBudgetValue: (euro) => get().setBudget(euro),          // compat
+
+  // ruimtes
   ruimtes: [],
   addRoom: (room) => {
     const id = uuid();
@@ -197,15 +198,12 @@ export const useWizardState = create<WizardState>()((set, get) => ({
       };
     }),
 
+  // techniek / duurzaamheid / risico
   techniek: {},
   setTechniek: (patch) =>
     set((s) => {
       const techniek = { ...s.techniek, ...patch };
-      return {
-        techniek,
-        answers: { ...s.answers, techniek },
-        chapterAnswers: { ...s.chapterAnswers, techniek },
-      };
+      return { techniek, answers: { ...s.answers, techniek }, chapterAnswers: { ...s.chapterAnswers, techniek } };
     }),
 
   duurzaamheid: {},
@@ -223,14 +221,10 @@ export const useWizardState = create<WizardState>()((set, get) => ({
   setRisico: (patch) =>
     set((s) => {
       const risico = { ...s.risico, ...patch };
-      return {
-        risico,
-        answers: { ...s.answers, risico },
-        chapterAnswers: { ...s.chapterAnswers, risico },
-      };
+      return { risico, answers: { ...s.answers, risico }, chapterAnswers: { ...s.chapterAnswers, risico } };
     }),
 
-  // ---- Back-compat containers + aliassen (NOOIT undefined) ----
+  // back-compat containers
   answers: {
     basis: {},
     wensen: [],
@@ -240,7 +234,6 @@ export const useWizardState = create<WizardState>()((set, get) => ({
     duurzaamheid: {},
     risico: {},
   },
-
   chapterAnswers: {
     basis: {},
     wensen: [],
@@ -254,34 +247,22 @@ export const useWizardState = create<WizardState>()((set, get) => ({
   wensen: [],
   addWens: (label) =>
     set((s) => {
-      const setdedup = (arr: string[]) => Array.from(new Set(arr.filter(Boolean)));
-      const wensen = setdedup([...(s.wensen ?? []), label]);
-      return {
-        wensen,
-        answers: { ...s.answers, wensen },
-        chapterAnswers: { ...s.chapterAnswers, wensen },
-      };
+      const uniq = (arr: string[]) => Array.from(new Set(arr.filter(Boolean)));
+      const wensen = uniq([...(s.wensen ?? []), label]);
+      return { wensen, answers: { ...s.answers, wensen }, chapterAnswers: { ...s.chapterAnswers, wensen } };
     }),
   removeWens: (label) =>
     set((s) => {
       const wensen = (s.wensen ?? []).filter((w) => w !== label);
-      return {
-        wensen,
-        answers: { ...s.answers, wensen },
-        chapterAnswers: { ...s.chapterAnswers, wensen },
-      };
+      return { wensen, answers: { ...s.answers, wensen }, chapterAnswers: { ...s.chapterAnswers, wensen } };
     }),
   setWensen: (all) =>
     set((s) => {
       const wensen = Array.isArray(all) ? all : [];
-      return {
-        wensen,
-        answers: { ...s.answers, wensen },
-        chapterAnswers: { ...s.chapterAnswers, wensen },
-      };
+      return { wensen, answers: { ...s.answers, wensen }, chapterAnswers: { ...s.chapterAnswers, wensen } };
     }),
 
-  // Telemetry
+  // UI metrics
   completedSteps: 0,
   totalSteps: 8,
   progress: 0,
