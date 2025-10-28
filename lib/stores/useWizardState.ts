@@ -3,7 +3,7 @@
 
 import { create } from 'zustand';
 
-/** ---------------- Types ---------------- */
+/** -------- Types -------- */
 export type Archetype =
   | 'nieuwbouw_woning'
   | 'complete_renovatie'
@@ -11,6 +11,8 @@ export type Archetype =
   | 'verbouwing_zolder'
   | 'hybride_project'
   | null;
+
+export type Mode = 'preview' | 'premium';
 
 export type TriageState = {
   projectType: Archetype;
@@ -43,7 +45,7 @@ type TechniekAnswers = { isolatie?: string | null; installaties?: string | null 
 type DuurzaamheidAnswers = Record<string, unknown>;
 type RisicoAnswers = Record<string, unknown>;
 
-/** --------------- Helpers --------------- */
+/** -------- Helpers -------- */
 function uuid() {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
   return Math.random().toString(36).slice(2);
@@ -55,9 +57,13 @@ function safeFlow(archetype: Archetype): ChapterKey[] {
   return ['basis', 'wensen', 'budget', 'ruimtes', 'techniek', 'duurzaamheid', 'risico', 'preview'];
 }
 
-/** --------------- State --------------- */
+/** -------- Store -------- */
 export interface WizardState {
   projectId?: string | null;
+
+  /** UI mode (veel preview/premium logica leunt hierop) */
+  mode: Mode;
+  setMode: (m: Mode) => void;            // compat voor Preview/Risico
 
   triage: TriageState;
 
@@ -69,19 +75,25 @@ export interface WizardState {
   setChapterFlow: (flow: ChapterKey[]) => void;
   setTriage: (patch: Partial<TriageState>) => void;
 
-  // 🔰 compat-aliases voor oudere hoofdstukken
-  setCurrentChapter: (ch: ChapterKey) => void; // = goToChapter
-  setChapter: (ch: ChapterKey) => void;        // = goToChapter
+  // 🔰 compat-aliases (oude hoofdstukken)
+  setCurrentChapter: (ch: ChapterKey) => void;
+  setChapter: (ch: ChapterKey) => void;
 
   // basis
   basis: BasisAnswers;
   setBasis: (patch: Partial<BasisAnswers>) => void;
 
+  // 🔰 basis-compat helpers (veel Basis-components verwachten deze)
+  getProjectName: () => string | undefined;
+  setProjectName: (v: string) => void;
+  getLocation: () => string | undefined;
+  setLocation: (v: string) => void;
+
   // budget
   budget: BudgetAnswers;
   setBudget: (euro: number | null) => void;
 
-  // 🔰 compat-getters/setters die sommige hoofdstukken verwachten
+  // 🔰 budget-compat
   getBudgetValue: () => number | null;
   setBudgetValue: (euro: number | null) => void;
 
@@ -122,9 +134,11 @@ export interface WizardState {
   progress?: number;
 }
 
-/** --------------- Store --------------- */
 export const useWizardState = create<WizardState>()((set, get) => ({
   projectId: null,
+
+  mode: 'preview',
+  setMode: (m) => set({ mode: m }),
 
   triage: {
     projectType: null,
@@ -156,6 +170,11 @@ export const useWizardState = create<WizardState>()((set, get) => ({
       return { basis, answers: { ...s.answers, basis }, chapterAnswers: { ...s.chapterAnswers, basis } };
     }),
 
+  getProjectName: () => get().basis?.projectNaam,
+  setProjectName: (v) => get().setBasis({ projectNaam: v }),
+  getLocation: () => get().basis?.locatie,
+  setLocation: (v) => get().setBasis({ locatie: v }),
+
   // budget
   budget: { bedrag: null },
   setBudget: (euro) =>
@@ -164,8 +183,8 @@ export const useWizardState = create<WizardState>()((set, get) => ({
       return { budget, answers: { ...s.answers, budget }, chapterAnswers: { ...s.chapterAnswers, budget } };
     }),
 
-  getBudgetValue: () => get().budget?.bedrag ?? null,       // compat
-  setBudgetValue: (euro) => get().setBudget(euro),          // compat
+  getBudgetValue: () => get().budget?.bedrag ?? null,
+  setBudgetValue: (euro) => get().setBudget(euro),
 
   // ruimtes
   ruimtes: [],

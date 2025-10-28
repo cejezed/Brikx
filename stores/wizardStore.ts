@@ -1,15 +1,7 @@
-'use client';
+// stores/wizardStore.ts
+export * from '@/lib/stores/useWizardState';
+import def from '@/lib/stores/useWizardState';
+export default def;
 
-import { create } from 'zustand';
-
-export type Archetype = 'nieuwbouw' | 'verbouwing' | 'renovatie' | 'duurzaam';
-
-type WizardState = {
-  archetype: Archetype | null;
-  setArchetype: (a: Archetype) => void;
-};
-
-export const useWizardStore = create<WizardState>((set) => ({
-  archetype: null,
-  setArchetype: (a) => set({ archetype: a }),
-}));
+// Extra alias-naam die in code voorkomt:
+export const useWizardStore = def;
