@@ -7,6 +7,9 @@ import WizardLayout from '@/components/wizard/WizardLayout';
 import ChapterTabs, { type ChapterTab } from '@/components/wizard/ChapterTabs';
 import { ToastProvider } from '@/components/ui/use-toast';
 import { useWizardState } from '@/lib/stores/useWizardState';
+import Header from "@/components/Header";
+import BrikxHero from "@/components/HeroWizard";
+import Footer from "@/components/Footer";
 
 // Lazy
 const IntakeForm = dynamic(() => import('@/components/intake/IntakeForm'), { ssr: false });
@@ -69,7 +72,7 @@ export default function WizardPage() {
     </Boundary>
   );
 
-  // Middenkolom — compacter: 1 kaart, geen dubbele borders/strepen
+  // Middenkolom – compacter: 1 kaart, geen dubbele borders/strepen
   const middle = (
     <div className="space-y-4">
       {/* Tabs BOVENAAN in de middenkolom en altijd volledig zichtbaar (wrap) */}
@@ -128,8 +131,26 @@ export default function WizardPage() {
 
   return (
     <ToastProvider>
-      {/* Tabs zitten nu NIET in top, maar in de middenkolom-header hierboven */}
-      <WizardLayout left={left} middle={middle} right={right} />
+      <Header />
+      <BrikxHero />
+      
+      {/* Wizard - Witte zijkanten, groene 1600px midden */}
+      <div className="bg-white min-h-screen">
+        <div className="flex min-h-screen">
+          {/* Witte zijbalk links */}
+          <div className="hidden lg:flex flex-1"></div>
+          
+          {/* Groene 1600px midden */}
+          <div className="w-full lg:w-[1552px] bg-gradient-to-b from-[#e7f3f4] to-[#e7f3f3]">
+            <WizardLayout left={left} middle={middle} right={right} />
+          </div>
+          
+          {/* Witte zijbalk rechts */}
+          <div className="hidden lg:flex flex-1"></div>
+        </div>
+      </div>
+      
+      <Footer />
     </ToastProvider>
   );
 }

@@ -1,7 +1,24 @@
-// stores/uiStore.ts
-export * from '@/lib/stores/useUiStore';
-import def from '@/lib/stores/useUiStore';
-export default def;
+'use client';
 
-// Extra alias
-export const useUiStore = def;
+import { create } from 'zustand';
+import type { ChapterKey } from '@/types/wizard';
+
+interface UIState {
+  currentChapter: ChapterKey;
+  focusedField?: string; // format: "chapter:fieldId"
+  isLoading: boolean;
+  
+  setCurrentChapter: (ch: ChapterKey) => void;
+  setFocusedField: (field?: string) => void;
+  setIsLoading: (loading: boolean) => void;
+}
+
+export const useUiStore = create<UIState>((set) => ({
+  currentChapter: 'basis',
+  focusedField: undefined,
+  isLoading: false,
+  
+  setCurrentChapter: (ch) => set({ currentChapter: ch }),
+  setFocusedField: (field) => set({ focusedField: field }),
+  setIsLoading: (loading) => set({ isLoading: loading }),
+}));

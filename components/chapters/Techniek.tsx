@@ -46,11 +46,12 @@ const PV = [
 ] as const;
 
 export default function Techniek() {
-  const flow = useWizardState((s) => s.chapterFlow);
-  const current = useWizardState((s) => s.currentChapter);
+  // ✅ FIX: Voeg fallbacks toe
+  const flow = useWizardState((s) => s.chapterFlow) ?? [];
+  const current = useWizardState((s) => s.currentChapter) ?? CHAPTER_KEY;
   const goTo = useWizardState((s) => s.goToChapter);
   const setAnswer = useWizardState((s) => s.setChapterAnswer);
-  const saved = useWizardState((s) => s.chapterAnswers[CHAPTER_KEY] as TechnicalPrefs | undefined);
+  const saved = useWizardState((s) => s.chapterAnswers?.[CHAPTER_KEY] as TechnicalPrefs | undefined);
 
   const [form, setForm] = useState<TechnicalPrefs>(
     saved ?? {
@@ -64,23 +65,51 @@ export default function Techniek() {
     }
   );
 
-  const nextKey = useMemo(() => flow[flow.indexOf(current) + 1] ?? "preview", [flow, current]);
-  const prevKey = useMemo(() => flow[flow.indexOf(current) - 1], [flow, current]);
+  // ✅ FIX: Safe index calculation
+  const index = useMemo(() => {
+    if (!Array.isArray(flow) || flow.length === 0) return -1;
+    return flow.indexOf(current);
+  }, [flow, current]);
 
+  const nextKey = useMemo(() => {
+    if (!Array.isArray(flow) || flow.length === 0) return "preview";
+    if (index === -1 || index >= flow.length - 1) return "preview";
+    return flow[index + 1] ?? "preview";
+  }, [flow, index]);
+
+  const prevKey = useMemo(() => {
+    if (!Array.isArray(flow) || index <= 0) return undefined;
+    return flow[index - 1];
+  }, [flow, index]);
+
+  // ✅ Commit naar store (communicatie met Chat + andere chapters)
   const commit = (patch: Partial<TechnicalPrefs>) => {
     const next = { ...form, ...patch };
     setForm(next);
-    setAnswer(CHAPTER_KEY, next);
+    // Dit schrijft naar useWizardState.chapterAnswers.techniek
+    if (setAnswer) {
+      setAnswer(CHAPTER_KEY, next);
+    }
   };
 
-  const goNext = () => goTo(nextKey);
+  const goNext = () => {
+    if (goTo) {
+      goTo(nextKey);
+    }
+  };
+
+  const goPrev = () => {
+    if (goTo && prevKey) {
+      goTo(prevKey);
+    }
+  };
 
   return (
     <section className="space-y-6">
       <header>
         <h2 className="text-lg font-semibold">Techniek</h2>
         <p className="text-xs text-gray-600">
-          <strong>Uitleg:</strong> selecteer je <em>voorkeur</em> per onderdeel. Onzeker? Kies “Weet ik nog niet / n.v.t.”.
+          <strong>Uitleg:</strong> selecteer je <em>voorkeur</em> per onderdeel. Onzeker? Kies "Weet ik nog niet / n.v.t.".
         </p>
       </header>
 
@@ -92,7 +121,9 @@ export default function Techniek() {
             value={form.buildMethod}
             onChange={(e) => commit({ buildMethod: e.target.value as BuildMethod })}
           >
-            {BUILD_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+            {BUILD_METHODS.map((m) => (
+              <option key={m.value} value={m.value}>{m.label}</option>
+            ))}
           </select>
           <p className="text-[11px] text-gray-500 mt-1">Materiaal/systeem van het casco.</p>
         </label>
@@ -104,7 +135,9 @@ export default function Techniek() {
             value={form.ventilation}
             onChange={(e) => commit({ ventilation: e.target.value as Ventilation })}
           >
-            {VENTILATION.map((v) => <option key={v.value} value={v.value}>{v.label}</option>)}
+            {VENTILATION.map((v) => (
+              <option key={v.value} value={v.value}>{v.label}</option>
+            ))}
           </select>
           <p className="text-[11px] text-gray-500 mt-1">Binnenluchtkwaliteit en afvoer.</p>
         </label>
@@ -116,7 +149,9 @@ export default function Techniek() {
             value={form.heating}
             onChange={(e) => commit({ heating: e.target.value as Heating })}
           >
-            {HEATING.map((h) => <option key={h.value} value={h.value}>{h.label}</option>)}
+            {HEATING.map((h) => (
+              <option key={h.value} value={h.value}>{h.label}</option>
+            ))}
           </select>
           <p className="text-[11px] text-gray-500 mt-1">Primaire warmteopwekking.</p>
         </label>
@@ -128,7 +163,9 @@ export default function Techniek() {
             value={form.cooling}
             onChange={(e) => commit({ cooling: e.target.value as Cooling })}
           >
-            {COOLING.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+            {COOLING.map((c) => (
+              <option key={c.value} value={c.value}>{c.label}</option>
+            ))}
           </select>
           <p className="text-[11px] text-gray-500 mt-1">Comfort in warme periodes.</p>
         </label>
@@ -140,7 +177,9 @@ export default function Techniek() {
             value={form.pv}
             onChange={(e) => commit({ pv: e.target.value as PvPreference })}
           >
-            {PV.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+            {PV.map((p) => (
+              <option key={p.value} value={p.value}>{p.label}</option>
+            ))}
           </select>
           <p className="text-[11px] text-gray-500 mt-1">Mate van ambitie voor opwek.</p>
         </label>
@@ -170,10 +209,23 @@ export default function Techniek() {
         />
       </label>
 
-      <div className="flex items-center">
-        {prevKey && <button type="button" className="px-3 py-2 border rounded" onClick={() => goTo(prevKey)}>← Vorige</button>}
-        <button type="button" className="ml-auto px-3 py-2 border rounded bg-black text-white" onClick={goNext}>
-          Opslaan & Verder
+      {/* Navigation buttons */}
+      <div className="flex items-center gap-2">
+        {prevKey && (
+          <button 
+            type="button" 
+            className="px-4 py-2 border rounded hover:bg-gray-50 transition"
+            onClick={goPrev}
+          >
+            ← Vorige
+          </button>
+        )}
+        <button 
+          type="button" 
+          className="ml-auto px-4 py-2 border rounded bg-[#0d3d4d] text-white hover:opacity-90 transition"
+          onClick={goNext}
+        >
+          Opslaan & Verder →
         </button>
       </div>
     </section>

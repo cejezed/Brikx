@@ -1,11 +1,10 @@
-// app/wizard/layout.tsx
 'use client';
 
 import React from 'react';
 
-// Gebruik óf je eigen shadcn provider, óf de shim (zelfde API)
+// Gebruik je eigen provider (shadcn) of de shim hieronder
 import { ToastProvider } from '@/components/ui/toast';
-import { ToasterShim as Toaster } from '@/components/ui/toast'; // of jouw eigen <Toaster />
+import { ToasterShim as Toaster } from '@/components/ui/toast'; // vervang door jouw <Toaster /> indien aanwezig
 
 export default function WizardLayout({ children }: { children: React.ReactNode }) {
   return (

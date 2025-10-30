@@ -3,5 +3,5 @@ export * from '@/lib/stores/useWizardState';
 import def from '@/lib/stores/useWizardState';
 export default def;
 
-// Extra alias-naam die in code voorkomt:
+// Extra alias die sommige hoofdstukken gebruiken:
 export const useWizardStore = def;

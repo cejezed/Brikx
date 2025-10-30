@@ -1,4 +1,4 @@
-// components/chapters/Basis.tsx
+// components/chapters/Basis.tsx - FIXED
 'use client';
 
 import { useEffect, useMemo } from 'react';
@@ -11,52 +11,42 @@ type BasisAnswers = {
   locatie?: string;
   oppervlakteM2?: number | '';
   bewonersAantal?: number | '';
-  startMaand?: string; // YYYY-MM
+  startMaand?: string;
   toelichting?: string;
-  /** Optioneel: budget op de Basis-tab (gespiegeld naar budget.budgetTotaal) */
-  budgetIndicatie?: number | null;
 };
 
 export default function ChapterBasis() {
-  // — state uit store
   const chapterAnswers = useWizardState((s) => s.chapterAnswers) as Record<string, any>;
-  const setChapterAnswers = useWizardState((s) => (s as any).setChapterAnswers); // (all: object) compat
+  const patchChapterAnswer = useWizardState((s) => s.patchChapterAnswer);
   const triage = useWizardState((s) => s.triage);
-
-  // — UI-store (alleen currentChapter bijhouden)
   const setCurrentChapter = useUiStore((s) => s.setCurrentChapter);
+
   useEffect(() => {
-    setCurrentChapter('basis');
+    setCurrentChapter?.('basis');
   }, [setCurrentChapter]);
 
-  // — veilige view van basis
-  const basis: BasisAnswers = useMemo(() => ({ ...(chapterAnswers?.basis ?? {}) }), [chapterAnswers?.basis]);
+  const basis: BasisAnswers = useMemo(
+    () => ({ ...(chapterAnswers?.basis ?? {}) }),
+    [chapterAnswers?.basis]
+  );
 
-  // — helpers
-  const safeAll = () => ({ ...(chapterAnswers ?? {}), basis: { ...(basis ?? {}) } });
-
-  /** Schrijf alleen basis-velden */
+  // ===== GENERIEKE UPDATE VOOR BASIS-VELDEN =====
   function update<K extends keyof BasisAnswers>(key: K, value: BasisAnswers[K]) {
-    const nextBasis = { ...(basis ?? {}), [key]: value };
-    const nextAll = { ...(chapterAnswers ?? {}), basis: nextBasis };
-    setChapterAnswers(nextAll); // 1-arg variant: hele chapterAnswers opslaan
+    patchChapterAnswer('basis', { [key]: value });
   }
 
-  /** Schrijf budget en spiegel naar budget.budgetTotaal */
+  // ===== BUDGET UPDATE (spiegel naar budget chapter) =====
   function updateBudget(val: number | null) {
-    const nextBasis = { ...(basis ?? {}), budgetIndicatie: val };
-    const nextAll = {
-      ...(chapterAnswers ?? {}),
-      basis: nextBasis,
-      budget: {
-        ...((chapterAnswers ?? {}).budget ?? {}),
-        budgetTotaal: val,
-      },
-    };
-    setChapterAnswers(nextAll); // 1-arg variant
+    patchChapterAnswer('basis', { budgetIndicatie: val });
+    // SYNC naar budget chapter
+    patchChapterAnswer('budget', { budgetTotaal: val });
   }
 
-  // — labels
+  // ===== LEES BUDGET VAN BUDGET CHAPTER =====
+  const budgetFromStore = useMemo(() => {
+    return chapterAnswers?.budget?.budgetTotaal ?? null;
+  }, [chapterAnswers?.budget?.budgetTotaal]);
+
   const projectTypeLabel = useMemo(() => {
     const map: Record<string, string> = {
       nieuwbouw: 'Nieuwbouw',
@@ -74,34 +64,30 @@ export default function ChapterBasis() {
 
   return (
     <section className="space-y-6 max-w-3xl">
-      {/* top-anker voor spotlight */}
       <FocusTarget chapter="basis" fieldId="__chapterTop">
         <div />
       </FocusTarget>
 
-      {/* Contextkaartje – intake-samenvatting (veilig) */}
+      {/* Contextkaartje – intake-samenvatting */}
       <div className="rounded-xl border border-neutral-200 p-4 bg-neutral-50">
         <p className="text-sm text-neutral-700">
-          <span className="font-medium">Intake-overzicht:</span>{' '}
-          Projecttype <span className="font-medium">{projectTypeLabel}</span>,{' '}
-          Ervaring <span className="font-medium">{(triage as any)?.ervaring ?? '—'}</span>,{' '}
-          Urgentie <span className="font-medium">{triage?.urgentie ?? '—'}</span>,{' '}
-          Budget{' '}
+          <span className="font-medium">Intake-overzicht:</span> Projecttype{' '}
+          <span className="font-medium">{projectTypeLabel}</span>, Ervaring{' '}
+          <span className="font-medium">{(triage as any)?.ervaring ?? '—'}</span>, Urgentie{' '}
+          <span className="font-medium">{triage?.urgentie ?? '—'}</span>, Budget{' '}
           <span className="font-medium">
             €
             {Number(
-              // toon uit budget.budgetTotaal → anders basis.budgetIndicatie → anders triage.budget
-              (chapterAnswers?.budget?.budgetTotaal ??
-                basis?.budgetIndicatie ??
-                (triage as any)?.budget ??
-                0) as number
+              budgetFromStore ??
+              basis?.budgetIndicatie ??
+              (triage as any)?.budget ??
+              0
             ).toLocaleString('nl-NL')}
           </span>
           .
         </p>
         <p className="text-xs text-neutral-500 mt-1">
-          Wijzigingen aan Intake kan u in het tabblad <em>Intake</em> doen; Basis gaat over de kerngegevens van uw
-          dossier.
+          Wijzigingen aan Intake kan u in het tabblad <em>Intake</em> doen.
         </p>
       </div>
 
@@ -172,7 +158,7 @@ export default function ChapterBasis() {
         </FocusTarget>
       </div>
 
-      {/* Start maand */}
+      {/* Start maand + Budget */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FocusTarget chapter="basis" fieldId="startMaand">
           <label className="block">
@@ -186,7 +172,7 @@ export default function ChapterBasis() {
           </label>
         </FocusTarget>
 
-        {/* Budget (optioneel) – gespiegeld naar budget.budgetTotaal */}
+        {/* Budget - SYNCED VAN BUDGET CHAPTER */}
         <FocusTarget chapter="basis" fieldId="budgetIndicatie">
           <label className="block">
             <span className="block text-sm font-medium mb-1">Budget (indicatie)</span>
@@ -194,13 +180,7 @@ export default function ChapterBasis() {
               inputMode="numeric"
               pattern="[0-9]*"
               className="w-full border rounded px-3 py-2"
-              value={(() => {
-                const v =
-                  chapterAnswers?.budget?.budgetTotaal ??
-                  basis?.budgetIndicatie ??
-                  null;
-                return v === null || v === undefined ? '' : String(v);
-              })()}
+              value={budgetFromStore ?? ''}
               onChange={(e) => {
                 const raw = e.target.value.replace(/\D+/g, '');
                 updateBudget(raw === '' ? null : Number(raw));
@@ -208,7 +188,7 @@ export default function ChapterBasis() {
               placeholder="bijv. 250000"
             />
             <span className="block text-xs text-neutral-500 mt-1">
-              Wordt automatisch gespiegeld naar het tabblad <em>Budget</em>.
+              Gesynced met Budget-tabblad.
             </span>
           </label>
         </FocusTarget>
