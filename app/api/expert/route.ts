@@ -2,7 +2,7 @@
 export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { queryRag } from "@/lib/ai/rag";
-import { logEvent } from "@/lib/server/log";
+import { serverLog } from "@/lib/server/log"; // 👈 Hier de fix
 
 export async function POST(req: Request) {
   try {

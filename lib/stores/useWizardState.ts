@@ -41,12 +41,14 @@ export interface WizardState {
   answers: ChapterAnswers;
 
   currentChapter: ChapterKey;
+  chapterFlow?: string[]; // ✅ FIX #1: Dynamic ordered chapters from generateChapters
 
   // navigatie
   goToChapter: (ch: ChapterKey) => void;
   // back-compat aliassen
   setCurrentChapter: (ch: ChapterKey) => void;
   setChapter: (ch: ChapterKey) => void;
+  setChapterFlow: (flow: string[]) => void; // ✅ FIX #2: New method to set chapter flow
 
   // triage management (router/gatekeeper)
   setTriage: (val: WizardState['triage']) => void;
@@ -109,10 +111,12 @@ export const useWizardState = create<WizardState>()(
       answers: { ...DEFAULTS }, // mirror
 
       currentChapter: 'basis',
+      chapterFlow: undefined, // ✅ FIX #1: Initialize empty
 
       goToChapter: (ch) => set({ currentChapter: ch }),
       setCurrentChapter: (ch) => set({ currentChapter: ch }),
       setChapter: (ch) => set({ currentChapter: ch }),
+      setChapterFlow: (flow) => set({ chapterFlow: flow }), // ✅ FIX #3: Implementation
 
       // triage methods
       setTriage: (val) => set({ triage: val }),
@@ -170,6 +174,7 @@ export const useWizardState = create<WizardState>()(
             chapterAnswers: { ...DEFAULTS },
             answers: { ...DEFAULTS },
             currentChapter: 'basis',
+            chapterFlow: undefined, // ✅ FIX #1: Initialize on migration
           } as Partial<WizardState>;
         }
 
@@ -187,11 +192,15 @@ export const useWizardState = create<WizardState>()(
         // triage fallback
         const triage = persisted.triage ?? { ...DEFAULT_TRIAGE };
 
+        // chapterFlow fallback - ✅ FIX #1: Preserve from persisted if exists
+        const chapterFlow = persisted.chapterFlow ?? undefined;
+
         return {
           triage,
           chapterAnswers: normalized,
           answers: normalized,
           currentChapter,
+          chapterFlow, // ✅ FIX #1: Include in migration
         } as Partial<WizardState>;
       },
       // alleen relevante keys opslaan
@@ -200,6 +209,7 @@ export const useWizardState = create<WizardState>()(
         chapterAnswers: s.chapterAnswers,
         answers: s.answers,
         currentChapter: s.currentChapter,
+        chapterFlow: s.chapterFlow, // ✅ FIX #4: Add to localStorage persistence
       }),
     }
   )

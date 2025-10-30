@@ -1,0 +1,303 @@
+import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import type { DocumentStatus } from './DossierChecklist';
+
+const styles = StyleSheet.create({
+  page: {
+    padding: 40,
+    fontSize: 11,
+    fontFamily: 'Helvetica',
+  },
+  header: {
+    marginBottom: 20,
+    borderBottom: '2 solid #1A3E4C',
+    paddingBottom: 10,
+  },
+  title: {
+    fontSize: 24,
+    color: '#1A3E4C',
+    marginBottom: 5,
+  },
+  subtitle: {
+    fontSize: 12,
+    color: '#666',
+  },
+  section: {
+    marginTop: 20,
+    marginBottom: 15,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#1A3E4C',
+    marginBottom: 10,
+    backgroundColor: '#F5F7F9',
+    padding: 8,
+  },
+  field: {
+    marginBottom: 8,
+    paddingLeft: 10,
+  },
+  fieldLabel: {
+    fontSize: 10,
+    color: '#666',
+    marginBottom: 3,
+  },
+  fieldValue: {
+    fontSize: 11,
+    color: '#000',
+  },
+  watermark: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%) rotate(-45deg)',
+    fontSize: 60,
+    color: '#E0E0E0',
+    opacity: 0.3,
+  },
+  disclaimer: {
+    marginTop: 30,
+    padding: 15,
+    backgroundColor: '#FFF9E6',
+    border: '1 solid #FFD700',
+    fontSize: 9,
+    color: '#666',
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 30,
+    left: 40,
+    right: 40,
+    textAlign: 'center',
+    fontSize: 9,
+    color: '#999',
+  },
+});
+
+interface PveTemplateProps {
+  // ✅ FIX: Match your actual wizard data structure
+  data: {
+    triage?: any;
+    basis?: any;
+    wensen?: any;
+    budget?: any;
+    ruimtes?: any;
+    techniek?: any;
+    duurzaamheid?: any;
+    risico?: any;
+  };
+  isPremium: boolean;
+  documentStatus?: DocumentStatus | null;
+}
+
+export const PveTemplate = ({ data, isPremium, documentStatus }: PveTemplateProps) => {
+  // ✅ FIX: Extract data from your wizard structure
+  const basis = data.basis || {};
+  const triage = data.triage || {};
+  const wensen = data.wensen || {};
+  const budget = data.budget || {};
+  const ruimtes = data.ruimtes || [];
+  const techniek = data.techniek || {};
+  const duurzaamheid = data.duurzaamheid || {};
+
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        
+        {!isPremium && (
+          <Text style={styles.watermark}>BRIKX PREVIEW</Text>
+        )}
+
+        <View style={styles.header}>
+          <Text style={styles.title}>Programma van Eisen</Text>
+          <Text style={styles.subtitle}>
+            Gegenereerd door Brikx • {new Date().toLocaleDateString('nl-NL')}
+          </Text>
+        </View>
+
+        {/* SECTION 1: PROJECT BASIS */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>1. Projectbasis</Text>
+          
+          {triage.projectType && (
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Projecttype</Text>
+              <Text style={styles.fieldValue}>{triage.projectType}</Text>
+            </View>
+          )}
+          
+          {basis.projectNaam && (
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Projectnaam</Text>
+              <Text style={styles.fieldValue}>{basis.projectNaam}</Text>
+            </View>
+          )}
+
+          {basis.locatie && (
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Locatie</Text>
+              <Text style={styles.fieldValue}>{basis.locatie}</Text>
+            </View>
+          )}
+
+          {basis.beschrijving && (
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Beschrijving</Text>
+              <Text style={styles.fieldValue}>{basis.beschrijving}</Text>
+            </View>
+          )}
+
+          {basis.oppervlakte && (
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Oppervlakte</Text>
+              <Text style={styles.fieldValue}>{basis.oppervlakte} m²</Text>
+            </View>
+          )}
+        </View>
+
+        {/* SECTION 2: BUDGET (Premium only) */}
+        {isPremium && budget.bedrag && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>2. Budget</Text>
+            
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Budget</Text>
+              <Text style={styles.fieldValue}>€ {budget.bedrag.toLocaleString('nl-NL')}</Text>
+            </View>
+
+            {budget.fasering && (
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Fasering</Text>
+                <Text style={styles.fieldValue}>{budget.fasering}</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* SECTION 3: RUIMTES */}
+        {ruimtes && ruimtes.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>3. Ruimtes</Text>
+            
+            {ruimtes.map((ruimte: any, idx: number) => (
+              <View key={idx} style={styles.field}>
+                <Text style={styles.fieldLabel}>{ruimte.naam}</Text>
+                {ruimte.oppervlakte && (
+                  <Text style={styles.fieldValue}>
+                    • Oppervlakte: {ruimte.oppervlakte} m²
+                  </Text>
+                )}
+                {ruimte.wensen && ruimte.wensen.length > 0 && (
+                  <Text style={styles.fieldValue}>
+                    • Wensen: {ruimte.wensen.join(', ')}
+                  </Text>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* SECTION 4: WENSEN */}
+        {wensen && Array.isArray(wensen) && wensen.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>4. Wensen & Prioriteiten</Text>
+            
+            {wensen.map((wish: any, idx: number) => (
+              <View key={idx} style={styles.field}>
+                <Text style={styles.fieldValue}>
+                  • {typeof wish === 'string' ? wish : wish.text || JSON.stringify(wish)}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* SECTION 5: TECHNIEK (Premium only) */}
+        {isPremium && techniek && Object.keys(techniek).length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>5. Techniek & Installaties</Text>
+            
+            {Object.entries(techniek).map(([key, value]: [string, any], idx) => (
+              value && (
+                <View key={idx} style={styles.field}>
+                  <Text style={styles.fieldLabel}>{key}</Text>
+                  <Text style={styles.fieldValue}>{String(value)}</Text>
+                </View>
+              )
+            ))}
+          </View>
+        )}
+
+        {/* SECTION 6: DUURZAAMHEID (Premium only) */}
+        {isPremium && duurzaamheid && Object.keys(duurzaamheid).length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>6. Duurzaamheid</Text>
+            
+            {Object.entries(duurzaamheid).map(([key, value]: [string, any], idx) => (
+              value && (
+                <View key={idx} style={styles.field}>
+                  <Text style={styles.fieldLabel}>{key}</Text>
+                  <Text style={styles.fieldValue}>{String(value)}</Text>
+                </View>
+              )
+            ))}
+          </View>
+        )}
+
+        {/* SECTION 7: DOCUMENT STATUS */}
+        {documentStatus && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>7. Projectdossier</Text>
+            
+            {documentStatus.moodboard !== null && (
+              <View style={styles.field}>
+                <Text style={styles.fieldValue}>
+                  • Moodboard: {documentStatus.moodboard ? 'Beschikbaar ✓' : 'Niet beschikbaar'}
+                </Text>
+              </View>
+            )}
+            
+            {documentStatus.existingDrawings !== null && (
+              <View style={styles.field}>
+                <Text style={styles.fieldValue}>
+                  • Bouwtekeningen: {documentStatus.existingDrawings ? 'Beschikbaar ✓' : 'Niet beschikbaar'}
+                </Text>
+              </View>
+            )}
+            
+            {documentStatus.kavelpaspoort !== null && (
+              <View style={styles.field}>
+                <Text style={styles.fieldValue}>
+                  • Kavelpaspoort: {documentStatus.kavelpaspoort ? 'Beschikbaar ✓' : 'Niet beschikbaar'}
+                </Text>
+              </View>
+            )}
+            
+            {documentStatus.existingPermits !== null && (
+              <View style={styles.field}>
+                <Text style={styles.fieldValue}>
+                  • Vergunningen: {documentStatus.existingPermits ? 'Beschikbaar ✓' : 'Niet beschikbaar'}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        <View style={styles.disclaimer}>
+          <Text>
+            Dit document is gegenereerd door Brikx en dient als uitgangspunt voor verder onderzoek. 
+            Het vervangt geen professioneel advies van een architect, aannemer of andere bouwprofessionals. 
+            Aan deze indicaties kunnen geen rechten worden ontleend.
+          </Text>
+        </View>
+
+        <Text style={styles.footer}>
+          Brikx • Slim bouwen zonder spijt • www.brikx.nl
+        </Text>
+
+      </Page>
+    </Document>
+  );
+};
+
+export default PveTemplate;

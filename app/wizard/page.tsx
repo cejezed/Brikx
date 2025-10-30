@@ -1,4 +1,3 @@
-// app/wizard/page.tsx
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -11,13 +10,19 @@ import Header from "@/components/Header";
 import BrikxHero from "@/components/HeroWizard";
 import Footer from "@/components/Footer";
 
-// Lazy
+// Lazy load chapters
 const IntakeForm = dynamic(() => import('@/components/intake/IntakeForm'), { ssr: false });
-const WizardRouter = dynamic(() => import('@/components/wizard/WizardRouter'), { ssr: false });
+const Basis = dynamic(() => import('@/components/chapters/Basis'), { ssr: false });
+const Wensen = dynamic(() => import('@/components/chapters/Wensen'), { ssr: false });
+const Ruimtes = dynamic(() => import('@/components/chapters/Ruimtes'), { ssr: false });
+const Budget = dynamic(() => import('@/components/chapters/Budget'), { ssr: false });
+const Techniek = dynamic(() => import('@/components/chapters/Techniek'), { ssr: false });
+const Duurzaamheid = dynamic(() => import('@/components/chapters/Duurzaamheid'), { ssr: false });
+const Risico = dynamic(() => import('@/components/chapters/Risico'), { ssr: false });
+const Preview = dynamic(() => import('@/components/chapters/Preview'), { ssr: false });
 const ChatPanel = dynamic(() => import('@/components/chat/ChatPanel'), { ssr: false });
 const ExpertCorner = dynamic(() => import('@/components/expert/ExpertCorner'), { ssr: false });
 
-// Fallback boundary
 class Boundary extends React.Component<{ label: string; children: React.ReactNode }, { err?: string }> {
   state = { err: undefined as string | undefined };
   static getDerivedStateFromError(e: any) { return { err: e?.message || 'Onbekende fout' }; }
@@ -34,27 +39,43 @@ class Boundary extends React.Component<{ label: string; children: React.ReactNod
 export default function WizardPage() {
   const currentChapter = useWizardState((s: any) => s.currentChapter);
   const goToChapter = useWizardState((s: any) => s.goToChapter);
+  const chapterFlow = useWizardState((s: any) => s.chapterFlow);
 
-  const tabs: ChapterTab[] = [
-    { id: 'intake',       title: 'Start' },
-    { id: 'basis',        title: 'Basisgegevens' },
-    { id: 'wensen',       title: 'Wensen' },
-    { id: 'budget',       title: 'Budget' },
-    { id: 'ruimtes',      title: 'Ruimtes' },
-    { id: 'techniek',     title: 'Techniek' },
-    { id: 'duurzaamheid', title: 'Duurzaamheid' },
-    { id: 'risico',       title: "Risico's" },
-    { id: 'preview',      title: 'Preview' },
-  ];
+  // ============================================================
+  // DYNAMISCHE TABS gebaseerd op chapterFlow
+  // ============================================================
+  const tabs: ChapterTab[] = useMemo(() => {
+    const baseTabs = [{ id: 'intake', title: 'Start' }];
+    
+    if (chapterFlow && Array.isArray(chapterFlow) && chapterFlow.length > 0) {
+      const chapterTitles: Record<string, string> = {
+        basis: 'Basisgegevens',
+        wensen: 'Wensen',
+        budget: 'Budget',
+        ruimtes: 'Ruimtes',
+        techniek: 'Techniek',
+        duurzaamheid: 'Duurzaamheid',
+        risico: "Risico's",
+        preview: 'Preview',
+      };
+      
+      const flowTabs = chapterFlow.map((ch: string) => ({
+        id: ch,
+        title: chapterTitles[ch] || ch,
+      }));
+      
+      return [...baseTabs, ...flowTabs];
+    }
+    
+    return baseTabs;
+  }, [chapterFlow]);
 
   const [active, setActive] = useState<string>(currentChapter ?? tabs[0].id);
 
-  // store → UI
   useEffect(() => {
     if (currentChapter && currentChapter !== active) setActive(currentChapter);
-  }, [currentChapter]);
+  }, [currentChapter, active]);
 
-  // UI → store
   const onTabChange = (id: string) => {
     setActive(id);
     goToChapter(id);
@@ -65,17 +86,32 @@ export default function WizardPage() {
     [active, tabs]
   );
 
-  // Linkerkolom (ongewijzigd)
+  // Chapter component map
+  const chapterMap = {
+    intake: IntakeForm,
+    basis: Basis,
+    wensen: Wensen,
+    ruimtes: Ruimtes,
+    budget: Budget,
+    techniek: Techniek,
+    duurzaamheid: Duurzaamheid,
+    risico: Risico,
+    preview: Preview,
+  };
+
+  const ActiveChapter = chapterMap[active as keyof typeof chapterMap] || IntakeForm;
+
+  // Linkerkolom: Chat
   const left = (
     <Boundary label="ChatPanel">
       <ChatPanel />
     </Boundary>
   );
 
-  // Middenkolom – compacter: 1 kaart, geen dubbele borders/strepen
+  // Middenkolom: Tabs + Content
   const middle = (
     <div className="space-y-4">
-      {/* Tabs BOVENAAN in de middenkolom en altijd volledig zichtbaar (wrap) */}
+      {/* Tabs */}
       <div className="bg-white rounded-2xl shadow-sm ring-1 ring-black/5">
         <div className="px-3 md:px-5 py-2">
           <div className="hidden md:block">
@@ -97,7 +133,7 @@ export default function WizardPage() {
         </div>
       </div>
 
-      {/* Inhoud – 1 enkele kaart, geen extra binnenkaders */}
+      {/* Content */}
       <div className="bg-white rounded-2xl shadow-sm ring-1 ring-black/5">
         <div className="p-4 md:p-6" id={`panel-${active}`}>
           {active === 'intake' ? (
@@ -107,14 +143,14 @@ export default function WizardPage() {
                 Kies eerst je projectvariant. Daarna verschijnen de vervolgstappen.
               </p>
               <Boundary label="IntakeForm">
-                <IntakeForm />
+                <ActiveChapter />
               </Boundary>
             </>
           ) : (
             <>
               <h2 className="text-base md:text-lg font-semibold mb-3">{tabs[activeIndex].title}</h2>
-              <Boundary label="WizardRouter">
-                <WizardRouter activeId={active} onChange={onTabChange} />
+              <Boundary label={active}>
+                <ActiveChapter />
               </Boundary>
             </>
           )}
@@ -123,6 +159,7 @@ export default function WizardPage() {
     </div>
   );
 
+  // Rechterkolom: Expert Corner
   const right = (
     <Boundary label="ExpertCorner">
       <ExpertCorner />
@@ -134,18 +171,12 @@ export default function WizardPage() {
       <Header />
       <BrikxHero />
       
-      {/* Wizard - Witte zijkanten, groene 1600px midden */}
       <div className="bg-white min-h-screen">
         <div className="flex min-h-screen">
-          {/* Witte zijbalk links */}
           <div className="hidden lg:flex flex-1"></div>
-          
-          {/* Groene 1600px midden */}
           <div className="w-full lg:w-[1552px] bg-gradient-to-b from-[#e7f3f4] to-[#e7f3f3]">
             <WizardLayout left={left} middle={middle} right={right} />
           </div>
-          
-          {/* Witte zijbalk rechts */}
           <div className="hidden lg:flex flex-1"></div>
         </div>
       </div>

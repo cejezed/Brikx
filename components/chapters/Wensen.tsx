@@ -1,7 +1,6 @@
-// components/chapters/Wensen.tsx
 'use client';
 
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import FocusTarget from '@/components/wizard/FocusTarget';
 import { useWizardState } from '@/lib/stores/useWizardState';
 import { useUiStore } from '@/lib/stores/useUiStore';
@@ -10,64 +9,77 @@ import type { WishItem, WishPriority } from '@/types/project';
 
 const CHAPTER_KEY: ChapterKey = 'wensen';
 
+// 🔸 1. Uitgebreide prioriteitenlijst incl. "Absoluut niet"
 const PRIORITIES: { value: WishPriority; label: string; hint: string }[] = [
   { value: 'unknown', label: 'Weet ik nog niet / n.v.t.', hint: 'Later prioriteren is prima.' },
-  { value: 'must',    label: 'Must-have',                 hint: 'Moet erin, kern voor succes.' },
-  { value: 'nice',    label: 'Nice-to-have',              hint: 'Gewenst, maar niet cruciaal.' },
-  { value: 'future',  label: 'Toekomst-optie',            hint: 'Kan in fase 2 / later.' },
+  { value: 'must', label: 'Must-have', hint: 'Moet erin, kern voor succes.' },
+  { value: 'nice', label: 'Nice-to-have', hint: 'Gewenst, maar niet cruciaal.' },
+  { value: 'future', label: 'Toekomst-optie', hint: 'Kan in fase 2 / later.' },
+  { value: 'exclude', label: 'Absoluut niet (Uitsluiting)', hint: 'U wilt dit expliciet vermijden.' },
 ];
 
 export default function Wensen() {
   const uid = useId();
+  const { setCurrentChapter, focusedField, setFocusedField } = useUiStore();
 
-  // Houd huidige tab bij (consistent met Ruimtes/Basis)
-  const setCurrentChapter = useUiStore((s) => s.setCurrentChapter);
-  useEffect(() => { setCurrentChapter?.('wensen'); }, [setCurrentChapter]);
+  // 🔹 Synchroniseer hoofdstuk bij laden
+  useEffect(() => setCurrentChapter?.('wensen'), [setCurrentChapter]);
 
-  // Store-koppeling
+  // 🔹 Koppeling aan wizardstate
+  const getState = useWizardState.getState;
   const answers = useWizardState((s) => s.chapterAnswers[CHAPTER_KEY] as WishItem[] | undefined);
   const setAnswer = useWizardState((s) => s.setChapterAnswer);
 
-  // Lokale werkbuffer zodat je tijdens typen geen jitter krijgt
   const [wishes, setWishes] = useState<WishItem[]>(Array.isArray(answers) ? answers : []);
 
-  // Als store verandert elders, sync éénmalig in (bij mount of wanneer answers wisselt)
   useEffect(() => {
     if (Array.isArray(answers)) setWishes(answers);
   }, [answers]);
 
+  // 🔸 Betrouwbare commit via store
   const commit = (next: WishItem[]) => {
     setWishes(next);
     setAnswer(CHAPTER_KEY, next);
   };
 
+  // 🔸 3. "Spotlight-lus" bij toevoegen
   const addWish = () => {
-    commit([
-      ...wishes,
-      { id: `${uid}-${wishes.length + 1}`, label: '', confirmed: false, priority: 'unknown' },
-    ]);
+    const id = `${uid}-${Date.now()}`;
+    const next = [
+      ...getState().chapterAnswers[CHAPTER_KEY] ?? [],
+      { id, label: '', confirmed: false, priority: 'unknown' as WishPriority },
+    ];
+    commit(next);
+    // focus direct op nieuwe wens
+    setTimeout(() => setFocusedField({ chapter: 'wensen', fieldId: `label_${id}` }), 50);
   };
 
+  // 🔸 5. State-management zonder stale state
   const updateWish = (idx: number, patch: Partial<WishItem>) => {
-    commit(wishes.map((w, i) => (i === idx ? { ...w, ...patch } : w)));
+    const current = getState().chapterAnswers[CHAPTER_KEY] as WishItem[] || [];
+    const next = current.map((w, i) => (i === idx ? { ...w, ...patch } : w));
+    commit(next);
   };
 
   const removeWish = (idx: number) => {
-    commit(wishes.filter((_, i) => i !== idx));
+    const current = getState().chapterAnswers[CHAPTER_KEY] as WishItem[] || [];
+    const next = current.filter((_, i) => i !== idx);
+    commit(next);
   };
 
   const currentHint = (prio: WishPriority | undefined) =>
     PRIORITIES.find((p) => p.value === (prio ?? 'unknown'))?.hint ?? '';
 
+  // 🔹 Render
   return (
     <section className="space-y-5 max-w-3xl">
-      {/* Header zoals Ruimtes: titel + primaire actie rechtsboven */}
+      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-sm md:text-base font-semibold text-gray-900">Wensen</h2>
+          <h2 className="text-sm md:text-base font-semibold text-gray-900">Wensen & Anti-wensen</h2>
           <p className="text-xs text-gray-600">
-            Voeg concrete wensen toe (kort omschreven) en kies een <em>prioriteit</em> (MoSCoW).
-            Onzeker? Kies “Weet ik nog niet / n.v.t.” — prioriteren kan later.
+            Beschrijf wat u belangrijk vindt — en ook wat u juist <strong>niet</strong> wilt.
+            Jules herkent zo tegenstrijdigheden en helpt u prioriteiten stellen.
           </p>
         </div>
         <button
@@ -79,7 +91,7 @@ export default function Wensen() {
         </button>
       </div>
 
-      {/* Lijst */}
+      {/* Lijst van wensen */}
       <div className="space-y-3">
         {wishes.map((w, i) => (
           <div
@@ -87,16 +99,17 @@ export default function Wensen() {
             className="rounded-xl border border-[var(--brx-ring)] bg-white shadow-[0_8px_24px_rgba(16,125,130,.08)] p-4 md:p-5"
           >
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* 🔸 2. textarea i.p.v. input */}
               <FocusTarget chapter="wensen" fieldId={`label_${w.id}`}>
                 <div>
                   <label className="block text-xs mb-1 text-gray-600">Omschrijving</label>
-                  <input
-                    className="w-full border rounded px-2 py-1.5"
+                  <textarea
+                    className="w-full border rounded px-2 py-1.5 min-h-[60px]"
                     value={w.label}
                     onChange={(e) => updateWish(i, { label: e.target.value })}
-                    placeholder="bv. kookeiland, lichtstraat, schuifpui"
+                    placeholder="bv. kookeiland, lichtstraat, schuifpui, géén open keuken..."
                   />
-                  <p className="text-[11px] text-gray-500 mt-1">Houd het kort en concreet.</p>
+                  <p className="text-[11px] text-gray-500 mt-1">Omschrijf kort en natuurlijk.</p>
                 </div>
               </FocusTarget>
 
@@ -119,37 +132,29 @@ export default function Wensen() {
                 </div>
               </FocusTarget>
 
+              {/* Acties */}
               <div className="flex items-end justify-end">
-                <div className="flex gap-3">
-                  <label className="inline-flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={!!w.confirmed}
-                      onChange={(e) => updateWish(i, { confirmed: e.target.checked })}
-                    />
-                    <span className="text-sm">Bevestigd</span>
-                  </label>
-                  <button
-                    type="button"
-                    className="text-sm text-red-600 hover:underline"
-                    onClick={() => removeWish(i)}
-                  >
-                    Verwijderen
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="text-sm text-red-600 hover:underline"
+                  onClick={() => removeWish(i)}
+                >
+                  Verwijderen
+                </button>
               </div>
             </div>
           </div>
         ))}
 
+        {/* 🔸 4. Versterkte lege staat met Jules-koppeling */}
         {wishes.length === 0 && (
           <div className="border rounded p-4 text-sm text-gray-600 bg-gray-50">
-            Nog geen wensen toegevoegd. Klik op <em>+ Wens</em> om te beginnen.
+            Nog geen wensen toegevoegd.<br />
+            Klik op <em>+ Wens</em> om te beginnen of typ gewoon in de chat:<br />
+            <span className="italic text-gray-500">“Ik wil een licht huis maar géén grote ramen.”</span>
           </div>
         )}
       </div>
-
-      {/* GEEN “Opslaan & Verder” meer — knop werkt nu exact als bij Ruimtes */}
     </section>
   );
 }

@@ -11,7 +11,9 @@ export type Action =
   | { type: 'patch'; chapter: string; patch: any }
   | { type: 'add_room'; room: { type: 'woonkamer' | 'keuken' | 'slaapkamer' | 'badkamer' | 'overig'; naam?: string; oppM2?: number; wensen?: string[] } }
   | { type: 'add_wens'; label: string }
-  | { type: 'remove_wens'; label: string };
+  | { type: 'remove_wens'; label: string }
+  // ✅ Nieuw: server kan handoff signaal sturen, UI opent modal in ChatPanel.tsx
+  | { type: 'handoff'; reason?: string };
 
 export type ChatApiResponse = {
   reply: string;
@@ -79,6 +81,11 @@ export function applyChatResponse(resp: ChatApiResponse | null | undefined) {
           const cur = toArray<{ id?: string; label?: string }>(ws.getChapterAnswer('wensen'));
           const next = cur.filter((w) => w.label !== a.label);
           ws.setChapterAnswer('wensen' as any, next);
+          break;
+        }
+        case 'handoff': {
+          // 🔔 Niets doen: ChatPanel opent de HumanHandoffModal op basis van de action.
+          // (optioneel) console.log('handoff suggested:', a.reason);
           break;
         }
         default:
