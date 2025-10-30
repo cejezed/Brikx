@@ -1,102 +1,51 @@
-// lib/chat/applyChatResponse.ts
-'use client';
+import type { ChatResponse, WizardState, Delta } from "@/types/chat";
 
-import { useWizardState } from '@/lib/stores/useWizardState';
-import { useUiStore } from '@/lib/stores/useUiStore';
+export type ApplyResult = { applied: boolean; reason?: string };
 
-export type Action =
-  | { type: 'goto'; chapter: 'basis' | 'wensen' | 'budget' | 'ruimtes' | 'techniek' | 'duurzaamheid' | 'risico' | 'preview' }
-  | { type: 'focus'; key: string } // "chapter:field"
-  | { type: 'set'; chapter: string; value: any }
-  | { type: 'patch'; chapter: string; patch: any }
-  | { type: 'add_room'; room: { type: 'woonkamer' | 'keuken' | 'slaapkamer' | 'badkamer' | 'overig'; naam?: string; oppM2?: number; wensen?: string[] } }
-  | { type: 'add_wens'; label: string }
-  | { type: 'remove_wens'; label: string }
-  // ✅ Nieuw: server kan handoff signaal sturen, UI opent modal in ChatPanel.tsx
-  | { type: 'handoff'; reason?: string };
-
-export type ChatApiResponse = {
-  reply: string;
-  actions: Action[];
-};
-
-function uuid() {
-  // @ts-ignore
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
-  return Math.random().toString(36).slice(2);
+function getAtPath(obj: any, path: string) {
+  return path.split(".").reduce((acc, key) => (acc ? acc[key] : undefined), obj);
 }
 
-function toArray<T = any>(v: any): T[] {
-  return Array.isArray(v) ? (v as T[]) : [];
+function setAtPath(obj: any, path: string, value: any) {
+  const parts = path.split(".");
+  const last = parts.pop()!;
+  const parent = parts.reduce((acc, key) => (acc[key] ??= {}), obj);
+  parent[last] = value;
 }
 
-export function applyChatResponse(resp: ChatApiResponse | null | undefined) {
-  if (!resp || !Array.isArray(resp.actions)) return;
-
-  const ws = useWizardState.getState();
-  const ui = useUiStore.getState();
-
-  for (const a of resp.actions) {
-    try {
-      switch (a.type) {
-        case 'goto': {
-          ws.goToChapter(a.chapter);
-          break;
-        }
-        case 'focus': {
-          ui.setFocusedField(a.key);
-          break;
-        }
-        case 'set': {
-          ws.setChapterAnswer(a.chapter as any, a.value);
-          break;
-        }
-        case 'patch': {
-          ws.patchChapterAnswer(a.chapter as any, a.patch);
-          break;
-        }
-        case 'add_room': {
-          const cur = toArray(ws.getChapterAnswer('ruimtes'));
-          const next = [
-            ...cur,
-            {
-              id: uuid(),
-              type: a.room.type,
-              naam: a.room.naam ?? a.room.type,
-              oppM2: a.room.oppM2,
-              wensen: toArray(a.room.wensen),
-            },
-          ];
-          ws.setChapterAnswer('ruimtes' as any, next);
-          ui.setFocusedField('ruimtes:naam');
-          break;
-        }
-        case 'add_wens': {
-          const cur = toArray(ws.getChapterAnswer('wensen'));
-          const next = [...cur, { id: uuid(), label: a.label }];
-          ws.setChapterAnswer('wensen' as any, next);
-          break;
-        }
-        case 'remove_wens': {
-          const cur = toArray<{ id?: string; label?: string }>(ws.getChapterAnswer('wensen'));
-          const next = cur.filter((w) => w.label !== a.label);
-          ws.setChapterAnswer('wensen' as any, next);
-          break;
-        }
-        case 'handoff': {
-          // 🔔 Niets doen: ChatPanel opent de HumanHandoffModal op basis van de action.
-          // (optioneel) console.log('handoff suggested:', a.reason);
-          break;
-        }
-        default:
-          // eslint-disable-next-line no-console
-          console.warn('[applyChatResponse] Unknown action ignored:', a);
-      }
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.warn('[applyChatResponse] Action failed:', a, err);
-    }
+function applyDelta(target: any, delta: Delta) {
+  const current = getAtPath(target, delta.path);
+  if (delta.kind === "number:add") {
+    const base = typeof current === "number" ? current : 0;
+    setAtPath(target, delta.path, base + (delta.value as number));
+  } else if (delta.kind === "array:append") {
+    const base = Array.isArray(current) ? current.slice() : [];
+    base.push(delta.value);
+    setAtPath(target, delta.path, base);
+  } else if (delta.kind === "object:merge") {
+    const base = typeof current === "object" && current ? { ...current } : {};
+    setAtPath(target, delta.path, { ...base, ...(delta.value as object) });
   }
 }
 
-export default applyChatResponse;
+export default function applyChatResponse(
+  r: ChatResponse,
+  state: WizardState
+): ApplyResult {
+  const { policy, patch } = r;
+  if (!patch) return { applied: false, reason: "no-patch" };
+
+  if (policy === "APPLY_OPTIMISTIC" || policy === "APPLY_WITH_INLINE_VERIFY") {
+    try {
+      state.chapterAnswers = state.chapterAnswers || {};
+      state.chapterAnswers[patch.chapter] =
+        state.chapterAnswers[patch.chapter] || {};
+      applyDelta(state.chapterAnswers, patch.delta);
+      state.stateVersion = (state.stateVersion ?? 0) + 1;
+      return { applied: true };
+    } catch (e) {
+      return { applied: false, reason: (e as Error).message };
+    }
+  }
+  return { applied: false, reason: `policy=${policy}` };
+}

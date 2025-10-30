@@ -18,12 +18,14 @@ export async function POST(req: Request) {
       .filter(Boolean)
       .slice(0, 3);
 
-    await serverLog("expert.response", {
-      chapter,
-      fieldId,
-      premium: mode === "premium",
-      hitCount: lines.length,
-    });
+ await serverLog({
+  event: "expert.response",
+  payload: {
+    chapter,
+    fieldId,
+    premium: mode === "premium",
+  }
+});
 
     return NextResponse.json({ snippets: lines });
   } catch (e) {
