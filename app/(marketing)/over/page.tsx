@@ -70,7 +70,7 @@ export default function AboutPage() {
         {/* Sectie 2 – Architect achter Brikx */}
         <section aria-labelledby="founder-title" id="architect">
           <div className="grid grid-cols-1 gap-10 md:grid-cols-12 md:items-center" >
-            <div className="relative md:col-span-5" background="white">
+            <div className="relative md:col-span-5">
               <div className="relative overflow-hidden rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.16)]">
                 <Image
                   src="/images/jules-zwijsen.jpg"

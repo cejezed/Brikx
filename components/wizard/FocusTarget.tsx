@@ -1,48 +1,42 @@
-"use client";
+'use client';
 
-import React, { useEffect, useRef, useState } from "react";
+import { useUiStore } from '@/lib/stores/useUiStore';
+import { useEffect, useRef } from 'react';
+import type { ChapterKey } from '@/types/wizard';
 
-type Props = {
-  chapter: string;
+interface FocusTargetProps {
+  chapter: ChapterKey;
   fieldId: string;
   children: React.ReactNode;
-  className?: string;
-};
+}
 
-/**
- * FocusTarget
- * - Markeer velden adresserbaar via data-attributen.
- * - Luistert naar window-event:  new CustomEvent("brikx:focus", { detail: { chapter, fieldId, scroll?: boolean } })
- * - Als het matcht → highlight + (optioneel) scrollIntoView.
- */
-export default function FocusTarget({ chapter, fieldId, children, className = "" }: Props) {
-  const ref = useRef<HTMLDivElement | null>(null);
-  const [focused, setFocused] = useState(false);
+export default function FocusTarget({ chapter, fieldId, children }: FocusTargetProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const focusedField = useUiStore((s) => s.focusedField);
+  
+  const isFocused = focusedField === `${chapter}:${fieldId}`;
 
   useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail || {};
-      const match = detail.chapter === chapter && detail.fieldId === fieldId;
-      setFocused(Boolean(match));
-      if (match && detail.scroll !== false) {
-        ref.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-    };
-    window.addEventListener("brikx:focus", handler as EventListener);
-    return () => window.removeEventListener("brikx:focus", handler as EventListener);
-  }, [chapter, fieldId]);
+    if (isFocused && ref.current) {
+      ref.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      ref.current.classList.add('focused-field');
+      
+      const timer = setTimeout(() => {
+        ref.current?.classList.remove('focused-field');
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isFocused]);
 
   return (
     <div
       ref={ref}
-      data-chapter={chapter}
-      data-field={fieldId}
-      data-focused={focused ? "true" : "false"}
-      className={className}
+      className={`rounded-xl transition-all duration-200 ${
+        isFocused ? 'ring-2 ring-[#4db8ba] bg-[#f6fbfc]' : ''
+      }`}
     >
-      <div className={`rounded-xl transition-all duration-200 ${focused ? "ring-2 ring-[#4db8ba] bg-[#f6fbfc]" : ""}`}>
-        {children}
-      </div>
+      {children}
     </div>
   );
 }

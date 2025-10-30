@@ -1,9 +1,10 @@
-// components/chat/ChatPanel.tsx
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import applyChatResponse, { type ChatApiResponse } from '@/lib/chat/applyChatResponse';
 import { useWizardState } from '@/lib/stores/useWizardState';
+import { useUiStore } from '@/lib/stores/useUiStore';
+import type { ChapterKey } from '@/types/wizard';
 
 // Mini utils
 function cx(...args: Array<string | false | null | undefined>) {
@@ -147,6 +148,139 @@ function Bubble({
   );
 }
 
+/**
+ * 🧠 SMART INTENTS - Client-side NLU
+ * Detecteer en verwerk lokaal voordat we /api/chat aanroepen
+ */
+function detectIntent(text: string, addMessage: (m: Message) => void): boolean {
+  const lower = text.toLowerCase().trim();
+
+  // ============================================================
+  // INTENT 1: NAVIGATIE (goToChapter)
+  // ============================================================
+  const navMatch = lower.match(/(ga naar|open|toon|spring naar)\s+(budget|wensen|ruimtes|basis|techniek|duurzaamheid|risico|preview)/i);
+  if (navMatch) {
+    const chapter = navMatch[2].toLowerCase() as ChapterKey;
+    useUiStore.setState({ currentChapter: chapter });
+    addMessage({
+      id: crypto.randomUUID(),
+      kind: 'assistant',
+      text: `✅ Oké, ik ga naar '${chapter}'.`,
+    });
+    return true;
+  }
+
+  // ============================================================
+  // INTENT 2: PROJECTNAAM / LOCATIE (Basis data)
+  // ============================================================
+  const nameMatch = lower.match(/(projectnaam|naam|project)[:\s]+(.+?)(?:\.|$)/i);
+  if (nameMatch && nameMatch[2].trim().length > 2) {
+    const value = nameMatch[2].trim();
+    const wizardState = useWizardState.getState();
+    
+    // Update data state
+    wizardState.setChapterAnswer('basis', {
+      ...(wizardState.chapterAnswers.basis || {}),
+      projectNaam: value,
+    });
+
+    // Update UI state (Spotlight-lus)
+    useUiStore.setState({ focusedField: 'basis:projectNaam' });
+
+    addMessage({
+      id: crypto.randomUUID(),
+      kind: 'assistant',
+      text: `✅ Projectnaam: '${value}'. Mooi! Waar is dit project?`,
+    });
+    return true;
+  }
+
+  const locMatch = lower.match(/(locatie|plaats|adres)[:\s]+(.+?)(?:\.|$)/i);
+  if (locMatch && locMatch[2].trim().length > 2) {
+    const value = locMatch[2].trim();
+    const wizardState = useWizardState.getState();
+    
+    wizardState.setChapterAnswer('basis', {
+      ...(wizardState.chapterAnswers.basis || {}),
+      locatie: value,
+    });
+
+    useUiStore.setState({ focusedField: 'basis:locatie' });
+
+    addMessage({
+      id: crypto.randomUUID(),
+      kind: 'assistant',
+      text: `✅ Locatie: '${value}'. Prima!`,
+    });
+    return true;
+  }
+
+  // ============================================================
+  // INTENT 3: BUDGET
+  // ============================================================
+  const budgetMatch = lower.match(/(?:budget|€|euro)[\s:]*(\d+[\d\.]*(?:k)?)/i);
+  if (budgetMatch && (lower.includes('budget') || lower.includes('euro') || lower.includes('€'))) {
+    let bedrag = parseFloat(budgetMatch[1].replace('k', '000').replace('.', ''));
+    
+    if (bedrag < 1000) bedrag *= 1000; // "100" → 100.000
+    
+    const wizardState = useWizardState.getState();
+    wizardState.setChapterAnswer('budget', {
+      ...(wizardState.chapterAnswers.budget || {}),
+      bedrag,
+    });
+
+    useUiStore.setState({ focusedField: 'budget:bedrag' });
+
+    addMessage({
+      id: crypto.randomUUID(),
+      kind: 'assistant',
+      text: `✅ Budget ingesteld op €${bedrag.toLocaleString('nl-NL')}. Goed om te weten!`,
+    });
+    return true;
+  }
+
+  // ============================================================
+  // INTENT 4: RUIMTES TOEVOEGEN
+  // ============================================================
+  const roomMatch = lower.match(/(?:voeg toe|ik wil|wil graag|voeg|zet)\s*(\d*)\s*(woonkamer|keuken|slaapkamer|badkamer|kantoor|garage|tuin|veranda)/i);
+  if (roomMatch) {
+    const count = roomMatch[1] ? parseInt(roomMatch[1], 10) : 1;
+    const roomType = roomMatch[2];
+
+    const wizardState = useWizardState.getState();
+    const currentRooms = wizardState.chapterAnswers.ruimtes || [];
+
+    // Add rooms
+    for (let i = 0; i < count; i++) {
+      currentRooms.push({
+        id: crypto.randomUUID(),
+        naam: `${roomType} ${i + 1}`,
+        oppervlakte: null,
+        wensen: [],
+      });
+    }
+
+    wizardState.setChapterAnswer('ruimtes', currentRooms);
+
+    // Focus on ruimtes tab
+    useUiStore.setState({
+      currentChapter: 'ruimtes',
+      focusedField: 'ruimtes:naam',
+    });
+
+    addMessage({
+      id: crypto.randomUUID(),
+      kind: 'assistant',
+      text: `✅ ${count} ${roomType}(s) toegevoegd! Je kunt ze nu aanpassen in de Ruimtes tab.`,
+    });
+    return true;
+  }
+
+  // Geen intent gevonden
+  return false;
+}
+
 export default function ChatPanel() {
   const [messages, setMessages] = useState<Message[]>(() => [
     {
@@ -172,10 +306,15 @@ export default function ChatPanel() {
   }, [messages.length]);
 
   const addMessage = (m: Message) => setMessages((prev) => [...prev, m]);
-  const acknowledge = (label: string) => `Oké, ${label} genoteerd ✅. We gaan door…`;
 
   async function callChat(query: string) {
-    const state = useWizardState.getState(); // ✅ stuur snapshot mee
+    // EERST: Try smart intents
+    if (detectIntent(query, addMessage)) {
+      return; // ✅ Intent handled, stop hier
+    }
+
+    // ANDERS: Call /api/chat voor complexere vragen
+    const state = useWizardState.getState();
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -191,12 +330,11 @@ export default function ChatPanel() {
 
   function onChoice(_msg: Message, choice: Choice) {
     addMessage({ id: crypto.randomUUID(), kind: 'user', text: choice.label });
-    addMessage({ id: crypto.randomUUID(), kind: 'assistant', text: acknowledge(choice.label) });
     void callChat(choice.value || choice.label);
   }
+
   function onSuggestion(_msg: Message, s: Suggestion) {
     addMessage({ id: crypto.randomUUID(), kind: 'user', text: s.label });
-    addMessage({ id: crypto.randomUUID(), kind: 'assistant', text: acknowledge(s.label) });
     void callChat(s.value || s.label);
   }
 

@@ -13,15 +13,16 @@ import Techniek from '@/components/chapters/Techniek';
 import Duurzaamheid from '@/components/chapters/Duurzaamheid';
 import Risico from '@/components/chapters/Risico';
 import Preview from '@/components/chapters/Preview';
+import { useUiStore } from '@/lib/stores/useUiStore';
 
 // Import layout components
 import ChatPanel from '@/components/chat/ChatPanel';
 import ExpertCorner from '@/components/expert/ExpertCorner';
 
 export default function WizardRouter() {
-  const currentChapter = useWizardState((s) => s.currentChapter);
+const currentChapter = useUiStore((s) => s.currentChapter);
   const chapterFlow = useWizardState((s) => s.chapterFlow);
-  const setCurrentChapter = useWizardState((s) => s.setCurrentChapter);
+const setCurrentChapter = useUiStore((s) => s.setCurrentChapter);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {

@@ -1,9 +1,10 @@
 'use client';
 
 import { useWizardState } from '@/lib/stores/useWizardState';
+import { useUiStore } from '@/lib/stores/useUiStore';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import type { TriageData, ProjectType, ProjectSize, Urgency, HulpVraag } from '@/types/wizard';
+import type { TriageData, ProjectType, ProjectSize, Urgency, HulpVraag, ChapterKey } from '@/types/wizard';
 import { generateChapters } from '@/lib/wizard/generateChapters';
 
 export default function IntakeForm() {
@@ -77,10 +78,17 @@ export default function IntakeForm() {
       console.log('Mode:', result.mode);
       console.log('Reasoning:', result.reasoning);
 
+      // Update WizardState (data)
       useWizardState.setState({
         triage: triageData,
         chapterFlow: result.chapters as any,
         mode: result.mode as any,
+      });
+
+      // Update UIState (navigation + focus)
+      useUiStore.setState({ 
+        currentChapter: result.chapters[0] as ChapterKey,
+        focusedField: undefined,
       });
 
       console.log('Redirecting to /wizard');
