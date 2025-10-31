@@ -2,23 +2,24 @@
 import { NextRequest } from "next/server";
 import React from "react";
 import { renderToBuffer } from "@react-pdf/renderer";
-import PveDocument from "@/lib/export/PveDocument"; // pas aan naar jouw pad
+import { PveDocument } from "@/lib/server/pdf"; // <-- bestaand pad, zie file #2
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const chapterAnswers = body?.chapterAnswers ?? {};
+  const triage = body?.triage ?? {};
   const projectName = body?.projectName ?? "";
 
-  // ❌ geen JSX in .ts; ✅ gebruik createElement
-  const pdfElement = React.createElement(PveDocument, {
+  // GEEN JSX in .ts files: createElement gebruiken
+  const element = React.createElement(PveDocument, {
     chapterAnswers,
-    triage: body?.triage ?? {},
+    triage,
     projectName,
   });
 
-  const pdfBuffer = await renderToBuffer(pdfElement);
+  const pdfBuffer = await renderToBuffer(element);
 
   return new Response(pdfBuffer, {
     status: 200,
