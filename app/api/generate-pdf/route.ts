@@ -1,8 +1,8 @@
 // app/api/generate-pdf/route.ts
 import { NextRequest } from "next/server";
-import React from "react";
-import { renderToBuffer } from "@react-pdf/renderer";
-import { PveDocument } from "@/lib/server/pdf"; // <-- bestaand pad, zie file #2
+import React, { type ReactElement } from "react";
+import { Document, type DocumentProps, renderToBuffer } from "@react-pdf/renderer";
+import { PveContent } from "@/lib/server/pdf";
 
 export const runtime = "nodejs";
 
@@ -12,12 +12,12 @@ export async function POST(req: NextRequest) {
   const triage = body?.triage ?? {};
   const projectName = body?.projectName ?? "";
 
-  // GEEN JSX in .ts files: createElement gebruiken
-  const element = React.createElement(PveDocument, {
-    chapterAnswers,
-    triage,
-    projectName,
-  });
+  // Maak expliciet een <Document> element (juiste type voor renderToBuffer)
+  const element: ReactElement<DocumentProps> = React.createElement(
+    Document,
+    null,
+    React.createElement(PveContent, { chapterAnswers, triage, projectName })
+  );
 
   const pdfBuffer = await renderToBuffer(element);
 
