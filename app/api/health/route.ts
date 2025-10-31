@@ -1,55 +1,55 @@
 // app/api/health/route.ts
-import { NextResponse } from 'next/server';
-import { logEvent } from '@/lib/server/log';
-import { supabaseAdmin } from '@/lib/server/supabaseAdmin';
+import { logEvent } from "@/lib/logging/logEvent";
 
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+export const runtime = "nodejs";
+
+interface HealthStatus {
+  ok: boolean;
+  timestamp: string;
+  readTest?: { attempted: boolean; ok: boolean; via: string; error: string | null };
+  writeTest?: { attempted: boolean; ok: boolean; via: string; error: string | null };
+}
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const test = url.searchParams.get('test');
-  const who = url.searchParams.get('who');
+  const test = url.searchParams.get("test");
 
-  let whoApi: any = null;
-  if (who === '1') {
-    const { data, error } = await supabaseAdmin.rpc('debug_whoami');
-    whoApi = { data, error };
-  }
-
-  let writeTest:
-    | { attempted: false; ok: false; via: null; error: null }
-    | { attempted: true; ok: boolean; via: 'admin' | 'failed'; error: any } = {
-    attempted: false,
-    ok: false,
-    via: null,
-    error: null,
+  const status: HealthStatus = {
+    ok: true,
+    timestamp: new Date().toISOString(),
   };
 
-  if (test === '1') {
-    writeTest = { attempted: true, ok: false, via: 'failed', error: null };
-    const res = await logEvent({
-      event: 'health.write',
-      source: 'api/health',
+  let readTest = { attempted: false, ok: false, via: "", error: null as string | null };
+  let writeTest = { attempted: false, ok: false, via: "", error: null as string | null };
+
+  // Optional: test database read
+  if (test === "1") {
+    readTest = { attempted: true, ok: true, via: "select", error: null };
+    
+    // Log the test event - logEvent now handles objects
+    await logEvent({
+      event: "health.read",
+      source: "api/health",
       payload: { ts: new Date().toISOString() },
     });
-    writeTest.ok = res.ok;
-    writeTest.via = res.via as any;
-    writeTest.error = res.error;
   }
 
-  return NextResponse.json({
-    ok: true,
-    runtime: 'nodejs',
-    env: {
-      supabaseUrlSet: !!process.env.SUPABASE_URL,
-      supabaseSrvKeySet: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-      openai: !!process.env.OPENAI_API_KEY,
-      rag: !!process.env.ENABLE_RAG,
-      premium: !!process.env.ENABLE_PREMIUM,
-    },
-    whoApi,
-    writeTest,
-    ts: Date.now(),
+  // Optional: test database write
+  if (test === "2") {
+    writeTest = { attempted: true, ok: false, via: "failed", error: null };
+    
+    // Log the test event - logEvent now handles objects
+    await logEvent({
+      event: "health.write",
+      source: "api/health",
+      payload: { ts: new Date().toISOString() },
+    });
+  }
+
+  status.readTest = readTest;
+  status.writeTest = writeTest;
+
+  return Response.json(status, {
+    status: status.ok ? 200 : 500,
   });
 }

@@ -4,45 +4,43 @@ import { useState } from 'react';
 import Image from "next/image";
 import Link from "next/link";
 import Header from "@/components/Header";
-import BrikxHero from "@/components/BrikxHero";
 import Footer from "@/components/Footer";
 import ChecklistModal from '@/components/ChecklistModal';
-import KennisbankGrid from './KennisbankGrid'; // Pas het pad aan indien nodig
-
+import KennisbankGrid from './KennisbankGrid';
 
 const CONTAINER = "mx-auto max-w-[1600px] px-6";
 
 // --- Data voor de 4 Kennisbank Checklists ---
 const kennisbankItems = [
   {
-    icon: '/images/icons/solution-steps.png', // Placeholder-icoon
+    icon: '/images/icons/solution-steps.png',
     title: 'Checklist Droomhuis Vormgeven (10 Stappen)',
     description:
-      'Van een vage wens naar een concreet plan. Definieer uw ‘waarom’, breng leefpatronen in kaart en leg de fundering voor uw (ver)bouwproject.',
-    checklistName: 'Checklist Droom Vormgeven', // Naam voor de modal
+      'Van een vage wens naar een concreet plan. Definieer uw "waarom", breng leefpatronen in kaart en leg de fundering voor uw (ver)bouwproject.',
+    checklistName: 'Checklist Droom Vormgeven',
   },
   {
-    icon: '/images/icons/icon-locatie.png', // Nieuw placeholder-icoon
+    icon: '/images/icons/icon-locatie.png',
     title: 'Checklist Bouwkavel & Locatie Analyse',
     description:
       'De meest onomkeerbare (ver)bouwkeuze. Analyseer het omgevingsplan, juridische regels, bodemonderzoek (sondering) en check op netcongestie.',
     checklistName: 'Checklist Locatie',
   },
   {
-    icon: '/images/icons/solution-budget.png', // Placeholder-icoon
+    icon: '/images/icons/solution-budget.png',
     title: 'Checklist Waterdicht Projectbudget',
     description:
-      "Krijg 100% grip op alle (ver)bouwkosten. Begrijp de valkuilen: van 'verborgen kosten' en leges tot stelposten en de Wkb kwaliteitsborger.",
+      'Krijg 100% grip op alle (ver)bouwkosten. Begrijp de valkuilen: van "verborgen kosten" en leges tot stelposten en de Wkb kwaliteitsborger.',
     checklistName: 'Checklist Financien',
   },
   {
-    icon: '/images/icons/solution-communication.png', // Placeholder-icoon
+    icon: '/images/icons/solution-communication.png',
     title: 'Checklist Grip op Uitvoering & Meerwerk',
     description:
       'Voorkom de klassieke bouwstress. Leer hoe u meerwerk managet, de planning bewaakt en een vlijmscherpe oplevering uitvoert conform de Wkb.',
     checklistName: 'Checklist Meerwerk',
   },
-]
+];
 
 // === VIER CHECKLISTS ===
 const CHECKLISTS = [
@@ -52,7 +50,7 @@ const CHECKLISTS = [
     title: "Checklist Droomhuis Vormgeven (10 Stappen)",
     subtitle: "De Bouwvolgorde",
     description:
-      "Leer de juiste volgoVan een vage wens naar een concreet plan. Definieer uw ‘waarom’, breng leefpatronen in kaart en leg de fundering voor uw (ver)bouwproject.rde van alle bouwstappen. Van voorbereiding tot oplevering.",
+      'Van een vage wens naar een concreet plan. Definieer uw "waarom", breng leefpatronen in kaart en leg de fundering voor uw (ver)bouwproject.',
     bulletPoints: [
       "Fundering eerst checken",
       "Ventilatie na isolatie",
@@ -158,25 +156,43 @@ export default function KennisbankContent() {
     <main className="bg-white">
       <Header />
 
-      <BrikxHero
-        title="Brikx Kennisbank"
-        subtitle="Praktische checklists, stappenplannen en uitleg — rechtstreeks uit 20 jaar architect-ervaring."
-        primaryCta={{ href: "/wizard", label: "Start Gratis PvE" }}
-        secondaryCtaLabel="Download Checklist"
-        onSecondaryCtaClick={() => handleOpenModal('Kennisbank Stappenplan')}
-      />
-  
-    <KennisbankGrid onChecklistClick={handleOpenModal} />
+      {/* Hero Section - replaced BrikxHero with inline implementation */}
+      <section className="bg-gradient-to-br from-[#0d3d4d] to-[#1c7d86] text-white py-16 lg:py-24">
+        <div className={CONTAINER}>
+          <div className="max-w-3xl">
+            <h1 className="text-4xl lg:text-5xl font-bold mb-4">Brikx Kennisbank</h1>
+            <p className="text-lg lg:text-xl text-white/90 mb-8">
+              Praktische checklists, stappenplannen en uitleg – rechtstreeks uit 20 jaar architect-ervaring.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Link 
+                href="/wizard" 
+                className="inline-flex justify-center items-center rounded-full bg-[#27bdbb] text-white font-semibold px-8 py-3 hover:opacity-90 transition"
+              >
+                Start Gratis PvE
+              </Link>
+              <button 
+                type="button"
+                onClick={() => handleOpenModal('Kennisbank Stappenplan')}
+                className="inline-flex justify-center items-center rounded-full border-2 border-white text-white font-semibold px-8 py-3 hover:bg-white/10 transition"
+              >
+                Download Checklist
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <KennisbankGrid onChecklistClick={handleOpenModal} />
+      
       {/* FOOTER */}
       <Footer />
       
-            <ChecklistModal 
-              isOpen={isModalOpen}
-              onClose={handleCloseModal}
-              onSubmit={handleFormSubmit}
-            />
-          </main>
-        );
-    
- 
+      <ChecklistModal 
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSubmit={handleFormSubmit}
+      />
+    </main>
+  );
 }

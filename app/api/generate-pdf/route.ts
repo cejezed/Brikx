@@ -1,40 +1,51 @@
 // app/api/generate-pdf/route.ts
-import React, { type ReactElement } from "react";
-import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
+import { renderToBuffer } from "@react-pdf/renderer";
 import { PveDocument, type PveDocumentProps } from "@/lib/server/pdf";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-  const body = await req.json().catch(() => ({} as any));
+  try {
+    const body = await req.json().catch(() => ({} as any));
 
-  const {
-    chapterAnswers = {},
-    triage = {},
-    projectName = "Mijn Project",
-  } = body ?? {};
+    const {
+      chapterAnswers = {},
+      triage = {},
+      projectName = "Mijn Project",
+    } = body ?? {};
 
-  const element: ReactElement<DocumentProps> = React.createElement(
-    PveDocument as React.FC<PveDocumentProps>,
-    {
-      chapterAnswers,
-      triage,
-      projectName,
-    } as PveDocumentProps
-  );
+    // Render the PveDocument component directly
+    const pdfBuffer = await renderToBuffer(
+      PveDocument({
+        chapterAnswers,
+        triage,
+        projectName,
+      })
+    );
 
-  const pdfBuffer = await renderToBuffer(element);
+    // ✅ Convert Buffer → Uint8Array → Blob
+    const uint8 = new Uint8Array(pdfBuffer);
+    const blob = new Blob([uint8], { type: "application/pdf" });
 
-  // ✅ Convert Buffer → Uint8Array → Blob
-  const uint8 = new Uint8Array(pdfBuffer);
-  const blob = new Blob([uint8], { type: "application/pdf" });
-
-  return new Response(blob, {
-    status: 200,
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": 'inline; filename="pve.pdf"',
-      "Cache-Control": "no-store",
-    },
-  });
+    return new Response(blob, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": 'inline; filename="pve.pdf"',
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (error) {
+    console.error("[PDF Generation Error]", error);
+    return new Response(
+      JSON.stringify({
+        error: "PDF generation failed",
+        message: error instanceof Error ? error.message : String(error),
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
 }

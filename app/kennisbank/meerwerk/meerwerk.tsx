@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Image from "next/image";
 import Link from "next/link";
 import Header from "@/components/Header";
-import BrikxHero from "@/components/BrikxHero";
 import Footer from "@/components/Footer";
 import ChecklistModal from '@/components/ChecklistModal';
 import SidebarTabs from '../SidebarTabs';
@@ -78,13 +77,32 @@ export default function KennisbankContent() {
     <main className="bg-white">
       <Header />
 
-      <BrikxHero
-        title="Brikx Kennisbank"
-        subtitle="Praktische checklists, stappenplannen en uitleg — rechtstreeks uit 20 jaar architect-ervaring."
-        primaryCta={{ href: "/wizard", label: "Start Gratis PvE" }}
-        secondaryCtaLabel="Download Checklist"
-        onSecondaryCtaClick={() => handleOpenModal('Kennisbank Stappenplan')}
-      />
+      {/* Hero Section - replaced BrikxHero with inline implementation */}
+      <section className="bg-gradient-to-br from-[#0d3d4d] to-[#1c7d86] text-white py-16 lg:py-24">
+        <div className={CONTAINER}>
+          <div className="max-w-3xl">
+            <h1 className="text-4xl lg:text-5xl font-bold mb-4">Brikx Kennisbank</h1>
+            <p className="text-lg lg:text-xl text-white/90 mb-8">
+              Praktische checklists, stappenplannen en uitleg – rechtstreeks uit 20 jaar architect-ervaring.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Link 
+                href="/wizard" 
+                className="inline-flex justify-center items-center rounded-full bg-[#27bdbb] text-white font-semibold px-8 py-3 hover:opacity-90 transition"
+              >
+                Start Gratis PvE
+              </Link>
+              <button 
+                type="button"
+                onClick={() => handleOpenModal('Kennisbank Stappenplan')}
+                className="inline-flex justify-center items-center rounded-full border-2 border-white text-white font-semibold px-8 py-3 hover:bg-white/10 transition"
+              >
+                Download Checklist
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section className="py-0">
         <div className={CONTAINER}>
@@ -104,24 +122,24 @@ export default function KennisbankContent() {
               </p>
             </header>
 
-       <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-16">
-                     {/* LIJST MET STAPPEN */}
-                      <ol className="space-y-8">
-                        {STEPS.map((s) => (
-                          <li key={s.id} id={s.id}>
-                            <div className="flex items-center gap-5 rounded-2xl border border-[#DCE9EA] bg-white p-5 lg:p-6 shadow-[0_6px_18px_rgba(0,0,0,0.16)]">
-                              
-                              {/* De container blijft 64x64, maar de afbeelding wordt 80x80 en perfect gecentreerd */}
-                              <div className="relative w-30 h-06 shrink-0">
-                                <Image
-                                  src={s.icon}
-                                  alt={s.title}
-                                  width={100}
-                                  height={100}
-                                  className="object-contain absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-                                  sizes="100px"
-                                />
-                              </div>
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-16">
+              {/* LIJST MET STAPPEN */}
+              <ol className="space-y-8">
+                {STEPS.map((s) => (
+                  <li key={s.id} id={s.id}>
+                    <div className="flex items-center gap-5 rounded-2xl border border-[#DCE9EA] bg-white p-5 lg:p-6 shadow-[0_6px_18px_rgba(0,0,0,0.16)]">
+                      
+                      {/* De container blijft 64x64, maar de afbeelding wordt 80x80 en perfect gecentreerd */}
+                      <div className="relative w-30 h-06 shrink-0">
+                        <Image
+                          src={s.icon}
+                          alt={s.title}
+                          width={100}
+                          height={100}
+                          className="object-contain absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                          sizes="100px"
+                        />
+                      </div>
                       <div>
                         <h3 className="text-[#0d3d4d] font-semibold">{s.title}</h3>
                         <p className="text-[#64748b] text-sm">{s.desc}</p>
@@ -131,7 +149,7 @@ export default function KennisbankContent() {
                 ))}
               </ol>
 
-             <SidebarTabs />
+              <SidebarTabs />
             </div>
           </div>
         </div>
@@ -143,11 +161,22 @@ export default function KennisbankContent() {
           <ul className="mt-4 space-y-2 text-white/90">
             <li>✓ Extra schrijfruimte om uw gedachten en antwoorden direct te noteren.</li>
             <li>✓ Een printbaar document dat u kunt gebruiken in gesprekken.</li>
-            <li>✓ Exclusieve ‘Tips van de Architect’ bij elke stap die u nergens anders vindt.</li>
+            <li>✓ Exclusieve 'Tips van de Architect' bij elke stap die u nergens anders vindt.</li>
           </ul>
           <div className="mt-6 flex flex-col sm:flex-row gap-3">
-            <button type="button" onClick={() => handleOpenModal('locatie')} className="inline-flex justify-center items-center rounded-full bg-[#27bdbb] text-[white] font-semibold px-6 py-3 hover:opacity-90">Download de Gratis Checklist</button>
-            <Link href="/wizard" className="inline-flex justify-center items-center rounded-full border-2 border-white text-white font-semibold px-6 py-3 hover:bg-white/10">Start Brikx Chat</Link>
+            <button 
+              type="button" 
+              onClick={() => handleOpenModal('locatie')} 
+              className="inline-flex justify-center items-center rounded-full bg-[#27bdbb] text-white font-semibold px-6 py-3 hover:opacity-90 transition"
+            >
+              Download de Gratis Checklist
+            </button>
+            <Link 
+              href="/wizard" 
+              className="inline-flex justify-center items-center rounded-full border-2 border-white text-white font-semibold px-6 py-3 hover:bg-white/10 transition"
+            >
+              Start Brikx Chat
+            </Link>
           </div>
         </div>
       </section>
