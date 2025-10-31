@@ -1,31 +1,41 @@
 // app/api/generate-pdf/route.ts
-import { NextRequest } from "next/server";
 import React, { type ReactElement } from "react";
-import { Document, type DocumentProps, renderToBuffer } from "@react-pdf/renderer";
-import { PveContent } from "@/lib/server/pdf";
+import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
+import { PveDocument, type PveDocumentProps } from "@/lib/server/pdf";
 
 export const runtime = "nodejs";
 
-export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const chapterAnswers = body?.chapterAnswers ?? {};
-  const triage = body?.triage ?? {};
-  const projectName = body?.projectName ?? "";
+export async function POST(req: Request) {
+  const body = await req.json().catch(() => ({} as any));
 
-  // Maak expliciet een <Document> element (juiste type voor renderToBuffer)
+  const {
+    chapterAnswers = {},
+    triage = {},
+    projectName = "Mijn Project",
+  } = body ?? {};
+
+  // PveDocument *is* een Document-root; voldoet aan renderToBuffer types
   const element: ReactElement<DocumentProps> = React.createElement(
-    Document,
-    null,
-    React.createElement(PveContent, { chapterAnswers, triage, projectName })
+    PveDocument as React.FC<PveDocumentProps>,
+    {
+      chapterAnswers,
+      triage,
+      projectName,
+    } as PveDocumentProps
   );
 
   const pdfBuffer = await renderToBuffer(element);
 
-  return new Response(pdfBuffer, {
+  // Fix voor TypeScript: Response verwacht BodyInit → gebruik Blob
+  const blob = new Blob([pdfBuffer], { type: "application/pdf" });
+
+  return new Response(blob, {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="pve.pdf"`,
+      // inline tonen; pas 'attachment' aan als je forced download wilt
+      "Content-Disposition": 'inline; filename="pve.pdf"',
+      "Cache-Control": "no-store",
     },
   });
 }
