@@ -1,35 +1,30 @@
-// app/api/expert/route.ts
-export const runtime = "nodejs";
+// /app/api/expert/route.ts
 import { NextResponse } from "next/server";
-import { queryRag } from "@/lib/ai/rag";
-import { serverLog } from "@/lib/server/log"; // 👈 Hier de fix
+import { serverLog } from "@/lib/server/log";
+
+export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
-    const { chapter, fieldId, mode = "preview" } = await req.json();
-    const q = `Korte, feitelijke tips voor hoofdstuk "${chapter}", veld "${fieldId}" in woning-(ver)bouw. Max 3 bullets.`;
+    const body = await req.json().catch(() => ({}));
+    const q = String(body?.query ?? "").trim();
 
-    const allow = mode === "premium";
-    const text = await queryRag(q, allow);
+    // Dummy extractor: split op regels → non-empty → top 10
+    const lines =
+      q.length > 0
+        ? q
+            .split(/\r?\n+/g)
+            .map((s) => s.trim())
+            .filter(Boolean)
+            .slice(0, 10)
+        : [];
 
-    const lines = (text ?? "")
-      .split(/\n+/)
-      .map((s) => s.replace(/^[-*\s•]+/, "").trim())
-      .filter(Boolean)
-      .slice(0, 3);
-
- await serverLog({
-  event: "expert.response",
-  payload: {
-    chapter,
-    fieldId,
-    premium: mode === "premium",
-  }
-});
+    await serverLog("expert.response", { ok: true, count: lines.length });
 
     return NextResponse.json({ snippets: lines });
-  } catch (e) {
+  } catch (e: unknown) {
     await serverLog("expert.response", { ok: false, error: String(e) });
+    // Belangrijk: API blijft 200 teruggeven met lege lijst (zoals je eerdere route deed)
     return NextResponse.json({ snippets: [] }, { status: 200 });
   }
 }
