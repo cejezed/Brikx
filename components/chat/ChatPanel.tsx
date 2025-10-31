@@ -1,247 +1,138 @@
 'use client';
 
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { useWizardState } from '@/lib/stores/useWizardState';
-import { useChatStore } from '@/lib/stores/useChatStore';
-import type { ChatRequest, ChatSSEEventName, MetadataEvent, PatchEvent, NavigateEvent } from '@/types/chat';
-import HumanHandoffModal from '@/components/chat/HumanHandoffModal';
-import { Bot, SendHorizonal, LifeBuoy } from 'lucide-react';
+import useWizardState, { type ChapterKey } from '@/lib/stores/useWizardState';
 
-type Props = { compact?: boolean };
+type Msg = { id: string; role: 'user'|'assistant'; text: string };
 
-function cx(...parts: Array<string | undefined | false>) {
-  return parts.filter(Boolean).join(' ');
-}
+type ChatSSEEventName = 'metadata'|'patch'|'navigate'|'stream'|'error'|'done';
+type PatchEvent = import('@/lib/stores/useWizardState').PatchEvent;
 
-export default function ChatPanel({ compact }: Props) {
-  const { stateVersion, chapterAnswers, triage, applyServerPatch, goToChapter } = useWizardState();
-  const { messages, pushMessage, appendAssistantChunk, resetAssistantMessage } = useChatStore();
+function cx(...p: Array<string|false|undefined>) { return p.filter(Boolean).join(' '); }
 
-  const [input, setInput] = useState('');
+export default function ChatPanel() {
+  const { chapterAnswers, triage, stateVersion, applyServerPatch, goToChapter } = useWizardState();
+  const [msgs, setMsgs] = useState<Msg[]>([]);
+  const [value, setValue] = useState('');
   const [loading, setLoading] = useState(false);
-  const [handoffOpen, setHandoffOpen] = useState(false);
-  const abortRef = useRef<AbortController | null>(null);
+  const abortRef = useRef<AbortController|null>(null);
 
-  const wizardStateForApi = useMemo(
-    () => ({ stateVersion, chapterAnswers, triage }),
-    [stateVersion, chapterAnswers, triage]
-  );
+  const wsForApi = useMemo(() => ({ chapterAnswers, triage, stateVersion }), [chapterAnswers, triage, stateVersion]);
 
-  const handleSend = useCallback(async () => {
-    if (!input.trim() || loading) return;
-    const query = input.trim();
-    pushMessage({ id: crypto.randomUUID(), role: 'user', text: query });
-    setInput('');
+  const send = useCallback(async () => {
+    if (!value.trim() || loading) return;
+    const q = value.trim();
+    setMsgs((m) => [...m, { id: crypto.randomUUID(), role: 'user', text: q }]);
+    setValue('');
     setLoading(true);
-
-    const body: ChatRequest = { query, wizardState: wizardStateForApi as any, mode: 'PREVIEW' };
 
     abortRef.current?.abort();
     const ac = new AbortController();
     abortRef.current = ac;
 
-    let gotAnyEvent = false;
-    const timeout = setTimeout(() => {
-      if (!gotAnyEvent) {
-        const id = resetAssistantMessage();
-        appendAssistantChunk(id, '⚠️ Er komt geen antwoord van de server. Controleer of /api/chat draait.');
-      }
-    }, 8000);
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+      body: JSON.stringify({ query: q, wizardState: wsForApi, mode: 'PREVIEW' }),
+      signal: ac.signal,
+    }).catch((e) => ({ ok: false, statusText: String(e) } as any));
 
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
-        body: JSON.stringify(body),
-        signal: ac.signal,
-      });
-
-      if (!res.ok || !res.body) {
-        const id = resetAssistantMessage();
-        appendAssistantChunk(id, `⚠️ Fout ${res.status}: ${res.statusText || 'Geen stream body'}`);
-        setLoading(false);
-        clearTimeout(timeout);
-        return;
-      }
-
-      const assistantMsgId = resetAssistantMessage();
-
-      await readSSE(res.body, (evt, data) => {
-        gotAnyEvent = true;
-        switch (evt) {
-          case 'metadata': {
-            const meta = data as MetadataEvent;
-            if (meta.policy === 'ASK_CLARIFY' && meta.nudge) {
-              appendAssistantChunk(assistantMsgId, meta.nudge + '\n\n');
-            }
-            break;
-          }
-          case 'patch': {
-            try {
-              applyServerPatch(data as PatchEvent);
-            } catch (e) {
-              console.error('[ChatPanel] applyServerPatch error', e, data);
-            }
-            break;
-          }
-          case 'navigate': {
-            const nav = data as NavigateEvent;
-            // @ts-expect-error union past op ChapterKey
-            goToChapter(nav.chapter);
-            break;
-          }
-          case 'stream': {
-            const t = (data?.text ?? '') as string;
-            if (t) appendAssistantChunk(assistantMsgId, t);
-            break;
-          }
-          case 'error': {
-            appendAssistantChunk(assistantMsgId, '\n\n⚠️ Er ging iets mis. Probeer nog eens.');
-            break;
-          }
-          case 'done': {
-            break;
-          }
-          default:
-            break;
-        }
-      });
-    } catch (e: any) {
-      console.error('[ChatPanel] stream error', e);
-      const id = resetAssistantMessage();
-      appendAssistantChunk(id, `⚠️ Netwerkfout: ${String(e?.message ?? e)}`);
-    } finally {
-      clearTimeout(timeout);
+    if (!res || !('ok' in res) || !res.ok || !res.body) {
+      setMsgs((m) => [...m, { id: crypto.randomUUID(), role: 'assistant', text: `⚠️ Serverfout: ${(res as any)?.statusText ?? 'geen body'}` }]);
       setLoading(false);
+      return;
     }
-  }, [
-    input,
-    loading,
-    wizardStateForApi,
-    pushMessage,
-    resetAssistantMessage,
-    appendAssistantChunk,
-    applyServerPatch,
-    goToChapter,
-  ]);
+
+    const dec = new TextDecoder();
+    const reader = res.body.getReader();
+    let buf = '';
+    const assistId = crypto.randomUUID();
+    setMsgs((m) => [...m, { id: assistId, role: 'assistant', text: '' }]);
+
+    const append = (t: string) => setMsgs((m) => m.map((x) => x.id === assistId ? { ...x, text: x.text + t } : x));
+
+    while (true) {
+      const { value: chunk, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(chunk, { stream: true });
+
+      let idx: number;
+      while ((idx = buf.indexOf('\n\n')) !== -1) {
+        const raw = buf.slice(0, idx).trimEnd();
+        buf = buf.slice(idx + 2);
+
+        let ev: ChatSSEEventName = 'stream';
+        let data: any = '';
+        for (const line of raw.split('\n')) {
+          if (line.startsWith('event:')) ev = line.slice(6).trim() as ChatSSEEventName;
+          else if (line.startsWith('data:')) data = line.slice(5).trim();
+        }
+        try { data = data ? JSON.parse(data) : data; } catch {}
+
+        if (ev === 'patch') {
+          try { applyServerPatch(data as PatchEvent); } catch (e) { console.warn('patch error', e, data); }
+        } else if (ev === 'navigate') {
+          const ch = String((data?.chapter ?? '')).trim() as ChapterKey;
+          // één bron van waarheid
+          goToChapter(ch);
+        } else if (ev === 'stream') {
+          append(typeof data === 'string' ? data : (data?.text ?? ''));
+        } else if (ev === 'error') {
+          append('\n⚠️ Er ging iets mis.');
+        } else if (ev === 'done') {
+          // nop
+        }
+      }
+    }
+
+    setLoading(false);
+  }, [value, loading, wsForApi, applyServerPatch, goToChapter]);
 
   return (
-    <div className={cx(
-      'flex h-full max-h-full min-h-0 flex-col rounded-2xl border bg-white',
-      compact && 'text-sm'
-    )}>
-      {/* Header met gradient */}
+    <div className="flex h-full min-h-0 flex-col rounded-2xl border bg-white">
+      {/* Header */}
       <div className="rounded-t-2xl px-4 py-3 text-white flex items-center gap-2"
            style={{ background: 'linear-gradient(90deg, #0d3d4d 0%, #4db8ba 100%)' }}>
-        <Bot className="w-5 h-5" />
+        <svg viewBox="0 0 24 24" className="w-5 h-5"><rect x="4" y="8" width="16" height="10" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/></svg>
         <div className="font-semibold">Chat met Jules</div>
-        <div className="ml-auto">
-          <button
-            onClick={() => setHandoffOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-3 py-1.5 text-white hover:bg-white/20"
-            title="Menselijke hulp"
-          >
-            <LifeBuoy className="w-4 h-4" />
-            Hulp
-          </button>
-        </div>
       </div>
 
-      {/* Messages: eigen scroll; laat ruimte vrij voor sticky input */}
+      {/* Messages – DIT element heeft de scroll */}
       <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
-        {messages.length === 0 && (
+        {msgs.length === 0 && (
           <div className="text-gray-500 text-sm">
-            Voorbeelden: <em>“projectnaam Villa Dijk”</em>, <em>“locatie Tilburg”</em>, <em>“bewoners 3”</em>, <em>“budget 250k”</em>, <em>“3 slaapkamers”</em>, <em>“woonkamer 30 m2”</em>, <em>“ga naar budget”</em>, <em>“daglicht in de keuken”</em>.
+            Probeer: <em>200m2</em>, <em>projectnaam Villa Dijk</em>, <em>woonkamer 30 m2</em>, <em>3 slaapkamers</em>.
           </div>
         )}
-        {messages.map((m) => (
-          <div
-            key={m.id}
-            className={cx(
-              'max-w-[85%] leading-relaxed whitespace-pre-wrap',
-              m.role === 'user' ? 'ml-auto rounded-xl bg-[#e7f3f4] px-3 py-2' : 'mr-auto rounded-xl bg-gray-50 px-3 py-2'
-            )}
-          >
-            {m.text}
-          </div>
+        {msgs.map((m) => (
+          <div key={m.id} className={cx(
+            'max-w-[85%] whitespace-pre-wrap leading-relaxed',
+            m.role === 'user' ? 'ml-auto rounded-xl bg-[#e7f3f4] px-3 py-2' : 'mr-auto rounded-xl bg-gray-50 px-3 py-2'
+          )}>{m.text}</div>
         ))}
       </div>
 
-      {/* Sticky input: verdwijnt nooit uit beeld */}
+      {/* Sticky input – moet onderaan dit PANEEL staan (niet in een parent met overflow-hidden) */}
       <div className="sticky bottom-0 z-[5] border-t bg-white p-3">
         <div className="flex items-center gap-2">
           <input
             className="flex-1 rounded-xl border px-3 py-2 outline-none focus:ring-2 focus:ring-[#4db8ba]"
             placeholder="Typ je bericht…"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-              }
-            }}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
             disabled={loading}
           />
           <button
-            onClick={handleSend}
-            disabled={loading || !input.trim()}
+            onClick={send}
+            disabled={loading || !value.trim()}
             className={cx('inline-flex items-center gap-2 rounded-xl px-3 py-2 text-white', loading ? 'bg-gray-400' : 'bg-[#0d3d4d] hover:bg-[#0b3341]')}
             title="Versturen"
           >
-            <SendHorizonal className="w-4 h-4" />
             Verstuur
           </button>
         </div>
       </div>
-
-      {/* Kleine debugbar (mag weg als het werkt) */}
-      <div className="border-t bg-gray-50 px-3 py-2 text-xs text-gray-600">
-        <div><strong>basis.projectNaam:</strong> {String((chapterAnswers as any)?.basis?.projectNaam ?? '—')}</div>
-        <div className="grid grid-cols-2 gap-2">
-          <div><strong>locatie:</strong> {String((chapterAnswers as any)?.basis?.locatie ?? '—')}</div>
-          <div><strong>bewoners:</strong> {String((chapterAnswers as any)?.basis?.bewonersAantal ?? '—')}</div>
-        </div>
-        <div><strong>oppervlakteM2:</strong> {String((chapterAnswers as any)?.basis?.oppervlakteM2 ?? '—')}</div>
-        <div><strong>ruimtes.count:</strong> {Array.isArray((chapterAnswers as any)?.ruimtes) ? (chapterAnswers as any).ruimtes.length : 0}</div>
-      </div>
-
-      <HumanHandoffModal open={handoffOpen} onClose={() => setHandoffOpen(false)} />
     </div>
   );
-}
-
-async function readSSE(
-  body: ReadableStream<Uint8Array>,
-  onEvent: (evt: ChatSSEEventName, data: any) => void
-) {
-  const decoder = new TextDecoder();
-  const reader = body.getReader();
-  let buffer = '';
-
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-
-    let idx: number;
-    while ((idx = buffer.indexOf('\n\n')) !== -1) {
-      const raw = buffer.slice(0, idx).trimEnd();
-      buffer = buffer.slice(idx + 2);
-
-      let event: ChatSSEEventName = 'stream';
-      let data: any = {};
-      for (const line of raw.split('\n')) {
-        if (line.startsWith('event:')) {
-          event = line.slice(6).trim() as ChatSSEEventName;
-        } else if (line.startsWith('data:')) {
-          const payload = line.slice(5).trim();
-          if (payload) {
-            try { data = JSON.parse(payload); } catch { data = { text: payload }; }
-          }
-        }
-      }
-      onEvent(event, data);
-    }
-  }
 }

@@ -1,7 +1,90 @@
 // /lib/ai/ProModel.ts
-import type { PatchEvent } from "@/types/chat";
+import type { WritableStreamDefaultWriter } from "stream/web";
+import type { ChapterKey, PatchEvent as PatchFromStore } from "@/lib/stores/useWizardState";
+import { llmSuggest } from "@/lib/ai/llm";
 
-// Parse bedragen zoals "250k", "€250.000", "250000"
+// ---------- Types ----------
+export type PatchEvent = PatchFromStore;
+type ChatSSEEventName = "metadata" | "patch" | "navigate" | "stream" | "error" | "done";
+
+type WizardStateShape = {
+  triage?: any;
+  chapterAnswers?: {
+    basis?: Record<string, any>;
+    wensen?: any[];
+    budget?: Record<string, any>;
+    ruimtes?: any[];
+    techniek?: Record<string, any>;
+    duurzaamheid?: Record<string, any>;
+    risico?: Record<string, any>;
+  };
+};
+
+type Intent = "NAVIGATIE" | "VULLEN_DATA" | "ADVIES_VRAAG" | "SMALLTALK";
+
+// ---------- low-level SSE helpers ----------
+async function write(writer: WritableStreamDefaultWriter, event: ChatSSEEventName, data: any) {
+  const payload = typeof data === "string" ? data : JSON.stringify(data);
+  await writer.write(`event: ${event}\n` + `data: ${payload}\n\n`);
+}
+const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// ---------- A) Essentials / Nudge ----------
+function essentialsMissing(ws: WizardStateShape): { missing: string[]; ok: boolean } {
+  const missing: string[] = [];
+  const basis = ws?.chapterAnswers?.basis ?? {};
+  if (!basis.projectNaam || String(basis.projectNaam).trim() === "") {
+    missing.push("basis.projectNaam");
+  }
+  // Uitbreiden kan later met extra essentials (locatie, bewoners, etc.)
+  return { missing, ok: missing.length === 0 };
+}
+
+// ✅ Context-bewuste nudge: query wordt meegenomen
+async function sendNudgeForEssentials(
+  writer: WritableStreamDefaultWriter,
+  missing: string[],
+  query: string
+) {
+  await write(writer, "metadata", {
+    intent: "ASK_ESSENTIALS",
+    policy: "ASK_CLARIFY",
+    essentials: missing,
+  });
+
+  const txt =
+    `Ik wil **"${query}"** voor je verwerken. ` +
+    `Maar voor ik dat kan doen mis ik nog ${missing.join(", ")}. ` +
+    `Mag ik eerst de **projectNaam** noteren? (Bijv.: \`projectnaam Villa Dijk\`)`;
+
+  await write(writer, "stream", { text: txt });
+}
+
+// ---------- B) Classify ----------
+function classifyIntent(q: string): Intent {
+  const s = q.toLowerCase();
+  if (s.startsWith("ga naar ") || s.startsWith("open ")) return "NAVIGATIE";
+  if (
+    /^projectnaam\s+/i.test(q) ||
+    /^locatie\s+/i.test(q) ||
+    /^adres\s+/i.test(q) ||
+    /^bewoners?\s+/i.test(q) ||
+    /^oppervlakte\s+/i.test(q) ||
+    /^budget\s+/i.test(q) ||
+    /^bandbreedte\s+/i.test(q) ||
+    /^eigen\s*inbreng\s+/i.test(q) ||
+    /\bsl[aá]apkamer/.test(s) ||
+    /\bwoonkamer/.test(s) ||
+    /\bkeuken/.test(s) ||
+    /\bbadkamer/.test(s) ||
+    /\b(\d+)\s*(m2|m²)\b/.test(s) ||
+    /^\s*±?\s*\d+(\,\d+|\.\d+)?\s*(m2|m²)?\s*$/i.test(q.trim())
+  ) return "VULLEN_DATA";
+  if (s.startsWith("hoe ") || s.startsWith("waarom ") || s.startsWith("wat ")) return "ADVIES_VRAAG";
+  return "SMALLTALK";
+}
+
+// ---------- helpers voor deterministische parsing ----------
 function parseEuro(n: string): number | null {
   const k = /k/i.test(n);
   const digits = n.replace(/[^\d]/g, "");
@@ -9,16 +92,22 @@ function parseEuro(n: string): number | null {
   const base = Number(digits);
   return k ? base * 1000 : base;
 }
-
-// Eerste getal uit tekst (ook "30,5")
-function extractFirstNumber(txt: string): number | null {
+function firstNumber(txt: string): number | null {
   const m = txt.match(/(\d+(?:[.,]\d+)?)/);
   if (!m) return null;
   const val = Number(m[1].replace(",", "."));
   return Number.isFinite(val) ? val : null;
 }
-
-// m²-waarde nabij een keyword (woonkamer, keuken, ...)
+function looksLikeAreaOnly(q: string): number | null {
+  const clean = q.trim().toLowerCase();
+  const onlyNum = clean.match(/^±?\s*(\d+(?:[.,]\d+)?)\s*$/);
+  const withM2  = clean.match(/^±?\s*(\d+(?:[.,]\d+)?)\s*m(?:[\^]?\s*2|2|²)?\s*$/);
+  const g = withM2 || onlyNum;
+  if (!g) return null;
+  const n = Number(g[1].replace(",", "."));
+  if (!Number.isFinite(n)) return null;
+  return Math.round(n);
+}
 function extractM2NearKeyword(full: string, keyword: string): number | undefined {
   const s = full.toLowerCase();
   const k = keyword.toLowerCase();
@@ -27,200 +116,212 @@ function extractM2NearKeyword(full: string, keyword: string): number | undefined
   const start = Math.max(0, idx - 25);
   const end = Math.min(s.length, idx + k.length + 25);
   const window = s.slice(start, end);
-
-  // "30 m2", "30m2", "30 m²", "30m²"
   const m = window.match(/(\d+(?:[.,]\d+)?)\s*m(?:[\^]?\s*2|2|²)?/);
-  const n = m ? Number(m[1].replace(",", ".")) : extractFirstNumber(window);
+  const n = m ? Number(m[1].replace(",", ".")) : firstNumber(window);
   if (n == null || !Number.isFinite(n)) return undefined;
   return Math.round(n);
 }
-
 function mkRoom(name: string, m2?: number) {
-  return {
-    name,
-    type: name.toLowerCase(),
-    group: "",
-    m2: typeof m2 === "number" ? m2 : "",
-    wensen: [] as string[],
-  };
+  return { name, type: name.toLowerCase(), group: "", m2: typeof m2 === "number" ? m2 : "", wensen: [] as string[] };
 }
 
-type NavigateChapter =
-  | "basis" | "budget" | "ruimtes" | "wensen" | "techniek" | "duurzaamheid" | "risico" | "preview";
+// ---------- D) Nuggets / RAG stub ----------
+async function nuggetsAdvice(query: string, writer: WritableStreamDefaultWriter) {
+  await write(writer, "metadata", { intent: "ADVIES_VRAAG", policy: "RAG" });
+  const q = query.toLowerCase();
 
-function chapterFromQuery(q: string): NavigateChapter | null {
-  if (q.includes("basis")) return "basis";
-  if (q.includes("budget")) return "budget";
-  if (q.includes("ruimte")) return "ruimtes";
-  if (q.includes("wens")) return "wensen";
-  if (q.includes("techniek")) return "techniek";
-  if (q.includes("duurzaam")) return "duurzaamheid";
-  if (q.includes("risico")) return "risico";
-  if (q.includes("preview") || q.includes("overzicht")) return "preview";
-  return null;
-}
-
-// Herkent vrije m² invoer: "200", "200m2", "200 m²", "±200"
-function looksLikeAreaOnly(q: string): number | null {
-  const clean = q.trim().toLowerCase();
-  // exact alleen getal of getal met m2/² en optioneel ±
-  const onlyNum = clean.match(/^±?\s*(\d+(?:[.,]\d+)?)\s*$/i);
-  const withM2  = clean.match(/^±?\s*(\d+(?:[.,]\d+)?)\s*m(?:[\^]?\s*2|2|²)?\s*$/i);
-  const g = (withM2 || onlyNum);
-  if (!g) return null;
-  const n = Number(g[1].replace(",", "."));
-  if (!Number.isFinite(n)) return null;
-  return Math.round(n);
-}
-
-export class ProModel {
-  static async classify(query: string, _context: any) {
-    const q = query.toLowerCase().trim();
-
-    // ✅ vrije m² invoer (200, 200m2, 200 m²)
-    if (looksLikeAreaOnly(q) != null) {
-      return { intent: "VULLEN_DATA", confidence: 0.98, tokensUsed: 0 };
+  if (q.includes("stille slaapkamer") || q.includes("geluid") || q.includes("akoestiek")) {
+    const answer = [
+      "🔇 **Stille slaapkamer – kernpunten**:",
+      "• Plaats de slaapkamer aan de tuinzijde i.p.v. straatzijde waar mogelijk.",
+      "• Kies dichte binnendeuren met valdorpel; voeg kierdichting toe.",
+      "• Gevel: HR++(+) of geluidswerend glas bij drukke weg; let op juiste spouw.",
+      "• Vermijd doorlopende harde vloeren; demp met ondervloer of zoneer tapijt.",
+      "• Ventilatie: CO₂/vocht-gestuurd, fluisterstil (≤25 dB(A)), geen roosters direct boven bed.",
+    ].join("\n");
+    for (const chunk of answer.split(" ")) {
+      await write(writer, "stream", { text: chunk + " " });
+      await delay(6);
     }
-
-    // expliciete data-commando’s
-    if (
-      q.startsWith("projectnaam ") ||
-      /^budget\s+/.test(q) ||
-      /^bandbreedte\s+/.test(q) ||
-      /^eigen\s*inbreng\s+/.test(q) ||
-      /^locatie\s+/.test(q) ||
-      /^adres\s+/.test(q) ||
-      /^oppervlakte\s+/.test(q) ||
-      /^bewoners?\s+/.test(q) ||
-      q.includes("slaapkamer") ||
-      q.includes("woonkamer") ||
-      q.includes("keuken") ||
-      q.includes("badkamer") ||
-      q.includes("daglicht") ||
-      q.includes("licht") ||
-      q.includes("lichtkoepel") ||
-      q.includes("raam")
-    ) {
-      return { intent: "VULLEN_DATA", confidence: 0.96, tokensUsed: 0 };
-    }
-
-    if (q.startsWith("ga naar") || q.startsWith("open ") || q.includes("ga naar ")) {
-      return { intent: "NAVIGATIE", confidence: 0.95, tokensUsed: 0 };
-    }
-
-    if (q.includes("hoe") || q.includes("waarom") || q.startsWith("wat ")) {
-      return { intent: "ADVIES_VRAAG", confidence: 0.75, tokensUsed: 0 };
-    }
-
-    return { intent: "SMALLTALK", confidence: 0.6, tokensUsed: 0 };
+    return;
   }
 
-  static extractNavigation(query: string): NavigateChapter | null {
-    return chapterFromQuery(query.toLowerCase().trim());
+  const def = "Ik geef je graag advies, maar kun je je vraag iets concreter maken (onderwerp of kamer)?";
+  for (const w of def.split(" ")) { await write(writer, "stream", { text: w + " " }); await delay(6); }
+}
+
+// ---------- C) VULLEN_DATA – deterministisch + LLM-tool ----------
+async function fillDataAndEmit(
+  writer: WritableStreamDefaultWriter,
+  raw: string,
+  ws: WizardStateShape
+) {
+  const q = raw.toLowerCase();
+  const patches: PatchEvent[] = [];
+  let navigate: ChapterKey | null = null;
+
+  // Basis – vrije m²
+  const free = looksLikeAreaOnly(raw);
+  if (free != null) {
+    patches.push({ chapter: "basis", delta: { path: "oppervlakteM2", operation: "set", value: free } });
+    navigate = "basis";
+  }
+  // Basis – expliciet
+  if (/^projectnaam\s+/i.test(raw)) {
+    const v = raw.replace(/^projectnaam\s+/i, "").trim();
+    if (v) { patches.push({ chapter: "basis", delta: { path: "projectNaam", operation: "set", value: v } }); navigate = "basis"; }
+  }
+  if (/^(locatie|adres)\s+/i.test(raw)) {
+    const v = raw.replace(/^(locatie|adres)\s+/i, "").trim();
+    if (v) { patches.push({ chapter: "basis", delta: { path: "locatie", operation: "set", value: v } }); navigate = "basis"; }
+  }
+  if (/^oppervlakte\s+/i.test(raw)) {
+    const n = firstNumber(raw.replace(/^oppervlakte\s+/i, ""));
+    if (n != null) { patches.push({ chapter: "basis", delta: { path: "oppervlakteM2", operation: "set", value: Math.round(n) } }); navigate = "basis"; }
+  }
+  if (/^bewoners?\s+/i.test(raw)) {
+    const n = firstNumber(raw.replace(/^bewoners?\s+/i, ""));
+    if (n != null) { patches.push({ chapter: "basis", delta: { path: "bewonersAantal", operation: "set", value: Math.round(n) } }); navigate = "basis"; }
   }
 
-  static async generatePatch(query: string, _wizardState: any): Promise<PatchEvent | PatchEvent[] | null> {
-    const raw = query.trim();
-    const q = raw.toLowerCase();
-
-    // ✅ vrije m² invoer → Basis.oppervlakteM2
-    const freeM2 = looksLikeAreaOnly(q);
-    if (freeM2 != null) {
-      return { chapter: "basis", delta: { path: "oppervlakteM2", operation: "set", value: freeM2 } };
-    }
-
-    // ===== BASIS =====
-    if (q.startsWith("projectnaam ")) {
-      const name = raw.slice("projectnaam ".length).trim();
-      if (name) return { chapter: "basis", delta: { path: "projectNaam", operation: "set", value: name } };
-      return null;
-    }
-    if (q.startsWith("locatie ") || q.startsWith("adres ")) {
-      const val = raw.replace(/^(locatie|adres)\s+/i, "").trim();
-      if (val) return { chapter: "basis", delta: { path: "locatie", operation: "set", value: val } };
-      return null;
-    }
-    if (q.startsWith("oppervlakte ")) {
-      const num = extractFirstNumber(raw.replace(/^oppervlakte\s+/i, ""));
-      if (num != null) return { chapter: "basis", delta: { path: "oppervlakteM2", operation: "set", value: Math.round(num) } };
-      return null;
-    }
-    if (/^bewoners?\s+/.test(q)) {
-      const num = extractFirstNumber(raw.replace(/^bewoners?\s+/i, ""));
-      if (num != null) return { chapter: "basis", delta: { path: "bewonersAantal", operation: "set", value: Math.round(num) } };
-      return null;
-    }
-
-    // ===== BUDGET =====
-    if (/^budget\s+/.test(q)) {
-      const num = parseEuro(raw.replace(/^budget\s+/i, ""));
-      if (num != null) return { chapter: "budget", delta: { path: "budgetTotaal", operation: "set", value: num } };
-      return null;
-    }
-    if (/^bandbreedte\s+/.test(q)) {
-      const rest = raw.replace(/^bandbreedte\s+/i, "");
-      const parts = rest.split(/[–-]|tot/i).map((s) => s.trim()).filter(Boolean);
-      if (parts.length >= 2) {
-        const min = parseEuro(parts[0]);
-        const max = parseEuro(parts[1]);
-        if (min != null || max != null) {
-          return { chapter: "budget", delta: { path: "bandbreedte", operation: "set", value: [min ?? null, max ?? null] } };
-        }
+  // Budget
+  if (/^budget\s+/i.test(raw)) {
+    const n = parseEuro(raw.replace(/^budget\s+/i, ""));
+    if (n != null) { patches.push({ chapter: "budget", delta: { path: "budgetTotaal", operation: "set", value: n } }); navigate = "budget"; }
+  }
+  if (/^bandbreedte\s+/i.test(raw)) {
+    const rest = raw.replace(/^bandbreedte\s+/i, "");
+    const parts = rest.split(/[–-]|tot/i).map((s) => s.trim()).filter(Boolean);
+    if (parts.length >= 2) {
+      const min = parseEuro(parts[0]); const max = parseEuro(parts[1]);
+      if (min != null || max != null) {
+        patches.push({ chapter: "budget", delta: { path: "bandbreedte", operation: "set", value: [min ?? null, max ?? null] } });
+        navigate = "budget";
       }
-      return null;
     }
-    if (/^eigen\s*inbreng\s+/.test(q)) {
-      const num = parseEuro(raw.replace(/^eigen\s*inbreng\s+/i, ""));
-      return { chapter: "budget", delta: { path: "eigenInbreng", operation: "set", value: num } };
-    }
-
-    // ===== RUIMTES =====
-    if (q.includes("slaapkamer")) {
-      const mCount = q.match(/(\d+)\s*sl[aá]apkamer/);
-      const count = mCount ? Math.max(1, parseInt(mCount[1], 10)) : 1;
-      const patches: PatchEvent[] = [];
-      for (let i = 0; i < count; i++) {
-        patches.push({ chapter: "ruimtes", delta: { path: "", operation: "add", value: mkRoom("Slaapkamer") } });
-      }
-      return patches;
-    }
-
-    if (q.includes("woonkamer")) {
-      const m2 = extractM2NearKeyword(raw, "woonkamer");
-      return { chapter: "ruimtes", delta: { path: "", operation: "add", value: mkRoom("Woonkamer", m2) } };
-    }
-    if (q.includes("keuken")) {
-      // wens (daglicht/raam/koepel) → voeg toe aan Keuken.wensen
-      if (q.includes("daglicht") || q.includes("licht") || q.includes("lichtkoepel") || q.includes("raam")) {
-        const wish = /lichtkoepel/.test(q) ? 'Lichtkoepel'
-          : /daglicht/.test(q) ? 'Daglicht'
-          : /raam/.test(q) ? 'Extra raam'
-          : 'Meer daglicht';
-        return { chapter: "ruimtes", delta: { path: "byName:Keuken.wensen", operation: "add", value: wish } };
-      }
-      const m2 = extractM2NearKeyword(raw, "keuken");
-      return { chapter: "ruimtes", delta: { path: "", operation: "add", value: mkRoom("Keuken", m2) } };
-    }
-    if (q.includes("badkamer")) {
-      const m2 = extractM2NearKeyword(raw, "badkamer");
-      return { chapter: "ruimtes", delta: { path: "", operation: "add", value: mkRoom("Badkamer", m2) } };
-    }
-
-    // Generiek: "daglicht in de <ruimte>"
-    if ((q.includes("daglicht") || q.includes("licht") || q.includes("lichtkoepel") || q.includes("raam")) && /in de\s+(\w+)/.test(q)) {
-      const room = (q.match(/in de\s+([a-zà-ÿ]+)/)![1] || '').toLowerCase();
-      const canonical = room.charAt(0).toUpperCase() + room.slice(1);
-      const wish = /lichtkoepel/.test(q) ? 'Lichtkoepel'
-        : /daglicht/.test(q) ? 'Daglicht'
-        : /raam/.test(q) ? 'Extra raam'
-        : 'Meer daglicht';
-      return { chapter: "ruimtes", delta: { path: `byName:${canonical}.wensen`, operation: "add", value: wish } };
-    }
-
-    return null;
+  }
+  if (/^eigen\s*inbreng\s+/i.test(raw)) {
+    const n = parseEuro(raw.replace(/^eigen\s*inbreng\s+/i, ""));
+    patches.push({ chapter: "budget", delta: { path: "eigenInbreng", operation: "set", value: n } });
+    navigate = "budget";
   }
 
-  static async generateResponse(query: string) {
-    return `Ik heb je input ontvangen: "${query}".`;
+  // Ruimtes
+  const addRoom = (name: string, m2?: number) => patches.push({ chapter: "ruimtes", delta: { path: "", operation: "add", value: mkRoom(name, m2) } });
+  const mBed = q.match(/(\d+)\s*sl[aá]apkamer/);
+  if (mBed) {
+    const count = Math.max(1, parseInt(mBed[1], 10));
+    for (let i = 0; i < count; i++) addRoom("Slaapkamer");
+    navigate = "ruimtes";
   }
+  if (q.includes("woonkamer")) {
+    addRoom("Woonkamer", extractM2NearKeyword(raw, "woonkamer"));
+    navigate = "ruimtes";
+  }
+  if (q.includes("keuken")) {
+    if (q.includes("daglicht") || q.includes("licht") || q.includes("lichtkoepel") || q.includes("raam")) {
+      const wish =
+        /lichtkoepel/.test(q) ? "Lichtkoepel" :
+        /daglicht/.test(q) ? "Daglicht" :
+        /raam/.test(q) ? "Extra raam" : "Meer daglicht";
+      patches.push({ chapter: "ruimtes", delta: { path: "byName:Keuken.wensen", operation: "add", value: wish } });
+      navigate = "ruimtes";
+    } else {
+      addRoom("Keuken", extractM2NearKeyword(raw, "keuken"));
+      navigate = "ruimtes";
+    }
+  }
+  if (q.includes("badkamer")) {
+    addRoom("Badkamer", extractM2NearKeyword(raw, "badkamer"));
+    navigate = "ruimtes";
+  }
+
+  if (patches.length) {
+    await write(writer, "metadata", { intent: "VULLEN_DATA", policy: "APPLY_OPTIMISTIC", source: "RULES" });
+    for (const p of patches) await write(writer, "patch", p);
+    if (navigate) await write(writer, "navigate", { chapter: navigate });
+    await write(writer, "stream", { text: "Ik heb dit genoteerd in de wizard. " });
+    return;
+  }
+
+  // ---------- Geen deterministische match → LLM as tool ----------
+  const llm = await llmSuggest(raw, ws);
+  if (llm?.patches?.length) {
+    await write(writer, "metadata", { intent: "VULLEN_DATA", policy: "APPLY_WITH_INLINE_VERIFY", source: "LLM_TOOL" });
+    for (const p of llm.patches) await write(writer, "patch", p);
+    const nav = (llm.navigate as ChapterKey | null) ?? (llm.patches[0]?.chapter as ChapterKey);
+    if (nav) await write(writer, "navigate", { chapter: nav });
+    const reply = llm.reply || "Ik heb dit toegevoegd.";
+    for (const w of reply.split(" ")) { await write(writer, "stream", { text: w + " " }); await delay(6); }
+    return;
+  }
+
+  // LLM gaf ook niets bruikbaars → vraag verduidelijking
+  await write(writer, "metadata", { intent: "ASK_CLARIFY", policy: "ASK_CLARIFY" });
+  const clar = llm?.reply || "Wat wil je precies invullen (bijv. ‘woonkamer 30 m2’ of ‘bandbreedte 250k–300k’)?";
+  for (const w of clar.split(" ")) { await write(writer, "stream", { text: w + " " }); await delay(6); }
 }
+
+// ---------- E) Smalltalk ----------
+async function smalltalk(writer: WritableStreamDefaultWriter, q: string) {
+  await write(writer, "metadata", { intent: "SMALLTALK", policy: "RESPOND" });
+  const t = `Ik heb "${q}" ontvangen. Waarmee zal ik beginnen: basis, budget of ruimtes?`;
+  for (const w of t.split(" ")) { await write(writer, "stream", { text: w + " " }); await delay(6); }
+}
+
+// ---------- Public API ----------
+export const ProModel = {
+  async runTriage(writer: WritableStreamDefaultWriter, query: string, wizardState: WizardStateShape) {
+    const start = Date.now();
+    const raw = String(query ?? "");
+    const q = raw.trim();
+
+    // A) Essentials (context-bewuste nudge met query echo)
+    const ess = essentialsMissing(wizardState);
+    if (!ess.ok) {
+      await sendNudgeForEssentials(writer, ess.missing, raw);
+      await write(writer, "done", { latencyMs: Date.now() - start });
+      return;
+    }
+
+    // B) Classify
+    const intent = classifyIntent(q);
+    await write(writer, "metadata", { intent, policy: "CLASSIFIED" });
+
+    // Navigatie
+    if (intent === "NAVIGATIE") {
+      const key = q.toLowerCase().replace(/^ga naar\s+|^open\s+/i, "").trim();
+      const map: Record<string, ChapterKey> = {
+        basis: "basis", budget: "budget", ruimtes: "ruimtes", wensen: "wensen",
+        techniek: "techniek", duurzaamheid: "duurzaamheid", risico: "risico", preview: "preview",
+      };
+      const ch = map[key];
+      if (ch) {
+        await write(writer, "navigate", { chapter: ch });
+        await write(writer, "stream", { text: `Ik open **${ch}**. ` });
+      } else {
+        await write(writer, "stream", { text: "Welk hoofdstuk wil je openen? (basis, budget, ruimtes…)" });
+      }
+      await write(writer, "done", { latencyMs: Date.now() - start });
+      return;
+    }
+
+    // VULLEN_DATA
+    if (intent === "VULLEN_DATA") {
+      await fillDataAndEmit(writer, raw, wizardState);
+      await write(writer, "done", { latencyMs: Date.now() - start });
+      return;
+    }
+
+    // ADVIES_VRAAG
+    if (intent === "ADVIES_VRAAG") {
+      await nuggetsAdvice(raw, writer);
+      await write(writer, "done", { latencyMs: Date.now() - start });
+      return;
+    }
+
+    // SMALLTALK
+    await smalltalk(writer, raw);
+    await write(writer, "done", { latencyMs: Date.now() - start });
+  }
+};
