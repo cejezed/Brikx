@@ -1,167 +1,188 @@
-import { NextRequest, NextResponse } from "next/server";
-import {
-  ConfidencePolicy,
-  type ChatRequest,
-  type ChatResponse,
-  type PatchEnvelope,
-} from "@/types/chat";
-import { makeNudge } from "@/lib/chat/prompts";
-import { detectFastIntent } from "@/lib/chat/detectFastIntent";
+// /app/api/chat/route.ts
+import { NextRequest } from "next/server";
+import { createSSEStream } from "@/lib/sse/stream";
+import { logEvent } from "@/lib/logging/logEvent";
+import { ProModel } from "@/lib/ai/ProModel";
+import { Kennisbank } from "@/lib/rag/Kennisbank";
+import type { ChatRequest, WizardState } from "@/types/chat";
 
 export const runtime = "nodejs";
+export const maxDuration = 30;
 
-function essentialsCheck(wizardState: ChatRequest["wizardState"], intent: string) {
-  const missing: string[] = [];
-  const size = wizardState?.triage?.project_size ?? null;
-  const projectNaam = wizardState?.chapterAnswers?.basis?.projectNaam;
-  if (intent === "VULLEN_DATA" && !projectNaam) missing.push("basis.projectNaam");
-  const budgetClass = wizardState?.chapterAnswers?.budget?.klasse;
-  if (!budgetClass) missing.push("budget.klasse");
-  const planning = wizardState?.chapterAnswers?.basis?.planningStart;
-  if (!planning) missing.push("basis.planningStart");
-  if (size === "klein") {
-    // skip deep-tech fields for small projects (bewust niets doen)
-  }
-  return missing;
-}
-
-function mockClassify(query: string): {
-  intent: ChatResponse["intent"];
-  confidence: number;
-} {
-  const q = query.toLowerCase();
-  if (/ga\s+naar|open\s+|switch\s+to/.test(q))
-    return { intent: "NAVIGATIE", confidence: 0.97 };
-  if (/(slaapk?amers?|kamers?)/.test(q))
-    return { intent: "VULLEN_DATA", confidence: 0.82 };
-  if (/(kosten|prijs|vergunning|beng|rc-waarde|isolatie|fundering)/.test(q))
-    return { intent: "ADVIES_VRAAG", confidence: 0.78 };
-  if (/(hallo|hoi|dag|goedemorgen|goedenavond)/.test(q))
-    return { intent: "SMALLTALK", confidence: 0.9 };
-  return { intent: "ADVIES_VRAAG", confidence: 0.45 };
-}
-
-function buildPatchForFastIntent(
-  fast: ReturnType<typeof detectFastIntent>
-): PatchEnvelope | null {
-  if (!fast) return null;
-  switch (fast.type) {
-    case "NAVIGATE":
-      return {
-        chapter: "meta",
-        delta: {
-          kind: "object:merge",
-          path: "ui",
-          value: { currentChapter: fast.payload.chapter },
-        },
-      };
-    case "SET_BUDGET_DELTA":
-      return {
-        chapter: "budget",
-        delta: { kind: "number:add", path: "amount", value: fast.payload.value },
-      };
-    case "SET_ROOMS":
-      return {
-        chapter: "ruimtes",
-        delta: {
-          kind: "object:merge",
-          path: "counts",
-          value: { slaapkamers: fast.payload.rooms },
-        },
-      };
-    case "SET_PROJECT_NAME":
-      return {
-        chapter: "basis",
-        delta: {
-          kind: "object:merge",
-          path: "projectNaam",
-          value: fast.payload.name,
-        } as any,
-      };
-    case "FOCUS_FIELD":
-      return {
-        chapter: "meta",
-        delta: {
-          kind: "object:merge",
-          path: "ui",
-          value: { focusField: fast.payload.field },
-        },
-      };
-    default:
-      return null;
-  }
+export async function GET() {
+  return new Response("ok", {
+    status: 200,
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+    },
+  });
 }
 
 export async function POST(req: NextRequest) {
-  const t0 = Date.now();
-  const logId = crypto.randomUUID();
+  const body = (await req.json()) as ChatRequest;
+  const { query, wizardState, mode } = body;
+
+  const requestId = crypto.randomUUID();
+  const startTime = Date.now();
 
   try {
-    const body = (await req.json()) as ChatRequest;
-    const { query, wizardState, mode } = body;
+    const { stream, writer } = createSSEStream();
+    runAITriage(writer, { requestId, query, wizardState, mode, startTime });
+    return new Response(stream, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no",
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
+  } catch (error) {
+    logEvent(requestId, "chat.error", { error: String(error) });
+    return new Response(
+      `event: error\ndata: ${JSON.stringify({ message: "Server error" })}\n\n`,
+      { status: 500, headers: { "Content-Type": "text/event-stream; charset=utf-8" } }
+    );
+  }
+}
 
-    // 1) Server-side fast-intent (optioneel aanvullend op client)
-    const fast = detectFastIntent(query) || null;
+type Ctx = {
+  requestId: string;
+  query: string;
+  wizardState: WizardState;
+  mode: "PREVIEW" | "PREMIUM";
+  startTime: number;
+};
+type SSEWriter = ReturnType<typeof createSSEStream>["writer"];
 
-    // 2) Classify (mock in Week 1)
-    const { intent, confidence } = mockClassify(query);
+function checkEssentials(ws: WizardState): string[] {
+  const missing: string[] = [];
+  if (!ws?.chapterAnswers?.basis?.projectNaam) missing.push("basis.projectNaam");
+  if (!ws?.triage?.projectType) missing.push("triage.projectType");
+  return missing;
+}
 
-    // 3) Policy map
-    const policy = ConfidencePolicy.for(confidence);
+function makeContextAwareNudge(query: string, missing: string[]): string {
+  const pretty = missing.map((m) => `**${m.split(".")[1]}**`).join(", ");
+  return `Ik wil graag **"${query}"** voor je verwerken. Mag ik daarvoor eerst ${pretty} noteren? Dan kan ik je gerichter helpen.`;
+}
 
-    // 4) Context-bewuste nudge (⚠️ geef query mee!)
-    const missing = essentialsCheck(wizardState, intent);
-    const nudge = missing.length ? makeNudge(missing, query) : null;
+function determinePolicy(
+  confidence: number,
+  _intent: string
+): "APPLY_OPTIMISTIC" | "APPLY_WITH_INLINE_VERIFY" | "ASK_CLARIFY" | "CLASSIFY" {
+  if (confidence >= 0.95) return "APPLY_OPTIMISTIC";
+  if (confidence >= 0.7) return "APPLY_WITH_INLINE_VERIFY";
+  if (confidence >= 0.5) return "ASK_CLARIFY";
+  return "CLASSIFY";
+}
 
-    // 5) Patch bepalen (alleen bij policies die het toelaten)
-    let patch: PatchEnvelope | null = null;
-    if (fast && (policy === "APPLY_OPTIMISTIC" || policy === "APPLY_WITH_INLINE_VERIFY")) {
-      patch = buildPatchForFastIntent(fast);
+async function runAITriage(writer: SSEWriter, ctx: Ctx) {
+  const { requestId, query, wizardState, mode, startTime } = ctx;
+
+  try {
+    // start-ping
+    writer.writeEvent("metadata", {
+      intent: "CLASSIFY",
+      confidence: 0,
+      policy: "CLASSIFY",
+      stateVersion: wizardState.stateVersion ?? 0,
+    });
+
+    const classify = await ProModel.classify(query, {
+      triage: wizardState.triage,
+      chapterAnswers: wizardState.chapterAnswers,
+    });
+    const policy = determinePolicy(classify.confidence, classify.intent);
+    logEvent(requestId, "triage.classify", { intent: classify.intent, confidence: classify.confidence, policy });
+    writer.writeEvent("metadata", {
+      intent: classify.intent,
+      confidence: classify.confidence,
+      policy,
+      stateVersion: wizardState.stateVersion ?? 0,
+    });
+
+    const essentials = checkEssentials(wizardState);
+    const essentialsMissing = essentials.length > 0;
+    const isDataFill = classify.intent === "VULLEN_DATA" && classify.confidence >= 0.8;
+
+    if (essentialsMissing && !isDataFill) {
+      const nudgeText = makeContextAwareNudge(query, essentials);
+      logEvent(requestId, "triage.nudge", { missing: essentials, query });
+      writer.writeEvent("metadata", {
+        intent: "NUDGE",
+        confidence: 1.0,
+        policy: "ASK_CLARIFY",
+        nudge: nudgeText,
+        stateVersion: wizardState.stateVersion ?? 0,
+      });
+      writer.writeEvent("stream", { text: nudgeText });
+      writer.writeEvent("done", { logId: requestId, tokensUsed: 0, latencyMs: Date.now() - startTime });
+      writer.close();
+      return;
     }
 
-    // 6) Tekstuele respons (mock)
-    const responseText =
-      intent === "NAVIGATIE"
-        ? "Prima. Ik open het gewenste onderdeel."
-        : intent === "VULLEN_DATA"
-        ? `Helder, ik verwerk “${query}” voor u.`
-        : intent === "ADVIES_VRAAG"
-        ? mode === "PREMIUM"
-          ? "Richtwaarden en context volgen."
-          : "In de preview geef ik geen bedragen; zal ik u kort op weg helpen?"
-        : intent === "SMALLTALK"
-        ? "Dag! Waar zal ik u mee helpen binnen uw project?"
-        : "Ik help u graag binnen de wizard. Kunt u dit toelichten?";
+    let responseText = "";
 
-    const res: ChatResponse = {
-      intent,
-      confidence,
-      policy,
-      patch: patch ?? null,
-      response: responseText,
-      nudge,
-      rag: { activated: false },
-      metadata: {
-        latencyMs: { total: Date.now() - t0 },
-        logId,
-      },
-    };
+    if (classify.intent === "VULLEN_DATA") {
+      const patchOrPatches = await ProModel.generatePatch(query, wizardState);
 
-    return NextResponse.json(res);
+      let navigateChapter: string | null = null;
+
+      if (patchOrPatches) {
+        if (Array.isArray(patchOrPatches)) {
+          for (const p of patchOrPatches) {
+            writer.writeEvent("patch", p);
+            navigateChapter ??= p.chapter; // nav eenmaal, eerste patch bepaalt
+          }
+        } else {
+          writer.writeEvent("patch", patchOrPatches);
+          navigateChapter = patchOrPatches.chapter;
+        }
+        logEvent(requestId, "triage.patch", { patch: patchOrPatches });
+
+        // ✅ direct navigeren naar het hoofdstuk waar we net iets invulden
+        if (navigateChapter) {
+          writer.writeEvent("navigate", { chapter: navigateChapter });
+          logEvent(requestId, "triage.navigate", { chapter: navigateChapter });
+        }
+      }
+
+      responseText = patchOrPatches
+        ? "Dank je, ik heb dit genoteerd in de wizard."
+        : "Ik heb je input gelezen. Wil je dit toevoegen aan de wizard? Licht dit evt. toe.";
+    } else if (classify.intent === "NAVIGATIE") {
+      const target = ProModel.extractNavigation(query);
+      if (target) {
+        writer.writeEvent("navigate", { chapter: target });
+        logEvent(requestId, "triage.navigate", { chapter: target });
+        responseText = `Ik open **${target}**.`;
+      } else {
+        responseText = "Welke sectie wil je openen? (bijv. “ga naar budget”).";
+      }
+    } else if (classify.intent === "ADVIES_VRAAG") {
+      const rag = await Kennisbank.query(query, {
+        chapter: wizardState.triage?.currentChapter,
+        isPremium: mode === "PREMIUM",
+      });
+      writer.writeEvent("rag_metadata", { topicId: rag.topicId, docsRetrieved: rag.docs.length, cacheHit: rag.cacheHit });
+      responseText = await ProModel.generateResponse(query, rag, { mode, wizardState });
+    } else {
+      responseText = await ProModel.generateResponse(query, null, { mode, wizardState });
+    }
+
+    for (const chunk of responseText.split(" ")) {
+      writer.writeEvent("stream", { text: chunk + " " });
+      await new Promise((r) => setTimeout(r, 6));
+    }
+
+    writer.writeEvent("done", { logId: requestId, tokensUsed: 0, latencyMs: Date.now() - startTime });
   } catch (e) {
-    const err = e as Error;
-    return NextResponse.json(
-      {
-        intent: "OUT_OF_SCOPE",
-        confidence: 0,
-        policy: "CLASSIFY",
-        patch: null,
-        response: `Er ging iets mis: ${err.message}`,
-        nudge: null,
-        rag: { activated: false },
-        metadata: { latencyMs: { total: Date.now() - t0 }, logId },
-      } satisfies ChatResponse,
-      { status: 200 }
-    );
+    logEvent(ctx.requestId, "triage.error", { error: String(e) });
+    writer.writeEvent("error", { message: String(e) });
+  } finally {
+    writer.close();
   }
 }

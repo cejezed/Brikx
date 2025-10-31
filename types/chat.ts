@@ -1,82 +1,65 @@
-export type Mode = "PREVIEW" | "PREMIUM";
+// /types/chat.ts
 
-export type ClientFastIntent = {
-  type:
-    | "NAVIGATE"
-    | "SET_BUDGET_DELTA"
-    | "SET_ROOMS"
-    | "SET_PROJECT_NAME"
-    | "FOCUS_FIELD";
-  payload?: any;
-  confidence: number; // 0..1
-};
+export interface TriageData {
+  projectType?: string;
+  projectSize?: string;
+  urgency?: string;
+  budget?: number;
+  intent?: string[];
+  currentChapter?: string;
+}
 
-export type WizardState = {
+export interface WizardState {
   stateVersion: number;
-  triage?: {
-    project_type?: string | null;
-    project_size?: "klein" | "midden" | "groot" | null;
-  } | null;
   chapterAnswers?: Record<string, any>;
-};
+  triage?: TriageData;
+  currentChapter?: string;
+  focusedField?: string;
+}
 
-export type ChatRequest = {
+export interface ChatRequest {
   query: string;
-  clientFastIntent?: ClientFastIntent | null;
   wizardState: WizardState;
-  mode: Mode;
-};
-
-export type Intent =
-  | "VULLEN_DATA"
-  | "ADVIES_VRAAG"
-  | "NAVIGATIE"
-  | "SMALLTALK"
-  | "OUT_OF_SCOPE";
-
-export type Policy =
-  | "APPLY_OPTIMISTIC"
-  | "APPLY_WITH_INLINE_VERIFY"
-  | "ASK_CLARIFY"
-  | "CLASSIFY";
-
-export type Delta =
-  | { kind: "number:add"; path: string; value: number }
-  | { kind: "array:append"; path: string; value: unknown }
-  | { kind: "object:merge"; path: string; value: Record<string, unknown> };
-
-export type PatchEnvelope = {
-  chapter: string;
-  delta: Delta;
-};
-
-export type RagMeta = {
-  activated: boolean;
-  topicId?: string;
-  cacheHit?: boolean;
-  docCount?: number;
-};
-
-export type ChatResponse = {
-  intent: Intent;
-  confidence: number;
-  policy: Policy;
-  patch?: PatchEnvelope | null;
-  response: string;
-  nudge?: string | null;
-  rag?: RagMeta | null;
-  metadata: {
-    latencyMs: Record<string, number>;
-    tokensUsed?: Record<string, number>;
-    logId: string;
+  mode: "PREVIEW" | "PREMIUM";
+  clientFastIntent?: {
+    type: string;
+    confidence: number;
+    action?: string;
+    chapter?: string;
+    field?: string;
   };
-};
+}
 
-export const ConfidencePolicy = {
-  for(confidence: number): Policy {
-    if (confidence >= 0.95) return "APPLY_OPTIMISTIC";
-    if (confidence >= 0.7) return "APPLY_WITH_INLINE_VERIFY";
-    if (confidence >= 0.5) return "ASK_CLARIFY";
-    return "CLASSIFY";
-  },
-};
+export type ChatSSEEventName =
+  | "metadata"
+  | "patch"
+  | "navigate"
+  | "stream"
+  | "rag_metadata"
+  | "error"
+  | "done";
+
+export interface MetadataEvent {
+  intent: "VULLEN_DATA" | "ADVIES_VRAAG" | "NAVIGATIE" | "NUDGE" | "SMALLTALK" | "CLASSIFY";
+  confidence: number;
+  policy: "APPLY_OPTIMISTIC" | "APPLY_WITH_INLINE_VERIFY" | "ASK_CLARIFY" | "CLASSIFY";
+  nudge?: string;
+  stateVersion: number;
+}
+
+export interface NavigateEvent {
+  chapter: "basis" | "budget" | "ruimtes" | "wensen" | "techniek" | "duurzaamheid" | "risico" | "preview";
+}
+
+export interface PatchEvent {
+  chapter: string;
+  delta: {
+    path: string; // "" = append op hoofdstuk-root (array)
+    operation: "add" | "set" | "append" | "remove";
+    value?: any;
+  };
+}
+
+export interface StreamEvent { text: string; }
+export interface RAGMetadataEvent { topicId: string; docsRetrieved: number; cacheHit: boolean; }
+export interface DoneEvent { logId: string; tokensUsed: number; latencyMs: number; }
