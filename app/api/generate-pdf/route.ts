@@ -14,7 +14,6 @@ export async function POST(req: Request) {
     projectName = "Mijn Project",
   } = body ?? {};
 
-  // PveDocument *is* een Document-root; voldoet aan renderToBuffer types
   const element: ReactElement<DocumentProps> = React.createElement(
     PveDocument as React.FC<PveDocumentProps>,
     {
@@ -26,14 +25,14 @@ export async function POST(req: Request) {
 
   const pdfBuffer = await renderToBuffer(element);
 
-  // Fix voor TypeScript: Response verwacht BodyInit → gebruik Blob
-  const blob = new Blob([pdfBuffer], { type: "application/pdf" });
+  // ✅ Convert Buffer → Uint8Array → Blob
+  const uint8 = new Uint8Array(pdfBuffer);
+  const blob = new Blob([uint8], { type: "application/pdf" });
 
   return new Response(blob, {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
-      // inline tonen; pas 'attachment' aan als je forced download wilt
       "Content-Disposition": 'inline; filename="pve.pdf"',
       "Cache-Control": "no-store",
     },
