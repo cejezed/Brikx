@@ -22,7 +22,7 @@ const PostBodySchema = z.object({
   projectId: z.string().uuid().optional().nullable(),
   eventType: ValidEvent,
   questionNumber: z.number().int().min(0).optional(),
-  metadata: z.record(z.any()).optional().default({}),
+metadata: z.record(z.string(), z.unknown()).optional().default({}),
   userId: z.string().optional().nullable(),
 });
 
