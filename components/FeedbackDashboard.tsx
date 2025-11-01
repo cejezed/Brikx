@@ -15,7 +15,57 @@ import {
   ChevronRight,
   Star
 } from 'lucide-react';
-import { FeedbackMetrics, FeedbackResponse, getNPSCategory, calculateNPS } from '@/types/feedback';
+
+// Types
+interface FeedbackMetrics {
+  nps: number;
+  totalResponses: number;
+  averageRating: number;
+  responseRate: number;
+  testimonialCount?: number;
+  newsletterCount?: number;
+  avgRatings?: {
+    speed?: number;
+    clarity?: number;
+    quality?: number;
+    value?: number;
+    confidence?: number;
+  };
+}
+
+interface FeedbackResponse {
+  id: string;
+  rating: number;
+  comment?: string;
+  email?: string;
+  testimonialName?: string;
+  npsScore?: number;
+  npsReason?: string;
+  timeToComplete?: number;
+  ratings?: {
+    value?: number;
+    speed?: number;
+    clarity?: number;
+    quality?: number;
+    confidence?: number;
+  };
+  feedback?: {
+    best?: string;
+    frustrating?: string;
+  };
+  createdAt: string;
+}
+
+function getNPSCategory(nps: number): 'promoter' | 'passive' | 'detractor' {
+  if (nps >= 9) return 'promoter';
+  if (nps >= 7) return 'passive';
+  return 'detractor';
+}
+
+function calculateNPS(promoters: number, detractors: number, total: number): number {
+  if (total === 0) return 0;
+  return Math.round(((promoters - detractors) / total) * 100);
+}
 
 interface DashboardProps {
   dateRange?: { start: Date; end: Date };
@@ -100,7 +150,7 @@ function OverviewTab({ metrics, responses }: {
 }) {
   if (!metrics) return null;
 
-  const npsScore = calculateNPS(responses);
+  const npsScore = metrics.nps;
   const npsColor = npsScore >= 50 ? 'text-green-600' : npsScore >= 0 ? 'text-yellow-600' : 'text-red-600';
 
   return (
@@ -125,14 +175,14 @@ function OverviewTab({ metrics, responses }: {
         
         <KPICard
           title="Testimonials"
-          value={metrics.testimonialCount}
+          value={metrics.testimonialCount ?? 0}
           icon={<Award className="w-5 h-5" />}
           color="amber"
         />
         
         <KPICard
           title="Email Signups"
-          value={metrics.newsletterCount}
+          value={metrics.newsletterCount ?? 0}
           icon={<Mail className="w-5 h-5" />}
           color="green"
         />
@@ -320,11 +370,11 @@ function NPSBreakdown({ responses }: { responses: FeedbackResponse[] }) {
 // Component: Feature Ratings
 function FeatureRatings({ metrics }: { metrics: FeedbackMetrics }) {
   const ratings = [
-    { label: 'Snelheid', value: metrics.avgRatings.speed, icon: '⚡' },
-    { label: 'Duidelijkheid', value: metrics.avgRatings.clarity, icon: '💡' },
-    { label: 'Kwaliteit', value: metrics.avgRatings.quality, icon: '✨' },
-    { label: 'Waarde', value: metrics.avgRatings.value, icon: '💰' },
-    { label: 'Vertrouwen', value: metrics.avgRatings.confidence, icon: '🛡️' }
+    { label: 'Snelheid', value: metrics.avgRatings?.speed ?? 0, icon: '⚡' },
+    { label: 'Duidelijkheid', value: metrics.avgRatings?.clarity ?? 0, icon: '💡' },
+    { label: 'Kwaliteit', value: metrics.avgRatings?.quality ?? 0, icon: '✨' },
+    { label: 'Waarde', value: metrics.avgRatings?.value ?? 0, icon: '💰' },
+    { label: 'Vertrouwen', value: metrics.avgRatings?.confidence ?? 0, icon: '🛡️' }
   ];
 
   return (

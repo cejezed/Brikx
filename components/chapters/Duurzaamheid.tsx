@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useWizardState } from "@/lib/stores/useWizardState";
 import type { ChapterKey } from "@/types/wizard";
+
 import type {
   SustainabilityPrefs,
   EnergyFocus,
@@ -49,7 +50,7 @@ export default function Duurzaamheid() {
   const setAnswer = useWizardState((s) => s.setChapterAnswer);
   const triage = useWizardState((s) => s.triage);
 
-  const saved = useWizardState((s) => s.chapterAnswers?.[CHAPTER_KEY] as SustainabilityPrefs | undefined);
+  const saved = (useWizardState((s) => s.chapterAnswers) as unknown as Record<string, SustainabilityPrefs> | undefined)?.[CHAPTER_KEY] as SustainabilityPrefs | undefined;
 
   const [form, setForm] = useState<SustainabilityPrefs>(
     saved ?? {
@@ -71,9 +72,9 @@ export default function Duurzaamheid() {
 
   const prevKey = index > 0 ? flow[index - 1] : undefined;
   const nextKey = useMemo(() => {
-    if (!Array.isArray(flow) || flow.length === 0) return "preview";
-    if (index === -1 || index >= flow.length - 1) return "preview";
-    return flow[index + 1] ?? "preview";
+    if (!Array.isArray(flow) || flow.length === 0) return undefined;
+    if (index === -1 || index >= flow.length - 1) return undefined;
+    return flow[index + 1];
   }, [flow, index]);
 
   const commit = (patch: Partial<SustainabilityPrefs>) => {
@@ -86,13 +87,18 @@ export default function Duurzaamheid() {
 
   const goNext = () => {
     if (goTo) {
-      goTo(nextKey);
+      if (nextKey) {
+        goTo(nextKey as ChapterKey);
+      } else {
+        // @ts-ignore - "preview" is a router step, not a ChapterKey
+        goTo("preview");
+      }
     }
   };
 
   const goPrev = () => {
     if (goTo && prevKey) {
-      goTo(prevKey);
+      goTo(prevKey as ChapterKey);
     }
   };
 

@@ -1,191 +1,119 @@
 // lib/hooks/useCrossChapterData.ts
-/**
- * Cross-chapter data sharing hook
- * 
- * ✅ Doel: Zorgen dat Budget-info in Basis zichtbaar is, Basis-info in Budget, etc.
- * ✅ Single source of truth: Alle data via useWizardState
- * ✅ Bidirectioneel: Wijzigingen synchroniseren automatisch
- * 
- * Gebruik in ANY component:
- *   const ctx = useCrossChapterData();
- *   ctx.basis.projectNaam  // ← Altijd actueel
- *   ctx.budget.totaal      // ← Altijd actueel
- *   ctx.updateBudget(250000) // ← Schrijft naar beide chapters
- */
+// Build v2.0 — cross-chapter helpers zonder setChapterAnswers (delta-only via patchChapterAnswer)
 
-import { useWizardState } from '@/lib/stores/useWizardState';
-import { useMemo, useCallback } from 'react';
-
-export type CrossChapterContext = {
-  // ===== BASIS-GEGEVENS (geldig in alle chapters) =====
-  basis: {
-    projectNaam?: string;
-    locatie?: string;
-    oppervlakteM2?: number | null;
-    bewonersAantal?: number | null;
-    startMaand?: string;
-    toelichting?: string;
-  };
-
-  // ===== BUDGET-GEGEVENS (geldig in alle chapters) =====
-  budget: {
-    totaal?: number | null;
-    bandbreedte?: [number | null, number | null] | null;
-    eigenInbreng?: number | null;
-    /** Berekend: totaal - eigenInbreng */
-    financieringBehoefte?: number | null;
-  };
-
-  // ===== TRIAGE-CONTEXT (altijd beschikbaar) =====
-  triage: {
-    projectType?: string;
-    projectSize?: string;
-    urgentie?: string;
-    budget?: number | null;
-    ervaring?: string;
-    intent?: string[];
-  };
-
-  // ===== RUIMTES-SAMENVATTING =====
-  ruimtes: {
-    count: number;
-    totalM2?: number;
-  };
-
-  // ===== METHODS: Bidirectionele updates =====
-  updateBasis: (patch: Partial<CrossChapterContext['basis']>) => void;
-  updateBudget: (patch: Partial<CrossChapterContext['budget']>) => void;
-  updateProjectName: (name: string) => void;
-  updateLocation: (loc: string) => void;
-  updateBudgetTotal: (euro: number | null) => void;
-};
+import { useMemo, useCallback } from "react";
+import { useWizardState } from "@/lib/stores/useWizardState";
+import type { ChapterKey } from "@/types/wizard";
 
 /**
- * Hook: Lees en schrijf cross-chapter data
+ * Kleine util om veilig geneste paden te lezen uit een object.
+ * Voorbeeld: getByPath(obj, "wensen.items.0.label")
  */
-export function useCrossChapterData(): CrossChapterContext {
-  const chapterAnswers = useWizardState((s) => s.chapterAnswers) as Record<string, any>;
+function getByPath<T = any>(obj: any, path: string | string[], fallback?: T): T {
+  if (!obj) return fallback as T;
+  const parts = Array.isArray(path) ? path : String(path).split(".");
+  let cur: any = obj;
+  for (const k of parts) {
+    if (cur == null) return fallback as T;
+    cur = cur[k];
+  }
+  return (cur === undefined ? (fallback as T) : (cur as T));
+}
+
+/**
+ * Haal subset van een object op.
+ */
+function pick<T extends Record<string, any>>(obj: T | undefined, keys: string[]): Partial<T> {
+  const out: Partial<T> = {};
+  if (!obj) return out;
+  for (const k of keys) {
+    if (k in obj) (out as any)[k] = (obj as any)[k];
+  }
+  return out;
+}
+
+/**
+ * Cross-chapter hook
+ * - Leest triage en chapterAnswers defensief.
+ * - Biedt helpers om waardes op te halen en meerdere hoofdstukken in één keer te patchen.
+ */
+export function useCrossChapterData() {
+  const chapterAnswers = useWizardState((s) => s.chapterAnswers) as Record<string, any> | undefined;
   const triage = useWizardState((s) => s.triage);
-  const setChapterAnswers = useWizardState((s) => s.setChapterAnswers);
-  const patchChapterAnswer = useWizardState((s) => s.patchChapterAnswer);
+  const patchChapterAnswer = useWizardState((s: any) => s.patchChapterAnswer);
 
   // ===== MEMOIZED GETTERS =====
-  const basis = useMemo(() => {
-    const raw = chapterAnswers?.basis ?? {};
-    return {
-      projectNaam: raw.projectNaam,
-      locatie: raw.locatie,
-      oppervlakteM2: raw.oppervlakteM2 ?? null,
-      bewonersAantal: raw.bewonersAantal ?? null,
-      startMaand: raw.startMaand,
-      toelichting: raw.toelichting,
-    };
-  }, [chapterAnswers?.basis]);
 
-  const budget = useMemo(() => {
-    const raw = chapterAnswers?.budget ?? {};
-    const totaal = raw.budgetTotaal ?? raw.bedrag ?? null;
-    const eigenInbreng = raw.eigenInbreng ?? null;
-    const financieringBehoefte =
-      totaal && eigenInbreng ? totaal - eigenInbreng : totaal;
+  /** Hele chapter payload (of {} als niet gezet). */
+  const getChapter = useCallback(
+    <T = Record<string, any>>(chapter: ChapterKey): T =>
+      ((chapterAnswers?.[chapter] as T) ?? ({} as T)),
+    [chapterAnswers]
+  );
 
-    return {
-      totaal,
-      bandbreedte: raw.bandbreedte ?? null,
-      eigenInbreng,
-      financieringBehoefte,
-    };
-  }, [chapterAnswers?.budget]);
+  /** Specifiek veld uit een chapter via pad-string. */
+  const get = useCallback(
+    <T = any>(chapter: ChapterKey, path: string, fallback?: T): T =>
+      getByPath<T>(getChapter<Record<string, any>>(chapter), path, fallback),
+    [getChapter]
+  );
 
-  const triageData = useMemo(() => {
-    return {
-      projectType: (triage as any)?.projectType ?? (triage as any)?.project_type,
-      projectSize: (triage as any)?.projectSize ?? (triage as any)?.project_size,
-      urgentie: (triage as any)?.urgentie,
-      budget: budget.totaal,
-      ervaring: (triage as any)?.ervaring,
-      intent: Array.isArray((triage as any)?.intent)
-        ? (triage as any).intent
-        : (triage as any)?.intent
-          ? [(triage as any).intent]
-          : [],
-    };
-  }, [triage, budget.totaal]);
+  /** Check of een chapter een niet-lege waarde heeft op pad. */
+  const has = useCallback(
+    (chapter: ChapterKey, path: string): boolean => {
+      const v = get<any>(chapter, path, undefined);
+      if (Array.isArray(v)) return v.length > 0;
+      if (v && typeof v === "object") return Object.keys(v).length > 0;
+      return v !== undefined && v !== null && v !== "";
+    },
+    [get]
+  );
 
-  const ruimtes = useMemo(() => {
-    const list = Array.isArray(chapterAnswers?.ruimtes) ? chapterAnswers.ruimtes : [];
-    const totalM2 = list.reduce((sum: number, r: any) => sum + (r.m2 || r.oppM2 || 0), 0);
-    return {
-      count: list.length,
-      totalM2: totalM2 > 0 ? totalM2 : undefined,
-    };
-  }, [chapterAnswers?.ruimtes]);
+  /** Meerdere sleutels uit één chapter ophalen. */
+  const pickFromChapter = useCallback(
+    <T extends Record<string, any>>(chapter: ChapterKey, keys: string[]): Partial<T> =>
+      pick<T>(getChapter<T>(chapter), keys),
+    [getChapter]
+  );
 
-  // ===== BIDIRECTIONAL WRITERS =====
-  const updateBasis = useCallback(
-    (patch: Partial<CrossChapterContext['basis']>) => {
-      patchChapterAnswer('basis', patch);
+  // ===== WRITERS (delta-only) =====
+
+  /**
+   * Merge delta's in meerdere chapters.
+   * Voorbeeld:
+   *   mergeIntoChapters({
+   *     wensen: { items: [...] },
+   *     ruimtes: { list: [...] },
+   *     techniek: { heating: "warmtepomp" }
+   *   })
+   */
+  const mergeIntoChapters = useCallback(
+    (deltas: Partial<Record<ChapterKey, Record<string, any>>> | Record<string, any>) => {
+      if (!deltas || typeof deltas !== "object") return;
+
+      const entries = Object.entries(deltas) as Array<[ChapterKey, Record<string, any>]>;
+      for (const [chapter, delta] of entries) {
+        if (delta && typeof delta === "object") {
+          // v2.0: delta-patch per hoofdstuk
+          patchChapterAnswer?.(chapter, delta);
+        }
+      }
     },
     [patchChapterAnswer]
   );
 
-  const updateBudget = useCallback(
-    (patch: Partial<CrossChapterContext['budget']>) => {
-      // Spiegel naar basis.budgetIndicatie als totaal verandert
-      const nextBudget = {
-        ...(chapterAnswers?.budget ?? {}),
-        budgetTotaal: patch.totaal !== undefined ? patch.totaal : (chapterAnswers?.budget?.budgetTotaal ?? null),
-        bandbreedte: patch.bandbreedte !== undefined ? patch.bandbreedte : (chapterAnswers?.budget?.bandbreedte ?? null),
-        eigenInbreng: patch.eigenInbreng !== undefined ? patch.eigenInbreng : (chapterAnswers?.budget?.eigenInbreng ?? null),
-      };
-
-      // Als totaal verandert, spiegel ook naar basis.budgetIndicatie
-      const nextBasis = {
-        ...(chapterAnswers?.basis ?? {}),
-        budgetIndicatie: patch.totaal !== undefined ? patch.totaal : (chapterAnswers?.basis?.budgetIndicatie ?? null),
-      };
-
-      setChapterAnswers({
-        ...chapterAnswers,
-        budget: nextBudget,
-        basis: nextBasis,
-      });
-    },
-    [chapterAnswers, setChapterAnswers]
+  return useMemo(
+    () => ({
+      triage,
+      chapterAnswers: chapterAnswers ?? ({} as Record<string, any>),
+      getChapter,
+      get,
+      has,
+      pickFromChapter,
+      mergeIntoChapters,
+    }),
+    [triage, chapterAnswers, getChapter, get, has, pickFromChapter, mergeIntoChapters]
   );
-
-  const updateProjectName = useCallback(
-    (name: string) => {
-      updateBasis({ projectNaam: name });
-    },
-    [updateBasis]
-  );
-
-  const updateLocation = useCallback(
-    (loc: string) => {
-      updateBasis({ locatie: loc });
-    },
-    [updateBasis]
-  );
-
-  const updateBudgetTotal = useCallback(
-    (euro: number | null) => {
-      updateBudget({ totaal: euro });
-    },
-    [updateBudget]
-  );
-
-  return {
-    basis,
-    budget,
-    triage: triageData,
-    ruimtes,
-    updateBasis,
-    updateBudget,
-    updateProjectName,
-    updateLocation,
-    updateBudgetTotal,
-  };
 }
 
 export default useCrossChapterData;

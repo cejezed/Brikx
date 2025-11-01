@@ -38,7 +38,8 @@ export default function NudgeBanner() {
   const currentList: MissingItem[] = currentChapter ? (grouped[currentChapter] ?? []) : [];
 
   function goTo(item: MissingItem) {
-    setFocusedField({ chapter: item.chapter, fieldId: item.fieldId });
+    // ✅ FIX: setFocusedField verwacht string format "chapter:fieldId"
+    setFocusedField(`${item.chapter}:${item.fieldId}`);
     logEvent("nudge.goto_field", { chapter: item.chapter, fieldId: item.fieldId, source: "nudge_banner" });
   }
 
@@ -70,7 +71,7 @@ export default function NudgeBanner() {
                 </div>
               )}
 
-              {/* Toon óók een “Volgende beste” voor snelle voortgang */}
+              {/* Toon óók een "Volgende beste" voor snelle voortgang */}
               <div className="mt-2">
                 <p className="text-xs text-amber-900/80 mb-1">Volgende beste stap:</p>
                 <button

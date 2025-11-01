@@ -1,7 +1,12 @@
 'use client';
 
 import React from 'react';
-import type { Msg } from './ChatPanel';
+
+type Msg = {
+  role: 'user' | 'assistant';
+  text: string;
+  id?: string;
+};
 
 export default function ChatMessage({ msg }: { msg: Msg }) {
   const isUser = msg.role === 'user';

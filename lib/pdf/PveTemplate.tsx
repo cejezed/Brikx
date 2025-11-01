@@ -1,5 +1,13 @@
+// lib/pdf/PveTemplate.tsx
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
-import type { DocumentStatus } from './DossierChecklist';
+
+// ✅ Lokale, tolerante definitie (ipv import uit ./DossierChecklist)
+export type DocumentStatus = {
+  moodboard?: boolean | null;
+  existingDrawings?: boolean | null;
+  kavelpaspoort?: boolean | null;
+  existingPermits?: boolean | null;
+};
 
 const styles = StyleSheet.create({
   page: {
@@ -50,7 +58,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: '50%',
     left: '50%',
-    transform: 'translate(-50%, -50%) rotate(-45deg)',
+    // Opmerking: React-PDF kent geen CSS transform-string; eenvoudige tekst volstaat hier.
+    // Voor een echte diagonale watermark kun je <Text rotate={-45}> gebruiken.
     fontSize: 60,
     color: '#E0E0E0',
     opacity: 0.3,
@@ -75,7 +84,7 @@ const styles = StyleSheet.create({
 });
 
 interface PveTemplateProps {
-  // ✅ FIX: Match your actual wizard data structure
+  // ✅ Match wizard datastructuur, velden facultatief en defensief gelezen
   data: {
     triage?: any;
     basis?: any;
@@ -91,7 +100,6 @@ interface PveTemplateProps {
 }
 
 export const PveTemplate = ({ data, isPremium, documentStatus }: PveTemplateProps) => {
-  // ✅ FIX: Extract data from your wizard structure
   const basis = data.basis || {};
   const triage = data.triage || {};
   const wensen = data.wensen || {};
@@ -103,10 +111,7 @@ export const PveTemplate = ({ data, isPremium, documentStatus }: PveTemplateProp
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        
-        {!isPremium && (
-          <Text style={styles.watermark}>BRIKX PREVIEW</Text>
-        )}
+        {!isPremium && <Text style={styles.watermark}>BRIKX PREVIEW</Text>}
 
         <View style={styles.header}>
           <Text style={styles.title}>Programma van Eisen</Text>
@@ -115,17 +120,19 @@ export const PveTemplate = ({ data, isPremium, documentStatus }: PveTemplateProp
           </Text>
         </View>
 
-        {/* SECTION 1: PROJECT BASIS */}
+        {/* 1. PROJECT BASIS */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>1. Projectbasis</Text>
-          
+
           {triage.projectType && (
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Projecttype</Text>
-              <Text style={styles.fieldValue}>{triage.projectType}</Text>
+              <Text style={styles.fieldValue}>
+                {Array.isArray(triage.projectType) ? triage.projectType.join(', ') : triage.projectType}
+              </Text>
             </View>
           )}
-          
+
           {basis.projectNaam && (
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Projectnaam</Text>
@@ -155,16 +162,14 @@ export const PveTemplate = ({ data, isPremium, documentStatus }: PveTemplateProp
           )}
         </View>
 
-        {/* SECTION 2: BUDGET (Premium only) */}
+        {/* 2. BUDGET (Premium) */}
         {isPremium && budget.bedrag && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>2. Budget</Text>
-            
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Budget</Text>
-              <Text style={styles.fieldValue}>€ {budget.bedrag.toLocaleString('nl-NL')}</Text>
+              <Text style={styles.fieldValue}>€ {Number(budget.bedrag).toLocaleString('nl-NL')}</Text>
             </View>
-
             {budget.fasering && (
               <View style={styles.field}>
                 <Text style={styles.fieldLabel}>Fasering</Text>
@@ -174,127 +179,119 @@ export const PveTemplate = ({ data, isPremium, documentStatus }: PveTemplateProp
           </View>
         )}
 
-        {/* SECTION 3: RUIMTES */}
-        {ruimtes && ruimtes.length > 0 && (
+        {/* 3. RUIMTES */}
+        {Array.isArray(ruimtes) && ruimtes.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>3. Ruimtes</Text>
-            
             {ruimtes.map((ruimte: any, idx: number) => (
               <View key={idx} style={styles.field}>
-                <Text style={styles.fieldLabel}>{ruimte.naam}</Text>
+                <Text style={styles.fieldLabel}>{ruimte.naam || ruimte.type || `Ruimte ${idx + 1}`}</Text>
                 {ruimte.oppervlakte && (
-                  <Text style={styles.fieldValue}>
-                    • Oppervlakte: {ruimte.oppervlakte} m²
-                  </Text>
+                  <Text style={styles.fieldValue}>• Oppervlakte: {ruimte.oppervlakte} m²</Text>
                 )}
-                {ruimte.wensen && ruimte.wensen.length > 0 && (
-                  <Text style={styles.fieldValue}>
-                    • Wensen: {ruimte.wensen.join(', ')}
-                  </Text>
+                {Array.isArray(ruimte.wensen) && ruimte.wensen.length > 0 && (
+                  <Text style={styles.fieldValue}>• Wensen: {ruimte.wensen.join(', ')}</Text>
                 )}
               </View>
             ))}
           </View>
         )}
 
-        {/* SECTION 4: WENSEN */}
-        {wensen && Array.isArray(wensen) && wensen.length > 0 && (
+        {/* 4. WENSEN */}
+        {Array.isArray(wensen) && wensen.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>4. Wensen & Prioriteiten</Text>
-            
             {wensen.map((wish: any, idx: number) => (
               <View key={idx} style={styles.field}>
                 <Text style={styles.fieldValue}>
-                  • {typeof wish === 'string' ? wish : wish.text || JSON.stringify(wish)}
+                  • {typeof wish === 'string' ? wish : wish.text || String(wish)}
                 </Text>
               </View>
             ))}
           </View>
         )}
 
-        {/* SECTION 5: TECHNIEK (Premium only) */}
+        {/* 5. TECHNIEK (Premium) */}
         {isPremium && techniek && Object.keys(techniek).length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>5. Techniek & Installaties</Text>
-            
-            {Object.entries(techniek).map(([key, value]: [string, any], idx) => (
-              value && (
+            {Object.entries(techniek).map(([key, value], idx) =>
+              value ? (
                 <View key={idx} style={styles.field}>
                   <Text style={styles.fieldLabel}>{key}</Text>
                   <Text style={styles.fieldValue}>{String(value)}</Text>
                 </View>
-              )
-            ))}
+              ) : null
+            )}
           </View>
         )}
 
-        {/* SECTION 6: DUURZAAMHEID (Premium only) */}
+        {/* 6. DUURZAAMHEID (Premium) */}
         {isPremium && duurzaamheid && Object.keys(duurzaamheid).length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>6. Duurzaamheid</Text>
-            
-            {Object.entries(duurzaamheid).map(([key, value]: [string, any], idx) => (
-              value && (
+            {Object.entries(duurzaamheid).map(([key, value], idx) =>
+              value ? (
                 <View key={idx} style={styles.field}>
                   <Text style={styles.fieldLabel}>{key}</Text>
                   <Text style={styles.fieldValue}>{String(value)}</Text>
                 </View>
-              )
-            ))}
+              ) : null
+            )}
           </View>
         )}
 
-        {/* SECTION 7: DOCUMENT STATUS */}
+        {/* 7. DOCUMENT STATUS */}
         {documentStatus && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>7. Projectdossier</Text>
-            
-            {documentStatus.moodboard !== null && (
+
+            {documentStatus.moodboard !== undefined && documentStatus.moodboard !== null && (
               <View style={styles.field}>
                 <Text style={styles.fieldValue}>
                   • Moodboard: {documentStatus.moodboard ? 'Beschikbaar ✓' : 'Niet beschikbaar'}
                 </Text>
               </View>
             )}
-            
-            {documentStatus.existingDrawings !== null && (
-              <View style={styles.field}>
-                <Text style={styles.fieldValue}>
-                  • Bouwtekeningen: {documentStatus.existingDrawings ? 'Beschikbaar ✓' : 'Niet beschikbaar'}
-                </Text>
-              </View>
-            )}
-            
-            {documentStatus.kavelpaspoort !== null && (
-              <View style={styles.field}>
-                <Text style={styles.fieldValue}>
-                  • Kavelpaspoort: {documentStatus.kavelpaspoort ? 'Beschikbaar ✓' : 'Niet beschikbaar'}
-                </Text>
-              </View>
-            )}
-            
-            {documentStatus.existingPermits !== null && (
-              <View style={styles.field}>
-                <Text style={styles.fieldValue}>
-                  • Vergunningen: {documentStatus.existingPermits ? 'Beschikbaar ✓' : 'Niet beschikbaar'}
-                </Text>
-              </View>
-            )}
+
+            {documentStatus.existingDrawings !== undefined &&
+              documentStatus.existingDrawings !== null && (
+                <View style={styles.field}>
+                  <Text style={styles.fieldValue}>
+                    • Bouwtekeningen: {documentStatus.existingDrawings ? 'Beschikbaar ✓' : 'Niet beschikbaar'}
+                  </Text>
+                </View>
+              )}
+
+            {documentStatus.kavelpaspoort !== undefined &&
+              documentStatus.kavelpaspoort !== null && (
+                <View style={styles.field}>
+                  <Text style={styles.fieldValue}>
+                    • Kavelpaspoort: {documentStatus.kavelpaspoort ? 'Beschikbaar ✓' : 'Niet beschikbaar'}
+                  </Text>
+                </View>
+              )}
+
+            {documentStatus.existingPermits !== undefined &&
+              documentStatus.existingPermits !== null && (
+                <View style={styles.field}>
+                  <Text style={styles.fieldValue}>
+                    • Vergunningen: {documentStatus.existingPermits ? 'Beschikbaar ✓' : 'Niet beschikbaar'}
+                  </Text>
+                </View>
+              )}
           </View>
         )}
 
         <View style={styles.disclaimer}>
           <Text>
-            Dit document is gegenereerd door Brikx en dient als uitgangspunt voor verder onderzoek. 
-            Het vervangt geen professioneel advies van een architect, aannemer of andere bouwprofessionals. 
+            Dit document is gegenereerd door Brikx en dient als uitgangspunt voor verder onderzoek.
+            Het vervangt geen professioneel advies van een architect, aannemer of andere bouwprofessionals.
             Aan deze indicaties kunnen geen rechten worden ontleend.
           </Text>
         </View>
 
-        <Text style={styles.footer}>
-          Brikx • Slim bouwen zonder spijt • www.brikx.nl
-        </Text>
-
+        <Text style={styles.footer}>Brikx • Slim bouwen zonder spijt • www.brikx.nl</Text>
       </Page>
     </Document>
   );

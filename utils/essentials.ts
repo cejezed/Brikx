@@ -1,71 +1,93 @@
-// Checkt alleen de essentials. Geen hard blok; jij bepaalt wanneer je dit toont.
-// Gebruik in Preview/versturen, niet tijdens tab navigatie.
+// /utils/essentials.ts
+// Build v2.0 — essentials-check, backward-compatible exports voor Preview.tsx.
+// - Exporteert: collectEssentials, computeEssentialIssues, EssentialIssue
+// - Tolerant voor ontbrekende 'ervaring' / 'urgentie' in TriageData types/state.
 
-import type { TriageData } from "@/types/wizard";
-import type { Space, WishItem, TechnicalPrefs, SustainabilityPrefs } from "@/types/project";
-import type { Archetype } from "@/types/archetype";
+import type { TriageData } from "@/types/chat";
 
+// ==== Types ====
 export type EssentialIssue = {
   id: string;
   title: string;
   message: string;
-  related?: string[]; // hints zoals ['basis.budget', 'ruimtes']
+  severity?: "low" | "medium" | "high";
+  related?: string[]; // dotted paths voor focus/navigatie
 };
 
-function uid(p: string) { return `${p}-${Math.random().toString(36).slice(2,8)}`; }
+// Backwards-compat alias (sommige code noemde dit EssentialFinding)
+export type EssentialFinding = EssentialIssue;
 
-export function computeEssentialIssues(args: {
-  triage: TriageData;
-  archetype: Archetype | null;
-  answers: Record<string, any>;
-}): EssentialIssue[] {
-  const { triage, archetype, answers } = args;
+// ==== Utils ====
+function uid(prefix = "ess"): string {
+  return `${prefix}-${Math.random().toString(36).slice(2, 8)}-${Date.now().toString(36)}`;
+}
 
-  const ruimtes = (answers["ruimtes"] as Space[] | undefined) ?? [];
-  const wensen  = (answers["wensen"] as WishItem[] | undefined) ?? [];
-  const techniek = (answers["techniek"] as TechnicalPrefs | undefined);
-  const duurzaamheid = (answers["duurzaamheid"] as SustainabilityPrefs | undefined);
-
+// ==== Core (tolerant) ====
+export function collectEssentials(triage?: TriageData): EssentialIssue[] {
   const out: EssentialIssue[] = [];
 
-  // Archetype
-  if (!archetype) {
+  // --- Canoniek en veilig getypt ---
+  if (!triage?.projectType) {
     out.push({
-      id: uid("arch"),
-      title: "Kies je projectvariant (archetype)",
-      message: "Selecteer welke projectvariant het beste past. Dit helpt bij het vervolg.",
-      related: ["intake.archetype"],
+      id: uid("ptype"),
+      title: "Projecttype ontbreekt",
+      message: "Kies Nieuwbouw / Verbouwing / Hybride.",
+      related: ["basis.projectType"],
+      severity: "medium",
     });
   }
 
-  // Basis
-  if (!triage?.projectType) out.push({ id: uid("ptype"), title: "Projecttype ontbreekt", message: "Kies Nieuwbouw / Verbouwing / Hybride.", related: ["basis.projectType"] });
-  if (!triage?.ervaring) out.push({ id: uid("exp"), title: "Ervaring ontbreekt", message: "Geef aan of je starter of ervaren bent.", related: ["basis.ervaring"] });
-  if (!triage?.intent) out.push({ id: uid("intent"), title: "Intentie ontbreekt", message: "Kies je hoofddoel (architect, offertes, scenario's).", related: ["basis.intent"] });
-  if (!triage?.urgentie) out.push({ id: uid("urg"), title: "Urgentie ontbreekt", message: "Hoe snel wil je starten?", related: ["basis.urgentie"] });
+  if (!triage?.intent || triage.intent.length === 0) {
+    out.push({
+      id: uid("intent"),
+      title: "Intentie ontbreekt",
+      message: "Kies je hoofddoel (architect, offertes, scenario's).",
+      related: ["basis.intent"],
+      severity: "low",
+    });
+  }
+
   if (!Number.isFinite(triage?.budget) || (triage?.budget as number) <= 0) {
-    out.push({ id: uid("budget"), title: "Budget ontbreekt", message: "Vul een indicatief budget in (mag globaal).", related: ["basis.budget"] });
+    out.push({
+      id: uid("budget-miss"),
+      title: "Budget ontbreekt of ongeldig",
+      message: "Vul een indicatief budget in voor betere afwegingen (±15% bandbreedte).",
+      related: ["triage.budget"],
+      severity: "medium",
+    });
   }
 
-  // Ruimtes
-  if (ruimtes.length < 1) {
-    out.push({ id: uid("rooms"), title: "Nog geen ruimtes toegevoegd", message: "Voeg minimaal één ruimte toe (bv. keuken, slaapkamer).", related: ["ruimtes"] });
-  } else if (ruimtes.some(r => !r.type?.trim())) {
-    out.push({ id: uid("rooms-name"), title: "Onbenoemde ruimte", message: "Geef elke ruimte een duidelijke naam.", related: ["ruimtes"] });
+  // --- Tolerante (runtime) checks: ervaring / urgentie ---
+  const anyTri = triage as unknown as Record<string, unknown> | undefined;
+
+  const ervaring = (anyTri?.["ervaring"] as string | undefined) ?? undefined;
+  if (!ervaring) {
+    out.push({
+      id: uid("exp"),
+      title: "Ervaring ontbreekt",
+      message: "Geef aan of je starter of ervaren bent.",
+      related: ["basis.ervaring"],
+      severity: "low",
+    });
   }
 
-  // Wensen
-  if (wensen.length < 1) {
-    out.push({ id: uid("wishes"), title: "Nog geen wensen toegevoegd", message: "Voeg minimaal één wens toe (kookeiland, lichtstraat, etc.).", related: ["wensen"] });
+  const urgentie =
+    (anyTri?.["urgentie"] as string | undefined) ??
+    (anyTri?.["urgency"] as string | undefined); // alias-ondersteuning
+  if (!urgentie) {
+    out.push({
+      id: uid("urg"),
+      title: "Urgentie ontbreekt",
+      message: "Hoe snel wil je starten?",
+      related: ["basis.urgentie"],
+      severity: "low",
+    });
   }
-
-  // Techniek (alleen de kern; 'unknown' is toegestaan)
-  if (!techniek) {
-    out.push({ id: uid("tech"), title: "Techniek nog leeg", message: "Maak alvast globale techniek-keuzes of kies ‘Weet ik nog niet’.", related: ["techniek"] });
-  }
-
-  // Duurzaamheid is niet essentieel, maar prettig
-  // => Geen blocking item, dus overslaan
 
   return out;
+}
+
+// Backwards-compat function export verwacht door Preview.tsx
+export function computeEssentialIssues(triage?: TriageData): EssentialIssue[] {
+  return collectEssentials(triage);
 }

@@ -1,109 +1,198 @@
+// components/intake/IntakeForm.tsx
 'use client';
 
-import { useWizardState } from '@/lib/stores/useWizardState';
-import { useUiStore } from '@/lib/stores/useUiStore';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import type { TriageData, ProjectType, ProjectSize, Urgency, HulpVraag, ChapterKey } from '@/types/wizard';
+import { useRouter } from 'next/navigation';
+import { useWizardState } from '@/lib/stores/useWizardState';
 import { generateChapters } from '@/lib/wizard/generateChapters';
+import type {
+  TriageData,
+  ProjectType,
+  ProjectSize,
+  Urgency,
+  HulpVraag,
+  ChapterKey,
+  StijlVoorkeur,
+  Document as WizardDocument,
+} from '@/types/wizard';
 
+/**
+ * Build v2.0 conform:
+ * - Pijler 1: geen AI-calls of nudge logic in UI; Intake levert schone TriageData.
+ * - Pijler 2: generateChapters beslist; UI zet alleen current chapter.
+ * - Pijler 3: geen RAG in UI.
+ * - Pijler 4: budget = number | undefined (export-consistent).
+ */
+
+// ---- Budget mapping: radios -> numeric presets (bewuste midpoints) ----
+type BudgetKey = 'lt100k' | '100-250k' | '250-500k' | 'gt500k';
+
+const BUDGET_LABELS: Record<BudgetKey, string> = {
+  lt100k: 'Minder dan €100.000',
+  '100-250k': '€100.000 – €250.000',
+  '250-500k': '€250.000 – €500.000',
+  gt500k: 'Meer dan €500.000',
+};
+
+const BUDGET_PRESETS: Record<BudgetKey, number> = {
+  lt100k: 90_000,
+  '100-250k': 175_000,
+  '250-500k': 375_000,
+  gt500k: 600_000,
+};
+
+function budgetKeyFromNumber(n: number): BudgetKey {
+  if (n < 100_000) return 'lt100k';
+  if (n < 250_000) return '100-250k';
+  if (n < 500_000) return '250-500k';
+  return 'gt500k';
+}
+
+// ---- Whitelists (los van union; validatie via guards) ----
+const STIJL_OPTIONS = [
+  'modern',
+  'tijdloos',
+  'industrieel',
+  'landelijk',
+  'scandinavisch',
+  'klassiek',
+  'retro',
+] as const;
+
+function isStijlVoorkeur(x: unknown): x is StijlVoorkeur {
+  return typeof x === 'string' && (STIJL_OPTIONS as readonly string[]).includes(x);
+}
+
+const HULPVRAAG_OPTIONS = [
+  'pve_maken',
+  'architect',
+  'aannemer',
+  'interieur',
+  'kosten',
+  'oriënteren',
+] as const;
+
+function isHulpVraag(x: unknown): x is HulpVraag {
+  return typeof x === 'string' && (HULPVRAAG_OPTIONS as readonly string[]).includes(x);
+}
+
+const DOCUMENT_OPTIONS = ['fotos', 'bouwtekeningen', 'ontwerp', 'geen'] as const;
+
+function isWizardDocument(x: unknown): x is WizardDocument {
+  return typeof x === 'string' && (DOCUMENT_OPTIONS as readonly string[]).includes(x);
+}
+
+// ---- Component ----
 export default function IntakeForm() {
   const router = useRouter();
+
+  // Store API: alleen wat je aantoonbaar hebt
   const triage = useWizardState((s) => s.triage);
   const patchTriage = useWizardState((s) => s.patchTriage);
+  const goToChapter = useWizardState((s: any) => s.goToChapter);
+
+  // triage kan (deels) ontbreken tijdens hydration; lees defensief
+  const t: any = triage ?? {};
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const updateField = (patch: Record<string, any>) => {
-    patchTriage(patch);
+    // Zustand patch accepteert dynamische keys
+    // @ts-ignore
+    patchTriage?.(patch);
   };
 
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
+  const validate = () => {
+    const next: Record<string, string> = {};
 
-    if (!triage.projectType || (Array.isArray(triage.projectType) && triage.projectType.length === 0)) {
-      newErrors.projectType = 'Selecteer minstens één projecttype';
-    }
+    const pt = Array.isArray(t.projectType)
+      ? (t.projectType as ProjectType[])
+      : t.projectType
+      ? [t.projectType as ProjectType]
+      : [];
+    if (pt.length === 0) next.projectType = 'Kies minimaal één projecttype.';
 
-    if (!triage.projectSize) {
-      newErrors.projectSize = 'Selecteer een schaal';
-    }
+    if (!t.projectSize) next.projectSize = 'Kies een projectgrootte.';
+    if (!t.urgency) next.urgency = 'Geef aan hoe snel u wilt starten.';
 
-    if (!triage.urgency) {
-      newErrors.urgency = 'Selecteer een starttijdstip';
-    }
-
-    if (!triage.hulpvraag || (Array.isArray(triage.hulpvraag) && triage.hulpvraag.length === 0)) {
-      newErrors.hulpvraag = 'Selecteer minstens één hulpvraag';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return next;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Submit button clicked');
-    
-    if (!validateForm()) {
-      console.log('Validation failed');
+    setErrors({});
+    const nextErrors = validate();
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
       return;
     }
 
     setIsSubmitting(true);
-
     try {
-      console.log('Creating triageData...');
+      // Normaliseer naar strikt getypeerde velden
+      const stijlList: StijlVoorkeur[] = Array.isArray(t.stijlvoorkeur)
+        ? (t.stijlvoorkeur as unknown[]).filter(isStijlVoorkeur)
+        : [];
+
+      const docList: WizardDocument[] = Array.isArray(t.bestaandeDocumenten)
+        ? (t.bestaandeDocumenten as unknown[]).filter(isWizardDocument)
+        : [];
+
+      const hulpList: HulpVraag[] = Array.isArray(t.hulpvraag)
+        ? (t.hulpvraag as unknown[]).filter(isHulpVraag)
+        : [];
+
       const triageData: TriageData = {
-        projectType: Array.isArray(triage.projectType) 
-          ? (triage.projectType as ProjectType[])
-          : triage.projectType 
-            ? [triage.projectType as ProjectType]
-            : [],
-        projectSize: triage.projectSize as ProjectSize,
-        urgency: triage.urgency as Urgency,
-        budget: triage.budget as any,
-        budgetCustom: triage.budgetCustom,
-        stijlvoorkeur: triage.stijlvoorkeur as any,
-        moodboardUrl: triage.moodboardUrl,
-        bestaandeDocumenten: triage.bestaandeDocumenten as any,
-        hulpvraag: (triage.hulpvraag as HulpVraag[]) || [],
+        projectType: Array.isArray(t.projectType)
+          ? (t.projectType as ProjectType[])
+          : t.projectType
+          ? [t.projectType as ProjectType]
+          : [],
+        projectSize: (t.projectSize as ProjectSize) || 'middel',
+        urgency: (t.urgency as Urgency) || 'middel',
+
+        // Spec Pijler 4: number | undefined
+        budget:
+          typeof t.budget === 'number'
+            ? t.budget
+            : typeof t.budgetCustom === 'number'
+            ? t.budgetCustom
+            : undefined,
+
+        budgetCustom: typeof t.budgetCustom === 'number' ? t.budgetCustom : undefined,
+
+        stijlvoorkeur: stijlList,
+        moodboardUrl: typeof t.moodboardUrl === 'string' ? t.moodboardUrl : undefined,
+        bestaandeDocumenten: docList,
+        hulpvraag: hulpList,
       };
 
-      console.log('Triage data:', triageData);
+      // Pijler 2: centraal beslismodel
+      // @ts-ignore: result type kan variëren; we gebruiken alleen chapters
+      const result = generateChapters(triageData);
 
-      const result = generateChapters(triageData as any);
-      console.log('Generated chapters:', result.chapters);
-      console.log('Mode:', result.mode);
-      console.log('Reasoning:', result.reasoning);
+      // Kies eerste chapter als current, met fallback
+      const firstChapter: ChapterKey = (result.chapters as ChapterKey[])[0] ?? 'basis';
+      goToChapter?.(firstChapter);
 
-      // Update WizardState (data)
-      useWizardState.setState({
-        triage: triageData,
-        chapterFlow: result.chapters as any,
-        mode: result.mode as any,
-      });
-
-      // Update UIState (navigation + focus)
-      useUiStore.setState({ 
-        currentChapter: result.chapters[0] as ChapterKey,
-        focusedField: undefined,
-      });
-
-      console.log('Redirecting to /wizard');
-      router.push('/wizard');
-    } catch (error) {
-      console.error('Intake error:', error);
-      setErrors({ 
-        submit: error instanceof Error 
-          ? error.message 
-          : 'Er ging iets mis. Probeer opnieuw.' 
-      });
+      // Route naar juiste stap
+      router.push(`/wizard?step=${firstChapter}`);
+    } catch (err) {
+      console.error(err);
+      setErrors((prev) => ({
+        ...prev,
+        submit:
+          'Er ging iets mis bij het starten van de wizard. Probeer het opnieuw of neem contact op.',
+      }));
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Huidige radio-afleiding o.b.v. numeric store
+  const selectedBudgetKey: BudgetKey | undefined =
+    typeof t.budget === 'number' ? budgetKeyFromNumber(t.budget) : undefined;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8 max-w-2xl">
@@ -116,61 +205,66 @@ export default function IntakeForm() {
       {/* 1️⃣ PROJECTTYPE */}
       <fieldset className="border border-gray-300 rounded-lg p-6 bg-gray-50">
         <legend className="text-lg font-bold mb-4 text-gray-900">
-          1️⃣ Wat voor project(en) hebt u? <span className="text-red-600">*</span>
+          1️⃣ Wat voor project heeft u? <span className="text-red-600">*</span>
         </legend>
-        <p className="text-sm text-gray-600 mb-4">Meerdere opties mogelijk</p>
 
         <div className="space-y-3">
-          {[
-            { id: 'interieur', label: 'Interieur (styling/restyle)' },
-            { id: 'verbouwing_binnen', label: 'Verbouwing binnenhuis' },
-            { id: 'uitbouw', label: 'Uitbouw (toevoeging)' },
-            { id: 'nieuwbouw', label: 'Nieuwbouw' },
-            { id: 'bijgebouw', label: 'Bijgebouw (aparte ruimte)' },
-            { id: 'renovatie', label: 'Renovatie / Restauratie' },
-          ].map((type) => {
-            const current = Array.isArray(triage.projectType) ? triage.projectType : [];
-            const checked = current.includes(type.id);
+          {([
+            { id: 'nieuwbouw', label: 'Nieuwbouw woning' },
+            { id: 'verbouwing', label: 'Verbouwing' },
+            { id: 'aanbouw', label: 'Aanbouw / Uitbouw / Dakkapel' },
+            { id: 'renovatie', label: 'Renovatie' },
+            { id: 'interieur', label: 'Interieur / Herindeling' },
+          ] as { id: ProjectType; label: string }[]).map((opt) => {
+            const checked = Array.isArray(t.projectType)
+              ? (t.projectType as ProjectType[]).includes(opt.id)
+              : t.projectType === opt.id;
 
             return (
-              <label key={type.id} className="flex items-center gap-3 cursor-pointer">
+              <label key={opt.id} className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={checked}
+                  checked={!!checked}
                   onChange={(e) => {
-                    const updated = e.target.checked
-                      ? [...current, type.id]
-                      : current.filter((t) => t !== type.id);
-                    updateField({ projectType: updated });
+                    const current: ProjectType[] = Array.isArray(t.projectType)
+                      ? (t.projectType as ProjectType[])
+                      : t.projectType
+                      ? [t.projectType as ProjectType]
+                      : [];
+                    if (e.target.checked) {
+                      updateField({ projectType: [...current, opt.id] });
+                    } else {
+                      updateField({ projectType: current.filter((x) => x !== opt.id) });
+                    }
                   }}
-                  className="w-4 h-4 rounded border-gray-300 cursor-pointer"
+                  className="w-4 h-4 cursor-pointer"
                 />
-                <span className="text-sm text-gray-700">{type.label}</span>
+                <span className="text-sm text-gray-700">{opt.label}</span>
               </label>
             );
           })}
         </div>
 
         {errors.projectType && (
-          <p className="text-red-600 text-sm mt-3 font-semibold">{errors.projectType}</p>
+          <p className="text-red-600 text-sm mt-2 font-semibold">{errors.projectType}</p>
         )}
       </fieldset>
 
-      {/* 2️⃣ SCHAAL */}
+      {/* 2️⃣ PROJECTGROOTTE */}
       <div>
         <label className="block">
           <span className="block text-lg font-bold mb-2 text-gray-900">
             2️⃣ Hoe groot is het project? <span className="text-red-600">*</span>
           </span>
           <select
-            className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-[#0d3d4d] focus:border-transparent"
-            value={triage.projectSize ?? ''}
-            onChange={(e) => updateField({ projectSize: e.target.value || null })}
+            className="w-full border border-gray-300 rounded-md p-2 bg-white focus:ring-2 focus:ring-[#0d3d4d] focus:border-transparent"
+            value={t.projectSize ?? ''}
+            onChange={(e) => updateField({ projectSize: (e.target.value || null) as ProjectSize })}
           >
             <option value="">– Kies een grootte –</option>
-            <option value="klein">Klein (minder dan 50 m²)</option>
-            <option value="middel">Middel (50 tot 200 m²)</option>
-            <option value="groot">Groot (meer dan 200 m²)</option>
+            <option value="klein">Klein</option>
+            <option value="middel">Middel</option>
+            <option value="groot">Groot</option>
           </select>
           {errors.projectSize && (
             <p className="text-red-600 text-sm mt-2 font-semibold">{errors.projectSize}</p>
@@ -185,8 +279,8 @@ export default function IntakeForm() {
             3️⃣ Hoe snel wilt u starten? <span className="text-red-600">*</span>
           </span>
           <select
-            className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-[#0d3d4d] focus:border-transparent"
-            value={triage.urgency ?? ''}
+            className="w-full border border-gray-300 rounded-md p-2 bg-white focus:ring-2 focus:ring-[#0d3d4d] focus:border-transparent"
+            value={t.urgency ?? ''}
             onChange={(e) => updateField({ urgency: e.target.value || null })}
           >
             <option value="">– Kies een starttijdstip –</option>
@@ -207,35 +301,34 @@ export default function IntakeForm() {
         </legend>
 
         <div className="space-y-3">
-          {[
-            { id: 'lt100k', label: 'Minder dan EUR 100.000' },
-            { id: '100-250k', label: 'EUR 100.000 tot EUR 250.000' },
-            { id: '250-500k', label: 'EUR 250.000 tot EUR 500.000' },
-            { id: 'gt500k', label: 'Meer dan EUR 500.000' },
-          ].map((option) => (
-            <label key={option.id} className="flex items-center gap-3 cursor-pointer">
+          {(Object.keys(BUDGET_LABELS) as BudgetKey[]).map((id) => (
+            <label key={id} className="flex items-center gap-3 cursor-pointer">
               <input
                 type="radio"
                 name="budgetOption"
-                checked={(triage.budget ?? '') === option.id}
-                onChange={() => updateField({ budget: option.id })}
+                checked={selectedBudgetKey === id}
+                onChange={() => updateField({ budget: BUDGET_PRESETS[id] })}
                 className="w-4 h-4 cursor-pointer"
               />
-              <span className="text-sm text-gray-700">{option.label}</span>
+              <span className="text-sm text-gray-700">{BUDGET_LABELS[id]}</span>
             </label>
           ))}
         </div>
 
-        <div className="border-t pt-4">
+        <div className="mt-4">
           <label className="block">
             <span className="text-sm font-medium mb-2 block">Of vul uw eigen bedrag in:</span>
             <div className="flex gap-2">
               <span className="text-gray-600 py-2">EUR</span>
               <input
                 type="number"
-                className="flex-1 border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-[#0d3d4d] focus:border-transparent"
-                value={triage.budgetCustom ?? ''}
-                onChange={(e) => updateField({ budgetCustom: e.target.value ? Number(e.target.value) : null })}
+                className="flex-1 border border-gray-300 rounded-md p-2 bg-white focus:ring-2 focus:ring-[#0d3d4d] focus:border-transparent"
+                value={typeof t.budgetCustom === 'number' ? t.budgetCustom : ''}
+                onChange={(e) =>
+                  updateField({
+                    budgetCustom: e.target.value ? Number(e.target.value) : undefined,
+                  })
+                }
                 placeholder="bijv. 150000"
               />
             </div>
@@ -243,7 +336,7 @@ export default function IntakeForm() {
         </div>
       </fieldset>
 
-      {/* 5️⃣ VISUAL CONTEXT */}
+      {/* 5️⃣ VISUELE CONTEXT */}
       <fieldset className="border border-gray-300 rounded-lg p-6 bg-gray-50">
         <legend className="text-lg font-bold mb-4 text-gray-900">
           5️⃣ Visuele Context <span className="text-gray-500 text-sm">(optioneel)</span>
@@ -254,80 +347,81 @@ export default function IntakeForm() {
             5A. Welke woonstijl(en) spreken u aan?
           </h3>
           <div className="space-y-2">
-            {[
-              { id: 'modern', label: 'Modern en Strak' },
-              { id: 'landelijk', label: 'Landelijk en Warm' },
-              { id: 'industrieel', label: 'Industrieel en Robuust' },
-              { id: 'scandinavisch', label: 'Scandinavisch en Licht' },
-              { id: 'klassiek', label: 'Klassiek en Elegant' },
-              { id: 'onbekend', label: 'Weet ik nog niet / Anders' },
-            ].map((style) => {
-              const current = Array.isArray(triage.stijlvoorkeur) ? triage.stijlvoorkeur : [];
-              const checked = current.includes(style.id);
-
+            {STIJL_OPTIONS.map((stijl) => {
+              const selected = Array.isArray(t.stijlvoorkeur)
+                ? (t.stijlvoorkeur as unknown[]).some((s) => s === stijl)
+                : false;
               return (
-                <label key={style.id} className="flex items-center gap-3 cursor-pointer">
+                <label key={stijl} className="flex items-center gap-3 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={checked}
+                    checked={selected}
                     onChange={(e) => {
-                      const updated = e.target.checked
-                        ? [...current, style.id]
-                        : current.filter((s) => s !== style.id);
-                      updateField({ stijlvoorkeur: updated });
+                      const current: string[] = Array.isArray(t.stijlvoorkeur)
+                        ? (t.stijlvoorkeur as string[])
+                        : [];
+                      if (e.target.checked) {
+                        updateField({ stijlvoorkeur: [...current, stijl] });
+                      } else {
+                        updateField({ stijlvoorkeur: current.filter((s) => s !== stijl) });
+                      }
                     }}
-                    className="w-4 h-4 rounded border-gray-300 cursor-pointer"
+                    className="w-4 h-4 cursor-pointer"
                   />
-                  <span className="text-sm text-gray-700">{style.label}</span>
+                  <span className="text-sm text-gray-700 capitalize">{stijl}</span>
                 </label>
               );
             })}
           </div>
-
-          <div className="mt-4">
-            <label className="block">
-              <span className="text-sm font-medium mb-2 block text-gray-900">
-                Heeft u al een online moodboard? (bv. Pinterest)
-              </span>
-              <input
-                type="url"
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-[#0d3d4d] focus:border-transparent text-sm"
-                value={triage.moodboardUrl ?? ''}
-                onChange={(e) => updateField({ moodboardUrl: e.target.value || null })}
-                placeholder="https://pinterest.com/..."
-              />
-            </label>
-          </div>
         </div>
 
-        <div className="border-t pt-6">
-          <h3 className="text-sm font-semibold text-gray-900 mb-3">
-            5B. Welke documenten hebt u al?
-          </h3>
-          <div className="space-y-2">
-            {[
-              { id: 'fotos', label: "Foto's van de huidige situatie" },
-              { id: 'bouwtekeningen', label: 'Bouwtekeningen (oud of nieuw)' },
-              { id: 'ontwerp', label: 'Een (schets)ontwerp' },
-              { id: 'geen', label: 'Ik heb nog geen documenten' },
-            ].map((doc) => {
-              const current = Array.isArray(triage.bestaandeDocumenten) ? triage.bestaandeDocumenten : [];
-              const checked = current.includes(doc.id);
+        <div className="mb-6">
+          <h3 className="text-sm font-semibold text-gray-900 mb-3">5B. Moodboard link</h3>
+          <input
+            type="url"
+            className="w-full border border-gray-300 rounded-md p-2 bg-white focus:ring-2 focus:ring-[#0d3d4d] focus:border-transparent"
+            placeholder="Plak hier een link naar uw Pinterest/beeldcollectie (optioneel)"
+            value={typeof t.moodboardUrl === 'string' ? t.moodboardUrl : ''}
+            onChange={(e) => updateField({ moodboardUrl: e.target.value || undefined })}
+          />
+        </div>
 
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900 mb-3">5C. Bestaande documenten</h3>
+          <div className="space-y-2">
+            {DOCUMENT_OPTIONS.map((doc) => {
+              const selected = Array.isArray(t.bestaandeDocumenten)
+                ? (t.bestaandeDocumenten as unknown[]).some((d) => d === doc)
+                : false;
               return (
-                <label key={doc.id} className="flex items-center gap-3 cursor-pointer">
+                <label key={doc} className="flex items-center gap-3 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={checked}
+                    checked={selected}
                     onChange={(e) => {
-                      const updated = e.target.checked
-                        ? [...current, doc.id]
-                        : current.filter((d) => d !== doc.id);
-                      updateField({ bestaandeDocumenten: updated });
+                      const current: string[] = Array.isArray(t.bestaandeDocumenten)
+                        ? (t.bestaandeDocumenten as string[])
+                        : [];
+                      if (e.target.checked) {
+                        updateField({ bestaandeDocumenten: [...current, doc] });
+                      } else {
+                        updateField({
+                          bestaandeDocumenten: current.filter((d) => d !== doc),
+                        });
+                      }
                     }}
-                    className="w-4 h-4 rounded border-gray-300 cursor-pointer"
+                    className="w-4 h-4 cursor-pointer"
                   />
-                  <span className="text-sm text-gray-700">{doc.label}</span>
+                  <span className="text-sm text-gray-700">
+                    {
+                      {
+                        fotos: 'Foto’s / Inspiratiebeelden',
+                        bouwtekeningen: 'Bouwtekeningen',
+                        ontwerp: 'Bestaand ontwerp',
+                        geen: 'Geen documenten',
+                      }[doc]
+                    }
+                  </span>
                 </label>
               );
             })}
@@ -336,56 +430,57 @@ export default function IntakeForm() {
       </fieldset>
 
       {/* 6️⃣ HULPVRAAG */}
-      <fieldset className="border border-[#0d3d4d] rounded-lg p-6 bg-blue-50">
+      <fieldset className="border border-gray-300 rounded-lg p-6 bg-gray-50">
         <legend className="text-lg font-bold mb-4 text-gray-900">
-          6️⃣ Waar zoekt u op dit moment hulp bij? <span className="text-red-600">*</span>
+          6️⃣ Waarmee kunnen we u helpen? <span className="text-gray-500 text-sm">(optioneel)</span>
         </legend>
-        <p className="text-sm text-gray-600 mb-4">Meerdere opties mogelijk</p>
-
-        <div className="space-y-3">
-          {[
-            { id: 'pve_maken', label: 'Mijn wensen en eisen op een rij zetten (een PvE maken)' },
-            { id: 'architect', label: 'Ik zoek een architect of tekenbureau' },
-            { id: 'aannemer', label: 'Ik zoek een aannemer of vakmensen' },
-            { id: 'interieur', label: 'Ik zoek interieur- of stylingadvies' },
-            { id: 'kosten', label: 'Ik wil inzicht in kosten en subsidies' },
-            { id: 'oriënteren', label: 'Ik oriënteer mij nog breed' },
-          ].map((help) => {
-            const current = Array.isArray(triage.hulpvraag) ? triage.hulpvraag : [];
-            const checked = current.includes(help.id);
-
+        <div className="space-y-2">
+          {HULPVRAAG_OPTIONS.map((hv) => {
+            const selected = Array.isArray(t.hulpvraag)
+              ? (t.hulpvraag as unknown[]).some((x) => x === hv)
+              : false;
             return (
-              <label key={help.id} className="flex items-center gap-3 cursor-pointer">
+              <label key={hv} className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={checked}
+                  checked={selected}
                   onChange={(e) => {
-                    const updated = e.target.checked
-                      ? [...current, help.id]
-                      : current.filter((h) => h !== help.id);
-                    updateField({ hulpvraag: updated });
+                    const current: string[] = Array.isArray(t.hulpvraag)
+                      ? (t.hulpvraag as string[])
+                      : [];
+                    if (e.target.checked) {
+                      updateField({ hulpvraag: [...current, hv] });
+                    } else {
+                      updateField({ hulpvraag: current.filter((h) => h !== hv) });
+                    }
                   }}
-                  className="w-4 h-4 rounded border-gray-300 cursor-pointer"
+                  className="w-4 h-4 cursor-pointer"
                 />
-                <span className="text-sm text-gray-700">{help.label}</span>
+                <span className="text-sm text-gray-700">
+                  {
+                    {
+                      pve_maken: 'Programma van Eisen (PvE) opstellen',
+                      architect: 'Architect/ontwerp',
+                      aannemer: 'Aannemer / Bouwbegeleiding',
+                      interieur: 'Interieuradvies',
+                      kosten: 'Kostenraming / Budgetadvies',
+                      oriënteren: 'Oriënterend gesprek',
+                    }[hv]
+                  }
+                </span>
               </label>
             );
           })}
         </div>
-
-        {errors.hulpvraag && (
-          <p className="text-red-600 text-sm mt-3 font-semibold">{errors.hulpvraag}</p>
-        )}
       </fieldset>
 
-      {/* SUBMIT */}
-      <div className="flex gap-4 pt-4">
+      <div className="pt-4">
         <button
           type="submit"
           disabled={isSubmitting}
-          className="flex-1 bg-[#0d3d4d] text-white font-bold py-3 rounded-lg hover:bg-[#0a2a37] disabled:opacity-50 transition"
+          className="inline-flex items-center justify-center px-5 py-3 rounded-lg bg-[#0d3d4d] text-white font-semibold shadow hover:opacity-90 disabled:opacity-60"
         >
-          {isSubmitting ? 'Laden...' : '→ Begin met uw PvE'}
+          {isSubmitting ? 'Bezig met starten…' : 'Start mijn Wizard'}
         </button>
       </div>
     </form>

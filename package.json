@@ -12,6 +12,7 @@
     "check": "npm run type-check && npm run lint"
   },
   "dependencies": {
+    "@react-email/components": "^0.5.7",
     "@react-pdf/renderer": "^4.3.1",
     "@supabase/supabase-js": "^2.76.1",
     "clsx": "^2.1.1",

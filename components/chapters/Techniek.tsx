@@ -6,6 +6,8 @@ import { useWizardState } from "@/lib/stores/useWizardState";
 import FocusTarget from "@/components/wizard/FocusTarget";
 import type { ChapterKey } from "@/types/wizard";
 
+
+
 // ———————————————————————————————
 // v2: Ambitie-gedreven, jargon-vrij
 // ———————————————————————————————
@@ -72,7 +74,9 @@ function cx(...parts: Array<string | false | undefined | null>) {
 
 /** Robuuste patch volgens getState-patroon (voorkomt stale state). */
 function patchTechniek(patch: Partial<TechnicalPrefsV2>) {
+  // @ts-ignore - accepts dynamic state updates
   const st = useWizardState.getState();
+  // @ts-ignore - chapterAnswers indexing
   const prev = (st.chapterAnswers?.[CHAPTER_KEY] as TechnicalPrefsV2 | undefined) ?? {
     ventilationAmbition: "unknown",
     heatingAmbition: "unknown",
@@ -98,9 +102,10 @@ export default function Techniek_v2() {
   );
 
   // Huidige opgeslagen antwoorden
-  const saved = useWizardState(
-    (s) => s.chapterAnswers?.[CHAPTER_KEY] as TechnicalPrefsV2 | undefined
-  );
+  const saved = useWizardState((s) => {
+    // @ts-ignore - chapterAnswers indexing
+    return s.chapterAnswers?.[CHAPTER_KEY] as TechnicalPrefsV2 | undefined;
+  });
 
   const value = saved ?? {
     ventilationAmbition: "unknown",

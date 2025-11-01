@@ -6,6 +6,7 @@ import WizardLayout from '@/components/wizard/WizardLayout';
 import ChapterTabs, { type ChapterTab } from '@/components/wizard/ChapterTabs';
 import { ToastProvider } from '@/components/ui/use-toast';
 import { useWizardState } from '@/lib/stores/useWizardState';
+import type { ChapterKey } from '@/types/wizard';
 import Header from "@/components/Header";
 import BrikxHero from "@/components/HeroWizard";
 import Footer from "@/components/Footer";
@@ -36,58 +37,62 @@ class Boundary extends React.Component<{ label: string; children: React.ReactNod
   }
 }
 
+type ActiveId = 'intake' | ChapterKey;
+
 export default function WizardPage() {
-  const currentChapter = useWizardState((s: any) => s.currentChapter);
-  const goToChapter = useWizardState((s: any) => s.goToChapter);
-  const chapterFlow = useWizardState((s: any) => s.chapterFlow);
+  const currentChapter = useWizardState((s: any) => s.currentChapter as ChapterKey | null);
+  const goToChapter = useWizardState((s: any) => s.goToChapter as (ch: ChapterKey) => void);
+  const chapterFlow = useWizardState((s: any) => s.chapterFlow as ChapterKey[] | null);
 
   // ============================================================
-  // DYNAMISCHE TABS gebaseerd op chapterFlow
+  // DYNAMISCHE TABS: strikt ChapterKey[], géén 'intake' hier!
   // ============================================================
   const tabs: ChapterTab[] = useMemo(() => {
-    const baseTabs = [{ id: 'intake', title: 'Start' }];
-    
-    if (chapterFlow && Array.isArray(chapterFlow) && chapterFlow.length > 0) {
-      const chapterTitles: Record<string, string> = {
-        basis: 'Basisgegevens',
-        wensen: 'Wensen',
-        budget: 'Budget',
-        ruimtes: 'Ruimtes',
-        techniek: 'Techniek',
-        duurzaamheid: 'Duurzaamheid',
-        risico: "Risico's",
-        preview: 'Preview',
-      };
-      
-      const flowTabs = chapterFlow.map((ch: string) => ({
-        id: ch,
-        title: chapterTitles[ch] || ch,
-      }));
-      
-      return [...baseTabs, ...flowTabs];
-    }
-    
-    return baseTabs;
+    const titles: Record<ChapterKey, string> = {
+      basis: 'Basisgegevens',
+      wensen: 'Wensen',
+      budget: 'Budget',
+      ruimtes: 'Ruimtes',
+      techniek: 'Techniek',
+      duurzaamheid: 'Duurzaamheid',
+      risico: "Risico's",
+      preview: 'Preview',
+    };
+    const flow = Array.isArray(chapterFlow) ? (chapterFlow as ChapterKey[]) : [];
+    return flow.map((ch) => ({ id: ch, title: titles[ch] ?? ch }));
   }, [chapterFlow]);
 
-  const [active, setActive] = useState<string>(currentChapter ?? tabs[0].id);
+  // Active staat kan 'intake' of een ChapterKey zijn
+  const [active, setActive] = useState<ActiveId>(currentChapter ?? 'intake');
 
   useEffect(() => {
     if (currentChapter && currentChapter !== active) setActive(currentChapter);
+    if (!currentChapter && active !== 'intake') setActive('intake');
   }, [currentChapter, active]);
 
-  const onTabChange = (id: string) => {
+  // Handler voor tabklik (komt van ChapterTabs → altijd ChapterKey)
+  const onTabChange = (id: ChapterKey) => {
     setActive(id);
     goToChapter(id);
   };
 
+  // Handler voor mobiele select (kan ook 'intake' zijn)
+  const onSelectChange = (id: string) => {
+    if (id === 'intake') {
+      setActive('intake');
+      return;
+    }
+    // id moet nu een ChapterKey zijn
+    onTabChange(id as ChapterKey);
+  };
+
   const activeIndex = useMemo(
-    () => Math.max(0, tabs.findIndex((t) => t.id === active)),
+    () => (active === 'intake' ? -1 : Math.max(0, tabs.findIndex((t) => t.id === active))),
     [active, tabs]
   );
 
   // Chapter component map
-  const chapterMap = {
+  const chapterMap: Record<ActiveId, React.ComponentType<any>> = {
     intake: IntakeForm,
     basis: Basis,
     wensen: Wensen,
@@ -99,7 +104,7 @@ export default function WizardPage() {
     preview: Preview,
   };
 
-  const ActiveChapter = chapterMap[active as keyof typeof chapterMap] || IntakeForm;
+  const ActiveChapter = chapterMap[active] || IntakeForm;
 
   // Linkerkolom: Chat
   const left = (
@@ -114,18 +119,24 @@ export default function WizardPage() {
       {/* Tabs */}
       <div className="bg-white rounded-2xl shadow-sm ring-1 ring-black/5">
         <div className="px-3 md:px-5 py-2">
-          <div className="hidden md:block">
-            <ChapterTabs tabs={tabs} activeId={active} onChange={onTabChange} />
-          </div>
+          {/* Desktop: toon ChapterTabs alléén wanneer we niet in 'intake' zitten */}
+          {active !== 'intake' && tabs.length > 0 && (
+            <div className="hidden md:block">
+              <ChapterTabs tabs={tabs} activeId={active as ChapterKey} onChange={onTabChange} />
+            </div>
+          )}
+
+          {/* Mobiel: altijd een select met 'Start' + flowtabs */}
           <div className="md:hidden">
             <select
               className="w-full text-sm rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm"
               value={active}
-              onChange={(e) => onTabChange(e.target.value)}
+              onChange={(e) => onSelectChange(e.target.value)}
             >
+              <option value="intake">1. Start</option>
               {tabs.map((t, i) => (
                 <option key={t.id} value={t.id}>
-                  {i + 1}. {t.title}
+                  {active === 'intake' ? i + 2 : i + 1}. {t.title}
                 </option>
               ))}
             </select>
@@ -148,7 +159,9 @@ export default function WizardPage() {
             </>
           ) : (
             <>
-              <h2 className="text-base md:text-lg font-semibold mb-3">{tabs[activeIndex].title}</h2>
+              <h2 className="text-base md:text-lg font-semibold mb-3">
+                {activeIndex >= 0 && tabs[activeIndex] ? tabs[activeIndex].title : 'Hoofdstuk'}
+              </h2>
               <Boundary label={active}>
                 <ActiveChapter />
               </Boundary>
@@ -170,7 +183,7 @@ export default function WizardPage() {
     <ToastProvider>
       <Header />
       <BrikxHero />
-      
+
       <div className="bg-white min-h-screen">
         <div className="flex min-h-screen">
           <div className="hidden lg:flex flex-1"></div>
@@ -180,7 +193,7 @@ export default function WizardPage() {
           <div className="hidden lg:flex flex-1"></div>
         </div>
       </div>
-      
+
       <Footer />
     </ToastProvider>
   );

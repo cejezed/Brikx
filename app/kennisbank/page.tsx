@@ -183,7 +183,7 @@ export default function KennisbankContent() {
         </div>
       </section>
 
-      <KennisbankGrid onChecklistClick={handleOpenModal} />
+      <KennisbankGrid />
       
       {/* FOOTER */}
       <Footer />

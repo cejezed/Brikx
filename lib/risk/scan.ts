@@ -1,111 +1,162 @@
-import type { TriageData } from "@/types/wizard";
-import type { Space, WishItem, TechnicalPrefs, SustainabilityPrefs } from "@/types/project";
-import type { Archetype } from "@/types/archetype";
+// lib/risk/scan.ts
+// Build v2.0 — lichte risico-scan op basis van triage + chapterAnswers
+// Defensieve reads (geen harde vereisten op optionele velden).
 
-export type RiskSeverity = "low" | "medium" | "high";
-export type RiskFinding = { id: string; severity: RiskSeverity; title: string; message: string; related?: string[] };
-export type RiskReport = { generatedAt: number; findings: RiskFinding[] };
+export type Severity = "low" | "medium" | "high";
 
-function uid(p: string) { return `${p}-${Math.random().toString(36).slice(2, 8)}`; }
+export type RiskFinding = {
+  id: string;
+  severity: Severity;
+  title: string;
+  message: string;
+  related?: string[]; // padjes zoals "triage.budget", "ruimtes.list.0"
+};
 
-export function scanRisks(args: {
-  triage: TriageData;
-  archetype: Archetype | null;
-  ruimtes: Space[];
-  wensen: WishItem[];
-  techniek?: TechnicalPrefs;
-  duurzaamheid?: SustainabilityPrefs;
-}): RiskReport {
-  const { triage, archetype, ruimtes, wensen, techniek, duurzaamheid } = args;
-  const findings: RiskFinding[] = [];
+export type RiskScanInput = {
+  triage?: {
+    projectType?: string | string[];
+    projectSize?: string;
+    urgency?: string;
+    budget?: number;          // optioneel
+    budgetCustom?: number;    // optioneel (intake custom)
+    [k: string]: any;
+  };
+  chapterAnswers?: Record<string, any>;
+};
 
-  // Basis
-  if (!archetype) {
-    findings.push({ id: uid("arch-miss"), severity: "high", title: "Geen projectvariant gekozen",
-      message: "Kies eerst een projectvariant (archetype).", related: ["intake.archetype"] });
-  }
-  if (!Number.isFinite(triage.budget) || triage.budget <= 0) {
-    findings.push({ id: uid("budget-miss"), severity: "medium", title: "Budget ontbreekt",
-      message: "Vul een indicatief budget in voor betere afwegingen (±15% bandbreedte).", related: ["triage.budget"] });
-  }
+export type RiskScanOutput = {
+  findings: RiskFinding[];
+};
 
-  // Ruimtes
-  if (ruimtes.length === 0) {
-    findings.push({ id: uid("rooms-none"), severity: "medium", title: "Nog geen ruimtes",
-      message: "Voeg minimaal één ruimte toe voor oppervlaktes/routing/kosten.", related: ["chapter.ruimtes"] });
-  } else if (ruimtes.some(r => !r.type || !r.type.trim())) {
-    findings.push({ id: uid("rooms-unnamed"), severity: "low", title: "Onbenoemde ruimte",
-      message: "Er staat een ruimte zonder type; vul dit aan.", related: ["chapter.ruimtes"] });
-  }
-  if (ruimtes.some(r => r.tag === "nvt")) {
-    findings.push({ id: uid("rooms-nvt"), severity: "low", title: "Ruimte-categorie onbekend",
-      message: "Eén of meer ruimtes hebben categorie ‘n.v.t.’. Stel later prioriteit vast.", related: ["chapter.ruimtes"] });
-  }
-
-  // Wensen
-  if (wensen.length === 0) {
-    findings.push({ id: uid("wishes-none"), severity: "low", title: "Nog geen wensen",
-      message: "Voeg enkele wensen toe en geef prioriteit (MoSCoW).", related: ["chapter.wensen"] });
-  } else if (wensen.some(w => (w.priority ?? "unknown") === "unknown")) {
-    findings.push({ id: uid("wishes-unknown"), severity: "low", title: "Wensprioriteit nog onbepaald",
-      message: "Eén of meer wensen hebben prioriteit ‘Weet ik nog niet / n.v.t.’. Later concretiseren helpt keuzes.", related: ["chapter.wensen"] });
-  }
-
-  // Techniek
-  if (!techniek) {
-    findings.push({ id: uid("tech-missing"), severity: "medium", title: "Techniek nog niet gekozen",
-      message: "Selecteer bouwmethode/ventilatie/verwarming.", related: ["chapter.techniek"] });
-  } else {
-    const unk = [
-      techniek.buildMethod === "unknown",
-      techniek.ventilation === "unknown",
-      techniek.heating === "unknown",
-      techniek.cooling === "unknown",
-      techniek.pv === "unknown",
-    ].filter(Boolean).length;
-    if (unk > 0) {
-      findings.push({ id: uid("tech-unknown"), severity: "low", title: "Techniek nog onbepaald",
-        message: "Eén of meer techniekkeuzes staan op ‘Weet ik nog niet / n.v.t.’. Goed voor nu; later concreet maken.", related: ["chapter.techniek"] });
-    }
-    if (triage.projectType === "nieuwbouw" && techniek.heating === "cv_gas") {
-      findings.push({ id: uid("newbuild-gas"), severity: "high", title: "CV op gas bij nieuwbouw",
-        message: "Voor nieuwbouw is aardgas onwenselijk of niet toegestaan; kies bij voorkeur (hybride) warmtepomp.", related: ["chapter.techniek","triage.projectType"] });
-    }
-    if ((techniek.insulationTargetRc ?? 0) >= 4.5 && (techniek.ventilation === "natuurlijk" || techniek.ventilation === "C")) {
-      findings.push({ id: uid("vent-mismatch"), severity: "medium", title: "Ventilatie vs. isolatie",
-        message: "Bij hoge isolatie (Rc ≥ 4.5) is balansventilatie met WTW vaak wenselijk.", related: ["chapter.techniek"] });
-    }
-  }
-
-  // Duurzaamheid
-  if (duurzaamheid) {
-    const unkD =
-      (duurzaamheid.focus === "unknown") ||
-      (duurzaamheid.materials === "unknown") ||
-      (duurzaamheid.rainwater === "unknown") ||
-      (duurzaamheid.greenRoof === "unknown");
-    if (unkD) {
-      findings.push({ id: uid("sust-unknown"), severity: "low", title: "Duurzaamheid nog onbepaald",
-        message: "Een of meer duurzaamheid-keuzes staan op ‘Weet ik nog niet / n.v.t.’. Later concretiseren helpt detailkeuzes.", related: ["chapter.duurzaamheid"] });
-    }
-  }
-
-  // Budget-heuristiek
-  if (triage.budget > 0 && ruimtes.length >= 4) {
-    const estMin = ruimtes.length * 20000;
-    if (triage.budget < estMin) {
-      findings.push({ id: uid("budget-low"), severity: "medium", title: "Budget mogelijk te laag",
-        message: `Bij ~${ruimtes.length} ruimtes lijkt een ondergrens van ca. € ${estMin.toLocaleString("nl-NL")} realistischer. Overweeg prioriteren of faseren.`,
-        related: ["triage.budget","chapter.ruimtes"] });
-    }
-  }
-
-  // Consistentie projectType vs archetype
-  if (archetype && triage.projectType === "nieuwbouw" && archetype !== "nieuwbouw_woning") {
-    findings.push({ id: uid("ptype-arch-mis"), severity: "low", title: "Projecttype ↔ archetype",
-      message: "Je projecttype is ‘Nieuwbouw’, maar je archetype wijkt af. Controleer of dit klopt, of pas één van beide aan.",
-      related: ["intake.archetype","triage.projectType"] });
-  }
-
-  return { generatedAt: Date.now(), findings };
+function uid(prefix = "risk"): string {
+  const r = Math.random().toString(36).slice(2, 8);
+  return `${prefix}-${r}`;
 }
+
+const asArray = <T = any>(v: unknown): T[] =>
+  Array.isArray(v) ? (v as T[]) : v != null ? [v as T] : [];
+
+export function scan(input: RiskScanInput): RiskScanOutput {
+  const findings: RiskFinding[] = [];
+  const triage = input?.triage ?? {};
+  const answers = input?.chapterAnswers ?? {};
+
+  // ===== Archetype / projectType =====
+  const projectTypes = asArray<string>(triage.projectType).map((s) => String(s).toLowerCase().trim());
+  if (projectTypes.length === 0) {
+    findings.push({
+      id: uid("archetype-miss"),
+      severity: "medium",
+      title: "Projectvariant ontbreekt",
+      message: "Kies eerst een projectvariant (archetype).",
+      related: ["intake.archetype", "triage.projectType"],
+    });
+  }
+
+  // ===== Budget (defensief) =====
+  const budget =
+    typeof triage?.budget === "number"
+      ? triage.budget
+      : typeof triage?.budgetCustom === "number"
+      ? triage.budgetCustom
+      : undefined;
+
+  if (!(typeof budget === "number" && Number.isFinite(budget) && budget > 0)) {
+    findings.push({
+      id: uid("budget-miss"),
+      severity: "medium",
+      title: "Budget ontbreekt",
+      message: "Vul een indicatief budget in voor betere afwegingen (±15% bandbreedte).",
+      related: ["triage.budget"],
+    });
+  }
+
+  // ===== Urgentie vs. projectgrootte (indicatief signaal) =====
+  const urgency = String(triage.urgency ?? "").toLowerCase();
+  const size = String(triage.projectSize ?? "").toLowerCase();
+  if (urgency === "hoog" && (size === "groot" || size === "middel")) {
+    findings.push({
+      id: uid("planning-krap"),
+      severity: "low",
+      title: "Strakke planning",
+      message:
+        "Hoge urgentie bij een (middel)groot project kan tot tijdsdruk leiden. Plan vergunningen en ontwerptraject tijdig.",
+      related: ["triage.urgency", "triage.projectSize"],
+    });
+  }
+
+  // ===== Ruimtes: inconsistenties / ontbrekende kernruimtes =====
+  const rooms = Array.isArray(answers?.ruimtes?.list) ? answers.ruimtes.list : [];
+  if (rooms.length === 0) {
+    findings.push({
+      id: uid("rooms-empty"),
+      severity: "low",
+      title: "Nog geen ruimtes ingevuld",
+      message: "Voeg minimaal de kernruimtes toe (woonkamer, keuken, badkamer, slaapkamer).",
+      related: ["ruimtes.list"],
+    });
+  } else {
+    // voorbeeld: ontbrekende oppervlaktes signaleren
+    const missingArea = rooms.filter((r: any) => !r || r.oppervlakte == null || r.oppervlakte <= 0);
+    if (missingArea.length > 0) {
+      findings.push({
+        id: uid("room-area-miss"),
+        severity: "low",
+        title: "Ontbrekende oppervlakten",
+        message:
+          "Eén of meer ruimtes hebben geen (geldige) oppervlakte. Vul m² in voor een betere inschatting.",
+        related: ["ruimtes.list"],
+      });
+    }
+  }
+
+  // ===== Techniek: voorbeeldsignaal (alleen bij ingevulde techniek) =====
+  const techniek = answers?.techniek && typeof answers.techniek === "object" ? answers.techniek : null;
+  if (techniek) {
+    // voorbeeld: als koeling gekozen is zonder isolatie-doel
+    if (techniek.cooling && !techniek.insulationTargetRc) {
+      findings.push({
+        id: uid("tech-rc-miss"),
+        severity: "low",
+        title: "Isolatiedoel ontbreekt",
+        message:
+          "Koeling is opgegeven zonder een Rc-doel. Overweeg eerst de schil te optimaliseren (isolatie/zontoetreding).",
+        related: ["techniek.cooling", "techniek.insulationTargetRc"],
+      });
+    }
+  }
+
+  // ===== Duurzaamheid: voorbeeldsignaal (alleen bij ingevulde duurzaamheid) =====
+  const duurzaamheid =
+    answers?.duurzaamheid && typeof answers.duurzaamheid === "object" ? answers.duurzaamheid : null;
+  if (duurzaamheid) {
+    if (duurzaamheid.greenRoof && size === "groot" && projectTypes.includes("verbouwing")) {
+      findings.push({
+        id: uid("greenroof-struct"),
+        severity: "low",
+        title: "Groendak en constructie",
+        message:
+          "Een groendak vraagt vaak extra constructieve controle, zeker bij grotere verbouwingen. Laat draagkracht toetsen.",
+        related: ["duurzaamheid.greenRoof", "triage.projectSize", "triage.projectType"],
+      });
+    }
+  }
+
+  // ===== Samengestelde triggers op basis van budget + wensen (voorbeeld) =====
+  const wensenItems = Array.isArray(answers?.wensen?.items) ? answers.wensen.items : [];
+  const hasManyMusts = wensenItems.filter((w: any) => (w?.priority ?? w?.prio) === "must").length >= 8;
+  if (typeof budget === "number" && budget > 0 && hasManyMusts) {
+    findings.push({
+      id: uid("scope-vs-budget"),
+      severity: "medium",
+      title: "Ambities vs. budget",
+      message:
+        "Er zijn veel ‘must-have’ wensen opgegeven. Check of het budget realistisch is of stel prioriteiten bij (MoSCoW).",
+      related: ["wensen.items", "triage.budget"],
+    });
+  }
+
+  return { findings };
+}
+
+export default scan;

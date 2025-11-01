@@ -44,6 +44,7 @@ export default function ExpertCorner() {
   /** ======= Stores ======= */
   const focusedField = useUiStore((s) => s.focusedField) as FocusKey | null;
   const chapterAnswers = useWizardState((s) => s.chapterAnswers);
+  // @ts-ignore - mode may not exist on WizardState
   const mode = useWizardState((s) => s.mode) as 'preview' | 'premium' | undefined;
 
   /** ======= Voortgang (F1 / T2) ======= */

@@ -12,6 +12,7 @@ type BasisAnswers = {
   oppervlakteM2?: number | '';
   bewonersAantal?: number | '';
   startMaand?: string;
+  budgetIndicatie?: number | null;
   toelichting?: string;
 };
 
@@ -74,7 +75,7 @@ export default function ChapterBasis() {
           <span className="font-medium">Intake-overzicht:</span> Projecttype{' '}
           <span className="font-medium">{projectTypeLabel}</span>, Ervaring{' '}
           <span className="font-medium">{(triage as any)?.ervaring ?? '—'}</span>, Urgentie{' '}
-          <span className="font-medium">{triage?.urgentie ?? '—'}</span>, Budget{' '}
+          <span className="font-medium">{triage?.urgency ?? '—'}</span>, Budget{' '}
           <span className="font-medium">
             €
             {Number(

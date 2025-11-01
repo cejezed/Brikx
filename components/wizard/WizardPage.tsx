@@ -2,13 +2,14 @@
 
 "use client";
 
-import { useWizardState } from "@/lib/stores/useWizardState";
+import { useUiStore } from "@/lib/stores/useUiStore";
 import IntakeForm from "@/components/intake/IntakeForm";
 import StartWizardButton from "@/components/intake/StartWizardFromIntake";
-import ChapterRuimtes from "@/components/chapters/ChapterRuimtes";
+import ChapterRuimtes from "@/components/chapters/Ruimtes";
 
 export default function WizardPage() {
-  const current = useWizardState((s) => s.currentChapter);
+  // ✅ Use useUiStore for currentChapter
+  const current = useUiStore((s) => s.currentChapter);
 
   if (current === "ruimtes") return <ChapterRuimtes />;
 

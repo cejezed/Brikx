@@ -1,9 +1,9 @@
-// components/wizard/ChapterTabs.tsx
 'use client';
 
 import React from 'react';
+import type { ChapterKey } from '@/types/wizard';
 
-export type ChapterTab = { id: string; title: string };
+export type ChapterTab = { id: ChapterKey; title: string };
 
 export default function ChapterTabs({
   tabs,
@@ -11,21 +11,14 @@ export default function ChapterTabs({
   onChange,
 }: {
   tabs: ChapterTab[];
-  activeId: string;
-  onChange: (id: string) => void;
+  activeId: ChapterKey;
+  onChange: (id: ChapterKey) => void;
 }) {
   if (!tabs?.length) return null;
 
   return (
     <nav aria-label="Hoofdstukken" className="w-full">
-      <ul
-        className={[
-          // Alle tabs binnen de middenkolom zichtbaar
-          'flex flex-wrap items-center gap-2',
-          // compacte look
-          'py-2',
-        ].join(' ')}
-      >
+      <ul className={['flex flex-wrap items-center gap-2', 'py-2'].join(' ')}>
         {tabs.map((t, i) => {
           const active = t.id === activeId;
           return (
@@ -35,11 +28,9 @@ export default function ChapterTabs({
                 onClick={() => onChange(t.id)}
                 title={`${i + 1}. ${t.title}`}
                 className={[
-                  'brx-chip',                        // jouw chip-styling
+                  'brx-chip',
                   active ? 'brx-chip-active' : 'brx-chip-idle',
-                  // compacter + nette truncatie
                   'text-sm max-w-[12rem] truncate',
-                  // kleine verticale ruimte zodat twee rijen mooi vallen
                   'leading-6',
                 ].join(' ')}
               >

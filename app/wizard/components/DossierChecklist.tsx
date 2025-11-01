@@ -1,9 +1,8 @@
-// app/wizard/components/DossierChecklist.tsx
+// /app/wizard/components/DossierChecklist.tsx
 'use client';
 
-import { useState } from 'react';
-import { useWizardState } from '@/lib/stores/useWizardState';
-import type { ChapterKey } from '@/types/wizard';
+import React, { useState } from 'react';
+import useWizardState from '@/lib/stores/useWizardState';
 
 export interface DocumentStatus {
   moodboard: boolean | null;
@@ -31,7 +30,7 @@ const architectTips = {
     no: 'Dit is belangrijk voordat het ontwerpproces start. Je kunt dit bij je gemeente opvragen.',
   },
   existingPermits: {
-    yes: 'Goed! Dit bespaard tijd bij navraag bij gemeente.',
+    yes: 'Goed! Dit bespaart tijd bij navraag bij gemeente.',
     no: 'Geen probleem. Een grensmeting door het Kadaster kan verstandig zijn.',
   },
 };
@@ -40,9 +39,8 @@ export default function DossierChecklist({
   onComplete,
   isLoading = false,
 }: DossierChecklistProps) {
-  // ✅ FIX: Read from useWizardState (your actual store)
-  const triage = useWizardState((s) => s.triage);
-  const projectType = triage.projectType;
+  // ✅ Null-safe: lees direct projectType uit de store met optional chaining
+  const projectType = useWizardState((s) => s.triage?.projectType);
 
   const [status, setStatus] = useState<DocumentStatus>({
     moodboard: null,
@@ -51,8 +49,9 @@ export default function DossierChecklist({
     existingPermits: null,
   });
 
-  // ✅ FIX: Use correct project type values from your triage
-  const isRenovation = projectType === 'renovatie' || projectType === 'verbouwing_binnen';
+  // ✅ Werkt ook als projectType (nog) undefined is
+  const isRenovation =
+    projectType === 'renovatie' || projectType === 'verbouwing' || projectType === 'verbouwing_binnen';
   const isNewBuild = projectType === 'nieuwbouw';
 
   const totalSteps = 2 + (isRenovation ? 1 : 0) + (isNewBuild ? 1 : 0);
@@ -64,19 +63,18 @@ export default function DossierChecklist({
     const answer = choiceId === 'yes';
 
     switch (currentStep) {
-      case 1:
+      case 1: {
         setStatus((s) => ({ ...s, moodboard: answer }));
         setFeedback(architectTips.moodboard[answer ? 'yes' : 'no']);
         setShowTip(true);
         setTimeout(() => setCurrentStep(2), 2500);
         break;
+      }
 
-      case 2:
+      case 2: {
         if (isRenovation) {
           setStatus((s) => ({ ...s, existingDrawings: answer }));
-          setFeedback(
-            architectTips.existingDrawings[answer ? 'yes' : 'no']
-          );
+          setFeedback(architectTips.existingDrawings[answer ? 'yes' : 'no']);
           setShowTip(true);
           setTimeout(() => setCurrentStep(3), 2500);
         } else if (isNewBuild) {
@@ -84,18 +82,20 @@ export default function DossierChecklist({
           setFeedback(architectTips.kavelpaspoort[answer ? 'yes' : 'no']);
           setShowTip(true);
           setTimeout(() => setCurrentStep(3), 2500);
+        } else {
+          // Geen extra stap voor projectType onbekend → spring direct naar laatste vraag
+          setTimeout(() => setCurrentStep(3), 250);
         }
         break;
+      }
 
-      case 3:
+      case 3: {
         setStatus((s) => ({ ...s, existingPermits: answer }));
         setFeedback(architectTips.existingPermits[answer ? 'yes' : 'no']);
         setShowTip(true);
-        setTimeout(
-          () => onComplete({ ...status, existingPermits: answer }),
-          2500
-        );
+        setTimeout(() => onComplete({ ...status, existingPermits: answer }), 2500);
         break;
+      }
     }
   };
 
@@ -104,10 +104,8 @@ export default function DossierChecklist({
       case 1:
         return 'Heeft u een moodboard met visuele inspiratie?';
       case 2:
-        if (isRenovation)
-          return 'Heeft u bouwtekeningen van de bestaande situatie?';
-        if (isNewBuild)
-          return 'Heeft u het kavelpaspoort of omgevingsinformatie?';
+        if (isRenovation) return 'Heeft u bouwtekeningen van de bestaande situatie?';
+        if (isNewBuild) return 'Heeft u het kavelpaspoort of omgevingsinformatie?';
         return '';
       case 3:
         return 'Zijn er nog andere relevante documenten?';
@@ -121,12 +119,8 @@ export default function DossierChecklist({
   return (
     <div className="space-y-6">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-[#1A3E4C] mb-2">
-          📋 Dossier Checklist
-        </h2>
-        <p className="text-gray-600 text-sm">
-          Welke documenten hebt u al beschikbaar?
-        </p>
+        <h2 className="text-2xl font-bold text-[#1A3E4C] mb-2">📋 Dossier Checklist</h2>
+        <p className="text-gray-600 text-sm">Welke documenten hebt u al beschikbaar?</p>
       </div>
 
       <div className="space-y-2">
@@ -134,9 +128,7 @@ export default function DossierChecklist({
           <span className="text-xs font-medium text-gray-600">
             Vraag {currentStep} van {totalSteps}
           </span>
-          <span className="text-xs font-medium text-[#40C0C0]">
-            {Math.round(progress)}%
-          </span>
+          <span className="text-xs font-medium text-[#40C0C0]">{Math.round(progress)}%</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
@@ -148,9 +140,7 @@ export default function DossierChecklist({
 
       {getQuestion() && (
         <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">
-            {getQuestion()}
-          </h3>
+          <h3 className="text-lg font-semibold text-gray-900">{getQuestion()}</h3>
 
           {!showTip && (
             <div className="flex gap-3">

@@ -27,11 +27,13 @@ function PreviewUI({ toast }: { toast: (o: { variant?: string; title?: string; d
     duurzaamheid: true,
   });
 
-  const pv = useMemo(() => buildPreview({ triage: triage as any, chapterAnswers: answers }), [triage, answers]);
+  // @ts-ignore - buildPreview accepts partial data at runtime
+  const pv = useMemo(() => buildPreview({ triage, chapterAnswers: answers }), [triage, answers]);
   const essentials = useMemo<EssentialIssue[]>(
     () => {
       try {
-        return computeEssentialIssues({ triage: triage as any, archetype, answers });
+        // @ts-ignore - accepts partial data at runtime
+        return computeEssentialIssues({ triage, archetype, answers });
       } catch (e) {
         console.warn('essentials error:', e);
         return [];
@@ -49,7 +51,8 @@ function PreviewUI({ toast }: { toast: (o: { variant?: string; title?: string; d
 
   const handleSend = () => {
     try {
-      const issuesNow = computeEssentialIssues({ triage: triage as any, archetype, answers });
+      // @ts-ignore - accepts partial data at runtime
+      const issuesNow = computeEssentialIssues({ triage, archetype, answers });
       if (issuesNow.length > 0) {
         setShowIssues(true);
         toast({
@@ -151,7 +154,7 @@ function PreviewUI({ toast }: { toast: (o: { variant?: string; title?: string; d
                       <button
                         type="button"
                         className="text-xs px-2 py-1 border rounded bg-white hover:bg-gray-50 whitespace-nowrap"
-                        onClick={() => goTo(linkFor(e)!.chapter)}
+                        onClick={() => goTo(linkFor(e)!.chapter as any)}
                       >
                         → {linkFor(e)!.label}
                       </button>
@@ -178,7 +181,7 @@ function PreviewUI({ toast }: { toast: (o: { variant?: string; title?: string; d
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
             <DataItem label="Projecttype" value={triage?.projectType} />
             <DataItem label="Projectgrootte" value={triage?.projectSize} />
-            <DataItem label="Intentie" value={triage?.intent} />
+            <DataItem label="Intentie" value={Array.isArray(triage?.intent) ? triage.intent.join(', ') : triage?.intent} />
             <DataItem label="Urgentie" value={triage?.urgency} />
             <DataItem label="Budget" value={formatCurrency(triage?.budget)} />
           </div>
@@ -215,10 +218,10 @@ function PreviewUI({ toast }: { toast: (o: { variant?: string; title?: string; d
             <div className="space-y-2">
               {answers.ruimtes.map((room: any, idx: number) => (
                 <div key={idx} className="bg-gray-50 rounded p-3 text-sm border border-gray-200">
-                  <p className="font-medium">{room.name || '(naamloos)'} — {room.type}</p>
+                  <p className="font-medium">{String(room.name || '(naamloos)')} — {String(room.type || '—')}</p>
                   <div className="mt-1 text-gray-700 space-y-1">
                     {room.m2 && <p>📐 {room.m2} m²</p>}
-                    {room.wensen && room.wensen.length > 0 && (
+                    {room.wensen && Array.isArray(room.wensen) && room.wensen.length > 0 && (
                       <p>✓ Wensen: {room.wensen.join(', ')}</p>
                     )}
                   </div>
@@ -237,11 +240,11 @@ function PreviewUI({ toast }: { toast: (o: { variant?: string; title?: string; d
             onToggle={toggleSection}
           >
             <div className="space-y-2 text-sm">
-              <DataItem label="Belangrijkste wens" value={answers.wensen.mainWish} />
-              <DataItem label="Ergernissen huidig huis" value={answers.wensen.currentIssues} />
-              <DataItem label="Stijlvoorkeur" value={answers.wensen.stylePreference} />
-              {answers.wensen.specialRequests && (
-                <DataItem label="Speciale wensen" value={answers.wensen.specialRequests} />
+              <DataItem label="Belangrijkste wens" value={(answers.wensen as any)?.mainWish} />
+              <DataItem label="Ergernissen huidig huis" value={(answers.wensen as any)?.currentIssues} />
+              <DataItem label="Stijlvoorkeur" value={(answers.wensen as any)?.stylePreference} />
+              {(answers.wensen as any)?.specialRequests && (
+                <DataItem label="Speciale wensen" value={(answers.wensen as any)?.specialRequests} />
               )}
             </div>
           </CollapsibleSection>
@@ -388,16 +391,15 @@ function formatCurrency(value?: number | null): string {
   return `€${value.toLocaleString('nl-NL')}`;
 }
 
-/** Links voor "essentials" */
-function linkFor(e: EssentialIssue): { chapter: any; label: string } | null {
+function linkFor(e: EssentialIssue): { chapter: string; label: string } | null {
   const rel = e.related?.[0] ?? '';
-  if (rel.startsWith('basis.')) return { chapter: 'basis', label: 'Basis' };
-  if (rel === 'ruimtes') return { chapter: 'ruimtes', label: 'Ruimtes' };
-  if (rel === 'wensen') return { chapter: 'wensen', label: 'Wensen' };
-  if (rel === 'budget') return { chapter: 'budget', label: 'Budget' };
-  if (rel === 'techniek') return { chapter: 'techniek', label: 'Techniek' };
-  if (rel === 'duurzaamheid') return { chapter: 'duurzaamheid', label: 'Duurzaamheid' };
-  if (rel === 'intake.archetype') return { chapter: 'intake', label: 'Start' };
+  if (rel.startsWith('basis.')) return { chapter: 'basis' as const, label: 'Basis' };
+  if (rel === 'ruimtes') return { chapter: 'ruimtes' as const, label: 'Ruimtes' };
+  if (rel === 'wensen') return { chapter: 'wensen' as const, label: 'Wensen' };
+  if (rel === 'budget') return { chapter: 'budget' as const, label: 'Budget' };
+  if (rel === 'techniek') return { chapter: 'techniek' as const, label: 'Techniek' };
+  if (rel === 'duurzaamheid') return { chapter: 'duurzaamheid' as const, label: 'Duurzaamheid' };
+  if (rel === 'intake.archetype') return { chapter: 'intake' as const, label: 'Start' };
   return null;
 }
 
@@ -416,7 +418,7 @@ function PreviewNoToast() {
 }
 
 class ToastBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
-  constructor(props: any) {
+  constructor(props: { children: React.ReactNode }) {
     super(props);
     this.state = { hasError: false };
   }

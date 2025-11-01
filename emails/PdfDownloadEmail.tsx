@@ -6,7 +6,6 @@ import {
   Head,
   Hr,
   Html,
-  Img,
   Link,
   Preview,
   Row,
@@ -18,12 +17,14 @@ interface PdfDownloadEmailProps {
   projectName: string;
   isPremium: boolean;
   downloadUrl: string;
+  documentCount?: number;
 }
 
 export default function PdfDownloadEmail({
   projectName = 'Mijn Project',
   isPremium = false,
   downloadUrl,
+  documentCount = 0,
 }: PdfDownloadEmailProps) {
   return (
     <Html>
@@ -44,6 +45,13 @@ export default function PdfDownloadEmail({
             <Text style={body}>
               Gefeliciteerd! 🎉 Je Programma van Eisen voor <strong>{projectName}</strong> is gereed!
             </Text>
+
+            {/* ✅ Added documentCount message */}
+            {documentCount > 0 && (
+              <Text style={body}>
+                Je PDF bevat ook "Bijlage A" met een overzicht van {documentCount} beschikbare projectdocumenten.
+              </Text>
+            )}
 
             {/* Download Button */}
             <Section style={buttonContainer}>
@@ -404,28 +412,3 @@ const copyright = {
   color: '#9CA3AF',
   margin: '12px 0 0 0',
 };
-
-// emails/PdfDownloadEmail.tsx
-interface PdfDownloadEmailProps {
-  projectName: string;
-  isPremium: boolean;
-  downloadUrl: string;
-  documentCount?: number; // Add this
-}
-
-export default function PdfDownloadEmail({
-  // ...
-  documentCount = 0,
-}) {
-  return (
-    <Html>
-      {/* ... existing content ... */}
-
-      <Text style={body}>
-        {documentCount > 0
-          ? `Je PDF bevat ook "Bijlage A" met een overzicht van ${documentCount} beschikbare projectdocumenten.`
-          : 'Je PDF is gereed voor download!'}
-      </Text>
-    </Html>
-  );
-}

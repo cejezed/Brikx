@@ -40,7 +40,7 @@ export interface TriageInput {
  */
 export function generateChapters(triage: TriageInput): GenerateChaptersResult {
   const projectTypes = triage.projectType ?? [];
-  let chapters: ChapterKey[] = [];
+  const chapters: ChapterKey[] = [];
   let mode: 'PREVIEW' | 'PREMIUM' = 'PREVIEW';
   const reasoning: string[] = [];
 
@@ -83,7 +83,7 @@ export function generateChapters(triage: TriageInput): GenerateChaptersResult {
   if (triage.hulpvraag?.includes('architect') || triage.hulpvraag?.includes('kosten')) {
     if (!mode.includes('PREMIUM')) {
       mode = 'PREVIEW'; // But stay available for upgrade
-      reasoning.push('👨‍💼 Architect/kosten zoeken → PREVIEW, upgrade available');
+      reasoning.push('👨‍🔬 Architect/kosten zoeken → PREVIEW, upgrade available');
     }
   }
 
@@ -91,7 +91,7 @@ export function generateChapters(triage: TriageInput): GenerateChaptersResult {
   // 3️⃣ CHAPTER LOGIC PER PROJECT TYPE
   // ============================================================
 
-  // 📌 INTERIEUR: Style + Ruimtes focus
+  // 🎨 INTERIEUR: Style + Ruimtes focus
   if (projectTypes.includes('interieur')) {
     if (!chapters.includes('ruimtes')) chapters.push('ruimtes');
     if (!chapters.includes('wensen')) chapters.push('wensen');
@@ -101,7 +101,7 @@ export function generateChapters(triage: TriageInput): GenerateChaptersResult {
     reasoning.push('✓ Interieur → Ruimtes, Wensen, Budget, Risico (NO Techniek/Duurzaamheid)');
   }
 
-  // 📌 VERBOUWING BINNENHUÍS: Bestaande + Tech
+  // 🎨 VERBOUWING BINNENHUÍS: Bestaande + Tech
   if (projectTypes.includes('verbouwing_binnen')) {
     if (!chapters.includes('ruimtes')) chapters.push('ruimtes');
     if (!chapters.includes('wensen')) chapters.push('wensen');
@@ -112,7 +112,7 @@ export function generateChapters(triage: TriageInput): GenerateChaptersResult {
     reasoning.push('✓ Verbouwing → Ruimtes, Wensen, Budget, Techniek, Risico');
   }
 
-  // 📌 UITBOUW: Nieuw volume + bestaande verbinden
+  // 🎨 UITBOUW: Nieuw volume + bestaande verbinden
   if (projectTypes.includes('uitbouw')) {
     if (!chapters.includes('ruimtes')) chapters.push('ruimtes');
     if (!chapters.includes('wensen')) chapters.push('wensen');
@@ -124,13 +124,13 @@ export function generateChapters(triage: TriageInput): GenerateChaptersResult {
     // Uitbouw = ALWAYS promote to PREMIUM
     if (mode === 'PREVIEW') {
       mode = 'PREMIUM';
-      reasoning.push('🏗️ Uitbouw → PREMIUM mode (integratie complexiteit)');
+      reasoning.push('🗿 Uitbouw → PREMIUM mode (integratie complexiteit)');
     }
 
     reasoning.push('✓ Uitbouw → Ruimtes, Wensen, Budget, Techniek, Duurzaamheid, Risico');
   }
 
-  // 📌 NIEUWBOUW: Full monty
+  // 🎨 NIEUWBOUW: Full monty
   if (projectTypes.includes('nieuwbouw')) {
     if (!chapters.includes('ruimtes')) chapters.push('ruimtes');
     if (!chapters.includes('wensen')) chapters.push('wensen');
@@ -148,7 +148,7 @@ export function generateChapters(triage: TriageInput): GenerateChaptersResult {
     reasoning.push('✓ Nieuwbouw → Alles (Ruimtes, Wensen, Budget, Techniek, Duurzaamheid, Risico)');
   }
 
-  // 📌 BIJGEBOUW: Standalone + Tech
+  // 🎨 BIJGEBOUW: Standalone + Tech
   if (projectTypes.includes('bijgebouw')) {
     if (!chapters.includes('wensen')) chapters.push('wensen');
     if (!chapters.includes('budget')) chapters.push('budget');
@@ -159,7 +159,7 @@ export function generateChapters(triage: TriageInput): GenerateChaptersResult {
     reasoning.push('✓ Bijgebouw → Wensen, Budget, Techniek, Risico (NO Ruimtes)');
   }
 
-  // 📌 RENOVATIE: Heavy on Risico + Tech (already set to PREMIUM above)
+  // 🎨 RENOVATIE: Heavy on Risico + Tech (already set to PREMIUM above)
   if (projectTypes.includes('renovatie')) {
     if (!chapters.includes('ruimtes')) chapters.push('ruimtes');
     if (!chapters.includes('wensen')) chapters.push('wensen');
@@ -177,7 +177,7 @@ export function generateChapters(triage: TriageInput): GenerateChaptersResult {
 
   // Klein projects: Simplify (menos chapters maybe)
   if (triage.projectSize === 'klein') {
-    reasoning.push('📏 Klein project → Keep it simple');
+    reasoning.push('📍 Klein project → Keep it simple');
     // No chapters removed, but Jules adapts tone
   }
 
@@ -185,7 +185,7 @@ export function generateChapters(triage: TriageInput): GenerateChaptersResult {
   if (triage.projectSize === 'groot') {
     if (!chapters.includes('duurzaamheid') && !projectTypes.includes('interieur')) {
       chapters.push('duurzaamheid');
-      reasoning.push('📏 Groot project → Voeg Duurzaamheid toe (efficiency matters)');
+      reasoning.push('📍 Groot project → Voeg Duurzaamheid toe (efficiency matters)');
     }
   }
 
@@ -241,7 +241,7 @@ function orderChapters(chapters: ChapterKey[]): ChapterKey[] {
 }
 
 /**
- * 🔍 Helper: Get chapter config for Jules context
+ * 🔧 Helper: Get chapter config for Jules context
  */
 export function getChapterConfig(chapter: ChapterKey) {
   const configs: Record<ChapterKey, { label: string; icon: string; required: boolean }> = {
@@ -259,7 +259,7 @@ export function getChapterConfig(chapter: ChapterKey) {
 }
 
 /**
- * 📝 Example usage in a component
+ * 🔧 Example usage in a component
  */
 export function exampleUsage() {
   const triage = {
@@ -276,7 +276,7 @@ export function exampleUsage() {
 
   console.log('📊 Generated Chapters:', result.chapters);
   console.log('🔒 Mode:', result.mode);
-  console.log('📝 Reasoning:\n', result.reasoning);
+  console.log('🔧 Reasoning:\n', result.reasoning);
 
   // Output:
   // Chapters: ['basis', 'wensen', 'ruimtes', 'budget', 'techniek', 'duurzaamheid', 'risico', 'preview']

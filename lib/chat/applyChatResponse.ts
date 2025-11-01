@@ -1,51 +1,110 @@
-import type { ChatResponse, WizardState, Delta } from "@/types/chat";
+// lib/chat/applyChatResponse.ts
+// Build v2.0: losjes gekoppelde types (geen harde afhankelijkheid van "@/types/chat").
+
+import type { PatchEvent } from '@/lib/chat/patchTypes';
 
 export type ApplyResult = { applied: boolean; reason?: string };
 
-function getAtPath(obj: any, path: string) {
-  return path.split(".").reduce((acc, key) => (acc ? acc[key] : undefined), obj);
-}
+// Minimale, tolerante staat die we nodig hebben om patches te kunnen toepassen
+export type WizardStateLite = {
+  stateVersion?: number;
+  triage?: Record<string, any> | undefined;
+  chapterAnswers?: Record<string, any> | undefined;
+};
 
-function setAtPath(obj: any, path: string, value: any) {
-  const parts = path.split(".");
-  const last = parts.pop()!;
-  const parent = parts.reduce((acc, key) => (acc[key] ??= {}), obj);
-  parent[last] = value;
-}
+// Minimale, tolerante chat-respons (stream/patch/navigate)
+export type ChatResponseLite = {
+  event?: 'metadata' | 'patch' | 'navigate' | 'stream' | 'error' | 'done';
+  // Veel backends sturen "patch" of "delta" of root-level keys
+  patch?: PatchEvent;
+  delta?: PatchEvent;
+  triage?: Record<string, any>;
+  chapterAnswers?: Record<string, any>;
+  navigate?: { chapter?: string } | { to?: string } | string;
+  text?: string;
+  message?: string;
+};
 
-function applyDelta(target: any, delta: Delta) {
-  const current = getAtPath(target, delta.path);
-  if (delta.kind === "number:add") {
-    const base = typeof current === "number" ? current : 0;
-    setAtPath(target, delta.path, base + (delta.value as number));
-  } else if (delta.kind === "array:append") {
-    const base = Array.isArray(current) ? current.slice() : [];
-    base.push(delta.value);
-    setAtPath(target, delta.path, base);
-  } else if (delta.kind === "object:merge") {
-    const base = typeof current === "object" && current ? { ...current } : {};
-    setAtPath(target, delta.path, { ...base, ...(delta.value as object) });
-  }
-}
+type Appliers = {
+  // Store-functies (optioneel): we vallen defensief terug als iets ontbreekt
+  patchTriage?: (delta: Record<string, any>) => void;
+  patchChapterAnswer?: (chapter: string, delta: Record<string, any>) => void;
+  goToChapter?: (ch: string) => void;
+  appendStream?: (t: string) => void;
+};
 
+/**
+ * Past een (soepele) chat-respons toe op de wizard via aangeleverde appliers.
+ * - Ondersteunt meerdere varianten van patches (patch/delta/root-level).
+ * - Ondersteunt navigatie (navigate).
+ * - Ondersteunt streaming-tekst (stream/text/message).
+ */
 export default function applyChatResponse(
-  r: ChatResponse,
-  state: WizardState
+  _ws: WizardStateLite | undefined,
+  res: ChatResponseLite | undefined,
+  appliers: Appliers
 ): ApplyResult {
-  const { policy, patch } = r;
-  if (!patch) return { applied: false, reason: "no-patch" };
+  if (!res) return { applied: false, reason: 'no response' };
 
-  if (policy === "APPLY_OPTIMISTIC" || policy === "APPLY_WITH_INLINE_VERIFY") {
-    try {
-      state.chapterAnswers = state.chapterAnswers || {};
-      state.chapterAnswers[patch.chapter] =
-        state.chapterAnswers[patch.chapter] || {};
-      applyDelta(state.chapterAnswers, patch.delta);
-      state.stateVersion = (state.stateVersion ?? 0) + 1;
-      return { applied: true };
-    } catch (e) {
-      return { applied: false, reason: (e as Error).message };
+  let applied = false;
+
+  // 1) PATCHES
+  const patch: PatchEvent | undefined =
+    (res.patch as PatchEvent) ||
+    (res.delta as PatchEvent) ||
+    (res.triage || res.chapterAnswers
+      ? ({ triage: res.triage, chapterAnswers: res.chapterAnswers } as PatchEvent)
+      : undefined);
+
+  if (patch) {
+    // target/payload
+    const d: any = patch;
+
+    if (d?.target === 'triage' && d?.payload && appliers.patchTriage) {
+      appliers.patchTriage(d.payload);
+      applied = true;
+    }
+
+    if (d?.target === 'chapterAnswers' && d?.payload && appliers.patchChapterAnswer) {
+      for (const [chapter, delta] of Object.entries(d.payload as Record<string, any>)) {
+        appliers.patchChapterAnswer(chapter, delta as Record<string, any>);
+      }
+      applied = true;
+    }
+
+    // root-level triage/answers
+    if (d?.triage && appliers.patchTriage) {
+      appliers.patchTriage(d.triage as Record<string, any>);
+      applied = true;
+    }
+    if (d?.chapterAnswers && appliers.patchChapterAnswer) {
+      for (const [chapter, delta] of Object.entries(d.chapterAnswers as Record<string, any>)) {
+        appliers.patchChapterAnswer(chapter, delta as Record<string, any>);
+      }
+      applied = true;
     }
   }
-  return { applied: false, reason: `policy=${policy}` };
+
+  // 2) NAVIGATE
+  const nav = res.navigate;
+  if (nav && appliers.goToChapter) {
+    let chapter: string | undefined;
+
+    if (typeof nav === 'string') chapter = nav;
+    else chapter = (nav as any)?.chapter ?? (nav as any)?.to;
+
+    if (chapter && typeof chapter === 'string') {
+      appliers.goToChapter(chapter);
+      applied = true;
+    }
+  }
+
+  // 3) STREAM / TEXT
+  const t = typeof res.text === 'string' ? res.text : typeof res.message === 'string' ? res.message : '';
+  if (t && appliers.appendStream) {
+    appliers.appendStream(t);
+    applied = true;
+  }
+
+  return applied ? { applied } : { applied, reason: 'no-op' };
 }

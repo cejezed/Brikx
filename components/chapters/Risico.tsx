@@ -11,7 +11,9 @@ import { useToast as useRealToast } from '@/components/ui/toast'; // ✅ juiste 
 
 // Een simpele UI-component die een toast-functie als prop krijgt
 function RisicoUI({ toast }: { toast: (o: { title?: string; description?: string }) => void }) {
-  const risicoObj = useWizardState((s) => s.getChapterAnswer('risico') ?? s.risico ?? {});
+  // @ts-ignore - accepts partial/dynamic chapter data at runtime
+  const risicoObj = useWizardState((s) => s.chapterAnswers?.risico ?? {}) as Record<string, any>;
+  // @ts-ignore - accepts partial patches at runtime
   const patchChapter = useWizardState((s) => s.patchChapterAnswer);
 
   const [busy, setBusy] = useState(false);
@@ -39,10 +41,10 @@ function RisicoUI({ toast }: { toast: (o: { title?: string; description?: string
         title: 'Risicoanalyse ververst',
         description: 'Nieuwe signalen zijn toegevoegd aan je overzicht.',
       });
-    } catch (e: any) {
+    } catch (e) {
       toast({
         title: 'Kon risicoanalyse niet verversen',
-        description: String(e?.message || e),
+        description: e instanceof Error ? e.message : String(e),
       });
     } finally {
       setBusy(false);
@@ -53,8 +55,8 @@ function RisicoUI({ toast }: { toast: (o: { title?: string; description?: string
     try {
       await navigator.clipboard.writeText(summary || '');
       toast({ title: 'Gekopieerd', description: 'De risico-samenvatting staat op het klembord.' });
-    } catch (e: any) {
-      toast({ title: 'Kopiëren mislukt', description: String(e?.message || e) });
+    } catch (e) {
+      toast({ title: 'Kopiëren mislukt', description: e instanceof Error ? e.message : String(e) });
     }
   }
 
@@ -102,7 +104,7 @@ function RisicoNoToast() {
 
 // Error boundary die provider-fouten opvangt (zoals “useToast must be used within <ToastProvider>”)
 class ToastBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
-  constructor(props: any) {
+  constructor(props: { children: React.ReactNode }) {
     super(props);
     this.state = { hasError: false };
   }

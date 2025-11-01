@@ -27,10 +27,10 @@ interface WizardLayoutProps {
 
 export default function WizardLayout({ left, middle, right }: WizardLayoutProps) {
   const currentChapter = useUiStore((s) => s.currentChapter);
-  const chapterFlow = useWizardState((s) => s.chapterFlow);
+  // Forceer lokale typezekerheid als ChapterKey[]
+  const chapterFlow = useWizardState((s) => (s.chapterFlow as unknown as ChapterKey[]) ?? []);
   const setCurrentChapter = useUiStore((s) => s.setCurrentChapter);
 
-  // Chapter component map
   const chapterComponents: Record<ChapterKey, React.ComponentType<any>> = {
     basis: Basis,
     wensen: Wensen,
@@ -46,9 +46,7 @@ export default function WizardLayout({ left, middle, right }: WizardLayoutProps)
 
   return (
     <div className="min-h-screen px-6">
-      {/* Inner 3-column grid */}
       <div className="grid grid-cols-1 lg:grid-cols-[35%_45%_20%] gap-6 py-8">
-        
         {/* LEFT COLUMN: Chat (35%) */}
         <div className="overflow-y-auto max-h-[calc(100vh-120px)] scrollbar-thin scrollbar-thumb-gray-300">
           {left || <ChatPanel />}
@@ -61,12 +59,12 @@ export default function WizardLayout({ left, middle, right }: WizardLayoutProps)
           ) : (
             <div className="space-y-4">
               {/* Chapter tabs */}
-              {chapterFlow && chapterFlow.length > 0 && (
+              {chapterFlow.length > 0 && (
                 <div className="flex gap-2 flex-wrap sticky top-0 bg-white py-3 border-b">
                   {chapterFlow.map((ch) => (
                     <button
                       key={ch}
-                      onClick={() => setCurrentChapter(ch as ChapterKey)}
+                      onClick={() => setCurrentChapter(ch)}
                       className={`px-4 py-2 rounded-lg font-medium text-sm transition whitespace-nowrap ${
                         currentChapter === ch
                           ? 'bg-[#0d3d4d] text-white'
@@ -91,42 +89,19 @@ export default function WizardLayout({ left, middle, right }: WizardLayoutProps)
         <div className="hidden lg:block overflow-y-auto max-h-[calc(100vh-120px)] scrollbar-thin scrollbar-thumb-gray-300">
           {right || <ExpertCorner />}
         </div>
-
       </div>
 
-      {/* Responsive behavior */}
       <style jsx>{`
         @media (max-width: 1024px) {
-          /* Tablet: 2 kolommen */
-          .grid {
-            grid-template-columns: 1fr 1.5fr !important;
-          }
+          .grid { grid-template-columns: 1fr 1.5fr !important; }
         }
-
         @media (max-width: 768px) {
-          /* Mobile: 1 kolom, tabs selecten welke */
-          .grid {
-            grid-template-columns: 1fr !important;
-          }
+          .grid { grid-template-columns: 1fr !important; }
         }
-
-        /* Scrollbar styling */
-        .scrollbar-thin::-webkit-scrollbar {
-          width: 6px;
-        }
-
-        .scrollbar-thin::-webkit-scrollbar-track {
-          background: transparent;
-        }
-
-        .scrollbar-thin::-webkit-scrollbar-thumb {
-          background: rgb(209, 213, 219);
-          border-radius: 3px;
-        }
-
-        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-          background: rgb(156, 163, 175);
-        }
+        .scrollbar-thin::-webkit-scrollbar { width: 6px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+        .scrollbar-thin::-webkit-scrollbar-thumb { background: rgb(209, 213, 219); border-radius: 3px; }
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: rgb(156, 163, 175); }
       `}</style>
     </div>
   );

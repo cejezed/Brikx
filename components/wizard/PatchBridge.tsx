@@ -3,88 +3,85 @@
 
 import { useEffect, useRef } from 'react';
 import { useWizardState } from '@/lib/stores/useWizardState';
+import { useUiStore } from '@/lib/stores/useUiStore';
+import type { PatchEvent } from '@/lib/chat/patchTypes';
 
-type Room = { name: string; area?: number | null };
-
-declare global { interface Window { __BRIKX_PATCH_LOCK__?: boolean } }
-
-const N = (s: string) => s.trim().toLowerCase();
-const log = (...a:any[]) => { if (process.env.NODE_ENV!=='production') console.debug('[PatchBridge]', ...a); };
-
-function roomsEqual(a: Room[], b: Room[]) {
-  if (a === b) return true;
-  if (!Array.isArray(a) || !Array.isArray(b)) return false;
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) {
-    if (N(a[i].name) !== N(b[i].name)) return false;
-    if ((a[i].area ?? null) !== (b[i].area ?? null)) return false;
-  }
-  return true;
-}
-function upsertRooms(current: Room[], patchRooms: Room[]) {
-  const map = new Map(current.map(r => [N(r.name), { ...r }]));
-  for (const r of patchRooms) {
-    if (!r?.name) continue;
-    const key = N(r.name);
-    const prev = map.get(key) || { name: r.name, area: null as number | null };
-    map.set(key, { ...prev, ...r, area: r.area ?? prev.area ?? null });
-  }
-  return Array.from(map.values());
-}
+const log = (...a: any[]) => {
+  if (process.env.NODE_ENV !== 'production') console.debug('[PatchBridge]', ...a);
+};
 
 export default function PatchBridge() {
   const localBusy = useRef(false);
 
   useEffect(() => {
+    const applyFlexible = (patch: PatchEvent) => {
+      const store = useWizardState.getState() as any;
+      const ui = useUiStore.getState() as any;
+
+      const patchTriage = store?.patchTriage;
+      const patchChapterAnswer = store?.patchChapterAnswer;
+      const goToChapter = store?.goToChapter;
+      const setBudget = store?.setBudget;
+      const applyServerPatch = store?.applyServerPatch; // optioneel, als aanwezig
+      const setFocusedField = ui?.setFocusedField;
+
+      // 0) Speciale keys bovenop (bv. budget)
+      if (Object.prototype.hasOwnProperty.call(patch as any, 'budget') && typeof setBudget === 'function') {
+        const nextBudget = (patch as any).budget ?? null;
+        log('setBudget', nextBudget);
+        setBudget(nextBudget);
+      }
+
+      // 1) Als store een native applicator heeft, eerst die proberen
+      if (typeof applyServerPatch === 'function' && (patch as any)?.chapter && (patch as any)?.delta) {
+        log('applyServerPatch', patch);
+        try { applyServerPatch(patch); return; } catch (e) { console.warn('applyServerPatch failed, fallback', e); }
+      }
+
+      // 2) Target/payload patroon
+      const d: any = patch;
+      if (d?.target === 'triage' && d?.payload && typeof patchTriage === 'function') {
+        patchTriage(d.payload);
+      } else if (d?.target === 'chapterAnswers' && d?.payload && typeof patchChapterAnswer === 'function') {
+        for (const [chapter, delta] of Object.entries(d.payload as Record<string, any>)) {
+          patchChapterAnswer(chapter, delta);
+        }
+      } else if (d?.target === 'ui' && d?.payload && typeof ui?.setUi === 'function') {
+        ui.setUi(d.payload);
+      }
+
+      // 3) Root-level kortsluiting
+      if (d?.triage && typeof patchTriage === 'function') {
+        patchTriage(d.triage);
+      }
+      if (d?.chapterAnswers && typeof patchChapterAnswer === 'function') {
+        for (const [chapter, delta] of Object.entries(d.chapterAnswers as Record<string, any>)) {
+          patchChapterAnswer(chapter, delta);
+        }
+      }
+
+      // 4) Navigatie/focus (indien aanwezig in patch)
+      if (typeof d?.navigate === 'string' && typeof goToChapter === 'function') {
+        goToChapter(d.navigate);
+      }
+      if (typeof d?.focus === 'string' && typeof setFocusedField === 'function') {
+        setFocusedField(d.focus);
+      }
+    };
+
     const onPatch = (e: Event) => {
       const { patch, source } = (e as CustomEvent).detail || {};
       if (source !== 'chat') return;
       if (!patch || typeof patch !== 'object') return;
 
-      if (window.__BRIKX_PATCH_LOCK__ || localBusy.current) return;
-      window.__BRIKX_PATCH_LOCK__ = true;
+      if (localBusy.current) return;
       localBusy.current = true;
 
       try {
-        const state = useWizardState.getState();
-        const { setBudget, setRooms, patchField } = state as any;
-
-        if (Object.prototype.hasOwnProperty.call(patch, 'budget')) {
-          const nextBudget = patch.budget ?? null;
-          const currBudget = (state as any).budget ?? null;
-          if (nextBudget !== currBudget) {
-            if (typeof setBudget === 'function') {
-              log('setBudget', nextBudget);
-              setBudget(nextBudget);
-            } else if (typeof patchField === 'function') {
-              log('patchField(fallback: budget.globalBudget)', nextBudget);
-              patchField('budget.globalBudget', String(nextBudget));
-            } else {
-              log('setState(budget)', nextBudget);
-              useWizardState.setState({ budget: nextBudget });
-            }
-          }
-        }
-
-        if (Array.isArray(patch.rooms) && patch.rooms.length > 0) {
-          const currRooms: Room[] = Array.isArray((state as any).rooms) ? (state as any).rooms : [];
-          const nextRooms = upsertRooms(currRooms, patch.rooms as Room[]);
-          if (!roomsEqual(currRooms, nextRooms)) {
-            if (typeof setRooms === 'function') {
-              log('setRooms', nextRooms);
-              setRooms(nextRooms);
-            } else if (typeof patchField === 'function') {
-              const total = nextRooms.reduce((s, r) => s + (r.area || 0), 0);
-              log('patchField(fallback: requirements.roomsTotal)', total);
-              patchField('requirements.roomsTotal', String(total));
-            } else {
-              log('setState(rooms)', nextRooms);
-              useWizardState.setState({ rooms: nextRooms });
-            }
-          }
-        }
+        applyFlexible(patch as PatchEvent);
+      } catch (err) {
+        console.error('[PatchBridge] Error applying patch:', err);
       } finally {
-        setTimeout(() => { window.__BRIKX_PATCH_LOCK__ = false; }, 0);
         localBusy.current = false;
       }
     };
@@ -94,26 +91,33 @@ export default function PatchBridge() {
       if (source !== 'chat') return;
       if (!target || typeof target !== 'string') return;
 
-      const state = useWizardState.getState();
-      const { goToChapter, setFocusedField } = state as any;
+      const { goToChapter } = useWizardState.getState() as any;
+      const { setFocusedField } = useUiStore.getState() as any;
 
-      if (target === 'tab:risicos' && typeof goToChapter === 'function') return void goToChapter('chapter_risicos');
-      if (target === 'tab:preview' && typeof goToChapter === 'function') return void goToChapter('chapter_preview');
+      // tab-aliasen
+      if (target === 'tab:risico') {
+        log('goToChapter: risico');
+        return typeof goToChapter === 'function' && goToChapter('risico');
+      }
+      if (target === 'tab:preview') {
+        log('goToChapter: preview');
+        return typeof goToChapter === 'function' && goToChapter('preview');
+      }
 
-      if (typeof setFocusedField === 'function') {
+      // chapter:fieldId
+      if (target.includes(':') && typeof setFocusedField === 'function') {
         log('setFocusedField', target);
-        setFocusedField(target);
+        setFocusedField(target as `${string}:${string}`);
       } else {
-        log('setState(focusedField)', target);
-        useWizardState.setState({ focusedField: target });
+        log('setFocusedField - invalid format, skipping:', target);
       }
     };
 
     const onHandoff = (e: Event) => {
       const { source } = (e as CustomEvent).detail || {};
       if (source !== 'chat') return;
-      const state = useWizardState.getState();
-      if (typeof (state as any).openHandoff === 'function') (state as any).openHandoff();
+      log('handoff event received (no handler implemented yet)');
+      // Hier eventueel je HumanHandoffModal triggeren
     };
 
     window.addEventListener('wizard:patch', onPatch as EventListener);

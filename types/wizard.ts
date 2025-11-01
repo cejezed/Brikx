@@ -57,12 +57,12 @@ export interface TriageData {
   projectType: ProjectType[];
   projectSize: ProjectSize;
   urgency: Urgency;
-  budget: BudgetCategory;
+  budget?: BudgetCategory;
   budgetCustom?: number;
   stijlvoorkeur?: StijlVoorkeur[];
   moodboardUrl?: string;
   bestaandeDocumenten?: Document[];
-  hulpvraag: HulpVraag[];
+  hulpvraag?: HulpVraag[];
   createdAt?: Date;
   updatedAt?: Date;
   tempId?: string;

@@ -3,7 +3,7 @@ import TrustBar from '@/components/TrustBar'
 import FounderBanner from '@/components/FounderBanner'
 
 import Solutions from '@/components/Solutions'
-import Features from '@/components/Features'
+
 import Cases from '@/components/Cases'
 import HowItWorks from '@/components/HowItWorks'
 import WhatYouGet from '@/components/WhatYouGet'

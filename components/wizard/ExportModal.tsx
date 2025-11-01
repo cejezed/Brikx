@@ -1,14 +1,21 @@
-"use client";
+// components/wizard/ExportModal.tsx
+'use client';
 
-import { useMemo } from "react";
-import { useWizardState } from "@/lib/stores/useWizardState";
-import { buildPreview } from "@/lib/preview/buildPreview";
-import { printPreviewToPdf } from "@/lib/export/print";
+import { useMemo } from 'react';
+import { useWizardState } from '@/lib/stores/useWizardState';
+import { buildPreview } from '@/lib/preview/buildPreview';
+import { printPreviewToPdf } from '@/lib/export/print';
+import type { ProjectType } from '@/types/wizard';
+
+interface ExportModalProps {
+  open: boolean;
+  onClose: () => void;
+}
 
 function downloadJson(filename: string, data: unknown) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
+  const a = document.createElement('a');
   a.href = url;
   a.download = filename;
   document.body.appendChild(a);
@@ -17,22 +24,32 @@ function downloadJson(filename: string, data: unknown) {
   URL.revokeObjectURL(url);
 }
 
-export default function ExportModal() {
-  // 🔒 Hooks: ALTIJD zelfde volgorde en aantal aanroepen
-  const open = useWizardState((s) => s.showExportModal);
-  const setOpen = useWizardState((s) => s.setShowExportModal);
+export default function ExportModal({ open, onClose }: ExportModalProps) {
   const triage = useWizardState((s) => s.triage);
   const chapterAnswers = useWizardState((s) => s.chapterAnswers);
 
-  // Deze hook moet óók worden aangeroepen als open=false, dus vóór de early return.
-  const preview = useMemo(() => buildPreview({ triage, chapterAnswers }), [triage, chapterAnswers]);
+  const preview = useMemo(() => {
+    if (!triage) return null;
 
-  // Nu pas de early return. Hooks-orde blijft identiek over renders.
-  if (!open) return null;
+    // ✅ Fallback om TS te voldoen: buildPreview wil altijd een Record
+    const safeChapterAnswers: Record<string, any> = chapterAnswers ?? {};
+
+    // ✅ Directe mapping - triage heeft al de juiste velden
+    return buildPreview({
+      triage: {
+        projectType: triage.projectType ? [triage.projectType as ProjectType] : [],
+        projectSize: triage.projectSize as any,
+        urgency: triage.urgency as any,
+      },
+      chapterAnswers: safeChapterAnswers,
+    });
+  }, [triage, chapterAnswers]);
+
+  if (!open || !preview) return null;
 
   return (
     <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="absolute left-1/2 top-1/2 w-[92vw] max-w-2xl -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white shadow-xl">
         <header className="px-5 py-4 border-b">
           <h3 className="text-base font-semibold">Exporteren</h3>
@@ -46,7 +63,7 @@ export default function ExportModal() {
             <div className="border rounded p-3">
               <div className="font-medium">PDF</div>
               <p className="text-xs text-gray-600">
-                We openen een geformatteerde weergave en starten meteen “Print”. Kies daar “Opslaan als PDF”.
+                We openen een geformatteerde weergave en starten meteen "Print". Kies daar "Opslaan als PDF".
               </p>
               <button
                 type="button"
@@ -63,7 +80,7 @@ export default function ExportModal() {
               <button
                 type="button"
                 className="mt-2 px-3 py-2 rounded border"
-                onClick={() => downloadJson("brikx-pve.json", preview)}
+                onClick={() => downloadJson('brikx-pve.json', preview)}
               >
                 Download JSON
               </button>
@@ -72,7 +89,7 @@ export default function ExportModal() {
         </div>
 
         <footer className="px-5 py-4 border-t flex items-center gap-3">
-          <button type="button" className="px-3 py-2 rounded border" onClick={() => setOpen(false)}>
+          <button type="button" className="px-3 py-2 rounded border" onClick={onClose}>
             Sluiten
           </button>
         </footer>

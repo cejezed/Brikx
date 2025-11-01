@@ -1,32 +1,52 @@
 // /types/chat.ts
+// Canonical types — Build v2.0
+
+export type ChatMode = "PREVIEW" | "PREMIUM";
+
+export type ChapterKey =
+  | "basis"
+  | "budget"
+  | "ruimtes"
+  | "wensen"
+  | "techniek"
+  | "duurzaamheid"
+  | "risico"
+  | "preview";
+
+export type ErvaringLevel = "starter" | "ervaren";
 
 export interface TriageData {
-  projectType?: string;
-  projectSize?: string;
+  projectType?: string;      // "nieuwbouw" | "verbouwing" | "aanbouw" | ...
+  projectSize?: string;      // "klein" | "middel" | "groot" | ...
+  intent?: string[];         // bv. ["uitbouw","zolder","duurzaam"]
+  budget?: number;           // totaalbudget in euro's
+  currentChapter?: ChapterKey;
+
+  // Canoniek (NL) conform Build v2.0:
+  urgentie?: string;         // bv. "nu", "3-6 mnd", "6-12 mnd"
+  ervaring?: ErvaringLevel;  // "starter" | "ervaren"
+
+  /** @deprecated Gebruik 'urgentie'. Gelaten voor backward-compat. */
   urgency?: string;
-  budget?: number;
-  intent?: string[];
-  currentChapter?: string;
 }
 
 export interface WizardState {
   stateVersion: number;
   chapterAnswers?: Record<string, any>;
   triage?: TriageData;
-  currentChapter?: string;
+  currentChapter?: ChapterKey;
   focusedField?: string;
+  showExportModal?: boolean; // voor ExportModal.tsx usage
 }
 
-export interface ChatRequest {
-  query: string;
-  wizardState: WizardState;
-  mode: "PREVIEW" | "PREMIUM";
-  clientFastIntent?: {
-    type: string;
-    confidence: number;
-    action?: string;
-    chapter?: string;
-    field?: string;
+export type PatchOperation = "set" | "add" | "remove" | "merge" | "append";
+
+export interface PatchEvent {
+  chapter: ChapterKey;
+  delta: {
+    path: string;                 // dotted path of key ("" toegestaan voor speciale helpers)
+    operation: PatchOperation;
+    value?: any;                  // optioneel voor remove
   };
 }
 
@@ -39,6 +59,19 @@ export type ChatSSEEventName =
   | "error"
   | "done";
 
+export interface ChatRequest {
+  query: string;
+  wizardState: WizardState;
+  mode: ChatMode;
+  clientFastIntent?: {
+    type: string;
+    confidence: number;
+    action?: string;
+    chapter?: ChapterKey;
+    field?: string;
+  };
+}
+
 export interface MetadataEvent {
   intent: "VULLEN_DATA" | "ADVIES_VRAAG" | "NAVIGATIE" | "NUDGE" | "SMALLTALK" | "CLASSIFY";
   confidence: number;
@@ -46,20 +79,3 @@ export interface MetadataEvent {
   nudge?: string;
   stateVersion: number;
 }
-
-export interface NavigateEvent {
-  chapter: "basis" | "budget" | "ruimtes" | "wensen" | "techniek" | "duurzaamheid" | "risico" | "preview";
-}
-
-export interface PatchEvent {
-  chapter: string;
-  delta: {
-    path: string; // "" = append op hoofdstuk-root (array)
-    operation: "add" | "set" | "append" | "remove";
-    value?: any;
-  };
-}
-
-export interface StreamEvent { text: string; }
-export interface RAGMetadataEvent { topicId: string; docsRetrieved: number; cacheHit: boolean; }
-export interface DoneEvent { logId: string; tokensUsed: number; latencyMs: number; }

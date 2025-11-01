@@ -3,8 +3,22 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronRight, Gift, Sparkles, CheckCircle } from 'lucide-react';
-import { FeedbackFormData, RATING_LABELS, RATING_EMOJIS } from '@/types/feedback';
-import { useWizardStore } from '@/state/wizardStore';
+
+// Types
+interface FeedbackFormData {
+  currentStep: number;
+  responses: Record<string, any>;
+  startTime: number;
+}
+
+const RATING_LABELS: Record<string, string> = {
+  speed: 'Snelheid',
+  clarity: 'Duidelijkheid',
+  quality: 'Kwaliteit',
+  value: 'Waarde'
+};
+
+const RATING_EMOJIS = ['😞', '😐', '🙂', '😊', '🤩'];
 
 interface FeedbackModalProps {
   isOpen: boolean;
@@ -193,7 +207,7 @@ export function FeedbackModal({ isOpen, onClose, projectId, onComplete }: Feedba
                     <NPSQuestion 
                       value={formData.responses.npsScore}
                       reason={formData.responses.npsReason}
-                      onChange={(score, reason) => {
+                      onChange={(score: number, reason: string) => {
                         updateResponse('npsScore', score);
                         updateResponse('npsReason', reason);
                       }}
@@ -267,12 +281,18 @@ export function FeedbackModal({ isOpen, onClose, projectId, onComplete }: Feedba
 }
 
 // Step 1: NPS Question
-function NPSQuestion({ value, reason, onChange }: any) {
-  const [selectedScore, setSelectedScore] = useState(value || null);
+function NPSQuestion({ value, reason, onChange }: { value?: number; reason?: string; onChange: (score: number, reason: string) => void }) {
+  const [selectedScore, setSelectedScore] = useState<number | null>(value || null);
+  const [selectedReason, setSelectedReason] = useState<string>(reason || '');
 
   const handleScoreChange = (score: number) => {
     setSelectedScore(score);
-    onChange(score, reason);
+    onChange(score, selectedReason);
+  };
+
+  const handleReasonChange = (newReason: string) => {
+    setSelectedReason(newReason);
+    onChange(selectedScore || 0, newReason);
   };
 
   const getFollowUpQuestion = () => {
@@ -323,8 +343,8 @@ function NPSQuestion({ value, reason, onChange }: any) {
             {getFollowUpQuestion()}
           </label>
           <textarea
-            value={reason || ''}
-            onChange={(e) => onChange(selectedScore, e.target.value)}
+            value={selectedReason}
+            onChange={(e) => handleReasonChange(e.target.value)}
             className="w-full p-3 border rounded-lg resize-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
             rows={3}
             placeholder="Deel je gedachten..."
@@ -336,8 +356,8 @@ function NPSQuestion({ value, reason, onChange }: any) {
 }
 
 // Step 2: Feature Ratings
-function RatingsQuestion({ ratings, onChange }: any) {
-  const [localRatings, setLocalRatings] = useState(ratings || {});
+function RatingsQuestion({ ratings, onChange }: { ratings: Record<string, number>; onChange: (ratings: Record<string, number>) => void }) {
+  const [localRatings, setLocalRatings] = useState<Record<string, number>>(ratings || {});
 
   const handleRatingChange = (feature: string, rating: number) => {
     const updated = { ...localRatings, [feature]: rating };
@@ -382,8 +402,8 @@ function RatingsQuestion({ ratings, onChange }: any) {
 }
 
 // Step 3: Open Feedback
-function OpenFeedbackQuestion({ feedback, onChange }: any) {
-  const [localFeedback, setLocalFeedback] = useState(feedback || {});
+function OpenFeedbackQuestion({ feedback, onChange }: { feedback: Record<string, string>; onChange: (feedback: Record<string, string>) => void }) {
+  const [localFeedback, setLocalFeedback] = useState<Record<string, string>>(feedback || {});
 
   const handleChange = (field: string, value: string) => {
     const updated = { ...localFeedback, [field]: value };
@@ -449,7 +469,13 @@ function PermissionsQuestion({
   wantsUpdates, 
   contactEmail,
   onChange 
-}: any) {
+}: { 
+  allowTestimonial?: boolean;
+  testimonialName?: string;
+  wantsUpdates?: boolean;
+  contactEmail?: string;
+  onChange: (field: string, value: any) => void;
+}) {
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-semibold">

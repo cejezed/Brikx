@@ -1,11 +1,12 @@
+// components/wizard/PvEPreview.tsx
 "use client";
 
 import { useMemo } from "react";
 import { useWizardState } from "@/lib/stores/useWizardState";
 import { buildPreview } from "@/lib/preview/buildPreview";
-import type { WishPriority } from "@/types/project";
 
-function priorityLabel(p?: WishPriority) {
+// Tolerante mapping: accepteer string | undefined
+function priorityLabel(p?: string) {
   switch (p) {
     case "must": return "Must-have";
     case "nice": return "Nice-to-have";
@@ -19,7 +20,23 @@ export default function PvEPreview() {
   const triage = useWizardState((s) => s.triage);
   const chapterAnswers = useWizardState((s) => s.chapterAnswers);
 
-  const pv = useMemo(() => buildPreview({ triage, chapterAnswers }), [triage, chapterAnswers]);
+  const pv = useMemo(() => {
+    if (!triage) return null;
+
+    const safeChapterAnswers: Record<string, any> = chapterAnswers ?? {};
+
+    // ✅ Transform triage to match buildPreview expectations
+    return buildPreview({
+      triage: {
+        projectType: triage.projectType ? [triage.projectType as any] : [],
+        projectSize: triage.projectSize as any,
+        urgency: triage.urgency as any,
+      },
+      chapterAnswers: safeChapterAnswers,
+    });
+  }, [triage, chapterAnswers]);
+
+  if (!pv) return null;
 
   return (
     <aside className="w-full md:w-[360px] md:sticky md:top-6 border rounded-2xl shadow-sm bg-white">

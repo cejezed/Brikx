@@ -1,95 +1,55 @@
-// components/wizard/ChapterNav.tsx
-'use client';
-import React, { useEffect, useRef, useState } from 'react';
+"use client";
 
-export type ChapterItem = { key: string; title: string; status?: 'done' | 'inprogress' | 'todo' };
+import { useCallback } from "react";
+import { useUiStore } from "@/lib/stores/useUiStore";
+import type { ChapterKey } from "@/types/wizard";
 
-export default function ChapterNav({
+type ChapterItem = { key: ChapterKey; title: string };
+
+export default function ChapterControls({
   chapters,
-  activeKey,
-  onSelect,
+  activeIndex,
 }: {
   chapters: ChapterItem[];
-  activeKey: string | null;
-  onSelect: (key: string) => void;
+  activeIndex: number;
 }) {
-  const ref = useRef<HTMLUListElement | null>(null);
-  const [scrollLeft, setScrollLeft] = useState(0);
-  const [maxScroll, setMaxScroll] = useState(0);
+  const setCurrentChapter = useUiStore((s) => s.setCurrentChapter);
 
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const handle = () => {
-      setScrollLeft(el.scrollLeft);
-      setMaxScroll(el.scrollWidth - el.clientWidth);
-    };
-    handle();
-    el.addEventListener('scroll', handle);
-    const ro = new ResizeObserver(handle);
-    ro.observe(el);
-    return () => {
-      el.removeEventListener('scroll', handle);
-      ro.disconnect();
-    };
-  }, []);
+  const goPrev = useCallback(() => {
+    if (!chapters.length) return;
+    const i = Math.max(activeIndex - 1, 0);
+    setCurrentChapter(chapters[i].key);
+  }, [activeIndex, chapters, setCurrentChapter]);
 
-  const scrollBy = (dx: number) => ref.current?.scrollBy({ left: dx, behavior: 'smooth' });
+  const goNext = useCallback(() => {
+    if (!chapters.length) return;
+    const i = Math.min(activeIndex + 1, chapters.length - 1);
+    setCurrentChapter(chapters[i].key);
+  }, [activeIndex, chapters, setCurrentChapter]);
 
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || !activeKey) return;
-    const btn = el.querySelector<HTMLButtonElement>(`button[data-key="${CSS.escape(activeKey)}"]`);
-    btn?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
-  }, [activeKey]);
-
-  const showLeft = scrollLeft > 10;
-  const showRight = scrollLeft < maxScroll - 10;
+  if (!chapters.length) return null;
 
   return (
-    <nav className="relative">
-      {showLeft && (
-        <button
-          onClick={() => scrollBy(-240)}
-          className="absolute left-1 top-1/2 -translate-y-1/2 z-20 bg-white border border-gray-200 rounded-md px-2 py-1 shadow hover:bg-gray-50"
-        >
-          ‹
-        </button>
-      )}
-      {showRight && (
-        <button
-          onClick={() => scrollBy(240)}
-          className="absolute right-1 top-1/2 -translate-y-1/2 z-20 bg-white border border-gray-200 rounded-md px-2 py-1 shadow hover:bg-gray-50"
-        >
-          ›
-        </button>
-      )}
-
-      <ul
-        ref={ref}
-        className="flex gap-2 overflow-x-auto whitespace-nowrap scroll-smooth pr-8 pl-8 scrollbar-thin"
+    <div className="mt-6 flex items-center justify-between">
+      <button
+        type="button"
+        onClick={goPrev}
+        disabled={activeIndex <= 0}
+        className="brx-btn-ghost disabled:opacity-50"
       >
-        {chapters.map((c) => {
-          const active = c.key === activeKey;
-          return (
-            <li key={c.key} className="shrink-0">
-              <button
-                data-key={c.key}
-                type="button"
-                onClick={() => onSelect(c.key)}
-                className={[
-                  'brx-chip',
-                  active ? 'brx-chip-active' : 'brx-chip-idle',
-                  'max-w-[14rem] truncate',
-                ].join(' ')}
-                title={c.title}
-              >
-                {c.title}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
+        ← Vorige
+      </button>
+      <div className="text-xs text-neutral-500">
+        Stap {activeIndex + 1} van {chapters.length}
+      </div>
+      <button
+        type="button"
+        onClick={goNext}
+        disabled={activeIndex >= chapters.length - 1}
+        className="brx-btn-primary disabled:opacity-50"
+      >
+        Volgende →
+      </button>
+    </div>
   );
 }

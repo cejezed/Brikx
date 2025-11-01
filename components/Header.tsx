@@ -1,15 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-// Placeholders voor next/image en next/link voor deze omgeving
-// In een echte Next.js omgeving, gebruik de regels hieronder:
-// import Image from 'next/image';
-// import Link from 'next/link';
+import { useState, useEffect, ReactNode } from 'react'
+import { ImgHTMLAttributes, AnchorHTMLAttributes } from 'react'
 
 // Placeholder voor next/image
-const Image = (props) => <img {...props} />
+const Image = (props: ImgHTMLAttributes<HTMLImageElement>) => <img {...props} />
 // Placeholder voor next/link
-const Link = ({ href, children, ...props }) => (
+const Link = ({ href, children, ...props }: { href: string; children: ReactNode } & AnchorHTMLAttributes<HTMLAnchorElement>) => (
   <a href={href} {...props}>
     {children}
   </a>
@@ -56,7 +53,6 @@ export default function Header({ className = '' }: { className?: string }) {
                 alt="Brikx"
                 width={200}
                 height={100}
-                priority
                 className="h-7 w-auto md:h-8 object-contain drop-shadow-[0_0_8px_rgba(77,184,186,0.35)]"
               />
               <span className="text-white text-lg md:text-xl font-semibold leading-none select-none">
