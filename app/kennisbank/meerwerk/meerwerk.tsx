@@ -143,7 +143,7 @@ export default function KennisbankContent() {
           <div className="mt-6 flex flex-col sm:flex-row gap-3">
             <button 
               type="button" 
-              onClick={() => handleOpenModal('locatie')} 
+              onClick={() => handleOpenModal('Meerwerk')} 
               className="inline-flex justify-center items-center rounded-full bg-[#27bdbb] text-white font-semibold px-6 py-3 hover:opacity-90 transition"
             >
               Download de Gratis Checklist

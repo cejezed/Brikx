@@ -14,16 +14,20 @@ const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 // De naam hier moet exact overeenkomen met wat je in de 'onClick' functie meegeeft.
 const checklistsDb = {
   'Financiële Routekaart': {
-    subject: '📄 Jouw Financiële Routekaart voor je Droomhuis',
+    subject: '📄 Jouw Financiële Routekaart voor je Droomhuis Checklist',
     downloadUrl: `${process.env.NEXT_PUBLIC_APP_URL}/downloads/Brikx-Checklist-Financien.pdf`,
   },
-  'Kennisbank Stappenplan': {
+  'Meerwerk': {
     subject: '🗺️ Jouw Stappenplan voor een Succesvol Bouwproject',
-    downloadUrl: `${process.env.NEXT_PUBLIC_APP_URL}/downloads/Brikx-Checklist-Stappenplan.pdf`,
+    downloadUrl: `${process.env.NEXT_PUBLIC_APP_URL}/downloads/Brikx_Checklist_Meerwerk.pdf`,
   },
   'Algemene Bouw Checklist': {
-    subject: '🛠️ Jouw Algemene Bouw Checklist',
-    downloadUrl: `${process.env.NEXT_PUBLIC_APP_URL}/downloads/Brikx-Checklist-Algemeen.pdf`,
+    subject: '🗺️ Jouw Stappenplan voor een Succesvol Bouwproject Checklist',
+    downloadUrl: `${process.env.NEXT_PUBLIC_APP_URL}/downloads/Brikx_Checklist_De_Droom_Vormgeven.pdf`,
+  },
+   'Locatie': {
+    subject: 'Jous Locatie Checklist',
+    downloadUrl: `${process.env.NEXT_PUBLIC_APP_URL}/downloads/Brikx-Checklist-Locatie.pdf`,
   },
 };
 
@@ -45,7 +49,11 @@ export async function POST(request: NextRequest) {
     }
 
     // STAP 1: Stuur de e-mail naar de gebruiker
-    await resend.emails.send({
+    console.log('[DEBUG] Sending user email to:', email);
+    console.log('[DEBUG] Checklist:', checklistName);
+    console.log('[DEBUG] Download URL:', checklist.downloadUrl);
+    
+    const userResult = await resend.emails.send({
       from: `Brikx <${fromEmail}>`, // Gebruik het geverifieerde from adres uit .env
       to: email,
       subject: checklist.subject,
@@ -54,8 +62,12 @@ export async function POST(request: NextRequest) {
         downloadUrl: checklist.downloadUrl,
       }),
     });
+    
+    console.log('[DEBUG] User email result:', userResult);
 
     // STAP 2: Stuur de notificatie-e-mail naar jezelf (admin)
+    console.log('[DEBUG] Admin email check:', { adminEmail, exists: !!adminEmail });
+    
     if (adminEmail) {
       // Haal locatiegegevens uit headers (werkt op Vercel/Netlify)
       const ip = 
@@ -66,7 +78,9 @@ export async function POST(request: NextRequest) {
       const city = request.headers.get('x-vercel-ip-city') || 'Onbekende stad';
       const country = request.headers.get('x-vercel-ip-country') || 'Onbekend land';
 
-      await resend.emails.send({
+      console.log('[DEBUG] Sending admin notification to:', adminEmail);
+      
+      const adminResult = await resend.emails.send({
         from: `Brikx Notificatie <${fromEmail}>`, // Gebruik hetzelfde geverifieerde adres
         to: adminEmail,
         subject: `📥 Nieuwe download: ${checklistName}`,
@@ -78,6 +92,10 @@ export async function POST(request: NextRequest) {
           location: `${city}, ${country}`,
         }),
       });
+      
+      console.log('[DEBUG] Admin email result:', adminResult);
+    } else {
+      console.log('[DEBUG] Admin email SKIPPED - adminEmail is undefined or empty');
     }
 
     // Stuur een succesvol antwoord terug naar de frontend
