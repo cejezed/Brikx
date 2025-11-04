@@ -7,7 +7,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ChecklistModal from '@/components/ChecklistModal';
 import KennisbankGrid from './KennisbankGrid';
-import BrikxHero from "@/components/BrikxHero";
+import BrikxHero from "@/components/BrikxHeroKennis";
 const CONTAINER = "mx-auto max-w-[1600px] px-6";
 
 // --- Data voor de 4 Kennisbank Checklists ---

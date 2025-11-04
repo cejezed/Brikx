@@ -105,18 +105,9 @@ const kennisbankItems = [
  */
 export default function KennisbankGrid({}: KennisbankGridProps) {
   return (
-    <section className="py-16 md:py-24 bg-gray-50">
-      <div className="container mx-auto px-4 md:px-6">
-        {/* --- Titel van de Kennisbank Grid --- */}
-        <div className="text-center mb-12 md:mb-16">
-          <h2 className="text-4xl lg:text-5xl font-bold text-[#0d3d4d] mb-4">
-            Gratis (Ver)bouw Checklists
-          </h2>
-          <p className="text-xl text-[#35515a] max-w-3xl mx-auto">
-            Download onze gedetailleerde PDF-checklists voor elke cruciale fase
-            van uw project. Van droom tot oplevering.
-          </p>
-        </div>
+    <section className="bg-[#e7f3f4] rounded-b-[30px] py-16 md:py-24 shadow-[0_10px_30px_rgba(0,0,0,0.16)] relative w-full mx-auto max-w-[1552px]">
+      <div className="mx-auto px-4 md:px-6">
+        
 
         {/* --- 4-Koloms Grid --- */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 max-w-7xl mx-auto">

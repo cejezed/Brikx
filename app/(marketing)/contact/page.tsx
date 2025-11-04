@@ -34,14 +34,7 @@ export default function ContactPage() {
       <BrikxHero />
 
       <main className="bg-[#e7f3f4] rounded-b-[30px] shadow-[0_10px_30px_rgba(0,0,0,0.06)] relative w-full mx-auto max-w-[1552px] px-6 md:px-10 lg:px-20 py-16 md:py-24 space-y-20">
-        {/* Inleiding */}
-        <section>
-          
-          <p className="text-xl text-[#35515a] mb-8">
-            Vind hier de snelste weg naar het juiste antwoord.
-          </p>
-          
-        </section>
+      
 
         {/* 4 blokken */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10">

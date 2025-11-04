@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Image from "next/image";
 import Link from "next/link";
 import Header from "@/components/Header";
-import BrikxHero from "@/components/BrikxHero";
+import BrikxHero from "@/components/BrikxHeroKennis";
 import Footer from "@/components/Footer";
 import ChecklistModal from '@/components/ChecklistModal';
 import SidebarTabs from '../SidebarTabs';
