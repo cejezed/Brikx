@@ -7,7 +7,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ChecklistModal from '@/components/ChecklistModal';
 import KennisbankGrid from './KennisbankGrid';
-
+import BrikxHero from "@/components/BrikxHero";
 const CONTAINER = "mx-auto max-w-[1600px] px-6";
 
 // --- Data voor de 4 Kennisbank Checklists ---
@@ -156,32 +156,7 @@ export default function KennisbankContent() {
     <main className="bg-white">
       <Header />
 
-      {/* Hero Section - replaced BrikxHero with inline implementation */}
-      <section className="bg-gradient-to-br from-[#0d3d4d] to-[#1c7d86] text-white py-16 lg:py-24">
-        <div className={CONTAINER}>
-          <div className="max-w-3xl">
-            <h1 className="text-4xl lg:text-5xl font-bold mb-4">Brikx Kennisbank</h1>
-            <p className="text-lg lg:text-xl text-white/90 mb-8">
-              Praktische checklists, stappenplannen en uitleg – rechtstreeks uit 20 jaar architect-ervaring.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link 
-                href="/wizard" 
-                className="inline-flex justify-center items-center rounded-full bg-[#27bdbb] text-white font-semibold px-8 py-3 hover:opacity-90 transition"
-              >
-                Start Gratis PvE
-              </Link>
-              <button 
-                type="button"
-                onClick={() => handleOpenModal('Kennisbank Stappenplan')}
-                className="inline-flex justify-center items-center rounded-full border-2 border-white text-white font-semibold px-8 py-3 hover:bg-white/10 transition"
-              >
-                Download Checklist
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
+     <BrikxHero />
 
       <KennisbankGrid />
       

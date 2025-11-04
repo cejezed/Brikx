@@ -19,6 +19,9 @@ import Preview from '@/components/chapters/Preview';
 import ChatPanel from '@/components/chat/ChatPanel';
 import ExpertCorner from '@/components/expert/ExpertCorner';
 
+// 🔒 Stable fallback constant to avoid re-allocation
+const EMPTY_CHAPTER_FLOW: readonly ChapterKey[] = Object.freeze([]);
+
 interface WizardLayoutProps {
   left?: React.ReactNode;
   middle?: React.ReactNode;
@@ -27,9 +30,11 @@ interface WizardLayoutProps {
 
 export default function WizardLayout({ left, middle, right }: WizardLayoutProps) {
   const currentChapter = useUiStore((s) => s.currentChapter);
-  // Forceer lokale typezekerheid als ChapterKey[]
-  const chapterFlow = useWizardState((s) => (s.chapterFlow as unknown as ChapterKey[]) ?? []);
   const setCurrentChapter = useUiStore((s) => s.setCurrentChapter);
+
+  // ✅ FIXED: don’t create [] inside selector
+  const rawChapterFlow = useWizardState((s) => s.chapterFlow as ChapterKey[] | undefined);
+  const chapterFlow = rawChapterFlow ?? EMPTY_CHAPTER_FLOW;
 
   const chapterComponents: Record<ChapterKey, React.ComponentType<any>> = {
     basis: Basis,

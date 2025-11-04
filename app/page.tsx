@@ -1,7 +1,7 @@
 import HeroWithForm from '@/components/HeroWithForm'
 import TrustBar from '@/components/TrustBar'
 import FounderBanner from '@/components/FounderBanner'
-
+import Header from "@/components/Header";
 import Solutions from '@/components/Solutions'
 
 import Cases from '@/components/Cases'
@@ -15,6 +15,7 @@ import Footer from '@/components/Footer'
 export default function Home() {
   return (
     <main className="min-h-screen">
+       <Header />
       {/* Hero is #home + #login/#start in het formulier zelf */}
       <HeroWithForm />
       <section id="voordelen" className="scroll-mt-14"></section>
