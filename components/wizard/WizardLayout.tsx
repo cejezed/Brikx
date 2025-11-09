@@ -1,3 +1,4 @@
+// components/wizard/WizardLayout.tsx
 'use client';
 
 import React from 'react';
@@ -5,7 +6,7 @@ import { useUiStore } from '@/lib/stores/useUiStore';
 import { useWizardState } from '@/lib/stores/useWizardState';
 import type { ChapterKey } from '@/types/wizard';
 
-// Import chapter components
+// Chapter components
 import Basis from '@/components/chapters/Basis';
 import Wensen from '@/components/chapters/Wensen';
 import Ruimtes from '@/components/chapters/Ruimtes';
@@ -15,11 +16,11 @@ import Duurzaamheid from '@/components/chapters/Duurzaamheid';
 import Risico from '@/components/chapters/Risico';
 import Preview from '@/components/chapters/Preview';
 
-// Import layout components
+// Layout components
 import ChatPanel from '@/components/chat/ChatPanel';
 import ExpertCorner from '@/components/expert/ExpertCorner';
 
-// 🔒 Stable fallback constant to avoid re-allocation
+// Stabiele fallback om reallocations te voorkomen
 const EMPTY_CHAPTER_FLOW: readonly ChapterKey[] = Object.freeze([]);
 
 interface WizardLayoutProps {
@@ -32,8 +33,10 @@ export default function WizardLayout({ left, middle, right }: WizardLayoutProps)
   const currentChapter = useUiStore((s) => s.currentChapter);
   const setCurrentChapter = useUiStore((s) => s.setCurrentChapter);
 
-  // ✅ FIXED: don’t create [] inside selector
-  const rawChapterFlow = useWizardState((s) => s.chapterFlow as ChapterKey[] | undefined);
+  // Gebruik chapterFlow uit wizardState; geen nieuwe [] in selector
+  const rawChapterFlow = useWizardState(
+    (s) => s.chapterFlow as ChapterKey[] | undefined
+  );
   const chapterFlow = rawChapterFlow ?? EMPTY_CHAPTER_FLOW;
 
   const chapterComponents: Record<ChapterKey, React.ComponentType<any>> = {
@@ -47,67 +50,48 @@ export default function WizardLayout({ left, middle, right }: WizardLayoutProps)
     preview: Preview,
   };
 
-  const CurrentChapterComponent = chapterComponents[currentChapter] || Basis;
+  const CurrentChapterComponent =
+    (currentChapter && chapterComponents[currentChapter]) || Basis;
 
   return (
-    <div className="min-h-screen px-6">
-      <div className="grid grid-cols-1 lg:grid-cols-[35%_45%_20%] gap-6 py-8">
-        {/* LEFT COLUMN: Chat (35%) */}
-        <div className="overflow-y-auto max-h-[calc(100vh-120px)] scrollbar-thin scrollbar-thumb-gray-300">
-          {left || <ChatPanel />}
-        </div>
+    <div className="grid grid-cols-[minmax(260px,0.9fr)_minmax(420px,1.4fr)_minmax(260px,0.7fr)] gap-4 h-full">
+      {/* LEFT COLUMN: Chat (ca. 35%) */}
+      <div className="h-full">
+        {left || <ChatPanel />}
+      </div>
 
-        {/* MIDDLE COLUMN: Canvas (45%) */}
-        <div className="overflow-y-auto max-h-[calc(100vh-120px)] scrollbar-thin scrollbar-thumb-gray-300">
-          {middle ? (
-            middle
-          ) : (
-            <div className="space-y-4">
-              {/* Chapter tabs */}
-              {chapterFlow.length > 0 && (
-                <div className="flex gap-2 flex-wrap sticky top-0 bg-white py-3 border-b">
-                  {chapterFlow.map((ch) => (
-                    <button
-                      key={ch}
-                      onClick={() => setCurrentChapter(ch)}
-                      className={`px-4 py-2 rounded-lg font-medium text-sm transition whitespace-nowrap ${
-                        currentChapter === ch
-                          ? 'bg-[#0d3d4d] text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      {ch.charAt(0).toUpperCase() + ch.slice(1).replace(/_/g, ' ')}
-                    </button>
-                  ))}
-                </div>
-              )}
+      {/* MIDDLE COLUMN: Tabs + hoofdstukcontent (ca. 45%) */}
+      <div className="flex flex-col h-full">
+        {/* Chapter tabs */}
+        {chapterFlow.length > 0 && (
+          <div className="flex gap-2 mb-3 overflow-x-auto no-scrollbar">
+            {chapterFlow.map((ch) => (
+              <button
+                key={ch}
+                onClick={() => setCurrentChapter(ch)}
+                className={`px-4 py-2 rounded-lg font-medium text-sm transition whitespace-nowrap ${
+                  currentChapter === ch
+                    ? 'bg-[#0d3d4d] text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {ch.charAt(0).toUpperCase() +
+                  ch.slice(1).replace(/_/g, ' ')}
+              </button>
+            ))}
+          </div>
+        )}
 
-              {/* Current chapter content */}
-              <div className="bg-white rounded-lg p-6">
-                <CurrentChapterComponent />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* RIGHT COLUMN: Expert Corner (20%) */}
-        <div className="hidden lg:block overflow-y-auto max-h-[calc(100vh-120px)] scrollbar-thin scrollbar-thumb-gray-300">
-          {right || <ExpertCorner />}
+        {/* Hoofdstuk inhoud */}
+        <div className="flex-1 rounded-2xl bg-white shadow-sm border border-slate-100 p-4 overflow-y-auto">
+          {middle ? middle : <CurrentChapterComponent />}
         </div>
       </div>
 
-      <style jsx>{`
-        @media (max-width: 1024px) {
-          .grid { grid-template-columns: 1fr 1.5fr !important; }
-        }
-        @media (max-width: 768px) {
-          .grid { grid-template-columns: 1fr !important; }
-        }
-        .scrollbar-thin::-webkit-scrollbar { width: 6px; }
-        .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-        .scrollbar-thin::-webkit-scrollbar-thumb { background: rgb(209, 213, 219); border-radius: 3px; }
-        .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: rgb(156, 163, 175); }
-      `}</style>
+      {/* RIGHT COLUMN: Expert Corner (ca. 20%) */}
+      <div className="h-full">
+        {right || <ExpertCorner />}
+      </div>
     </div>
   );
 }

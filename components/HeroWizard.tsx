@@ -28,10 +28,9 @@ export default function Hero() {
           <div className="hero-content-text max-w-[50%] text-white">
   <h1 className="text-[clamp(2.325rem,1.5rem+3vw,4rem)] leading-[1.15] mb-3 font-bold opacity-85">
               Brikx Wizard
-            </h1>
-            <p className="text-[clamp(1.0rem,1rem+0.5vw,1.8rem)] leading-relaxed mb-3 opacity-65">
+            </h1>             <h1 className="text-[clamp(1.0rem,1rem+0.5vw,1.8rem)] leading-relaxed mb-3 opacity-65">
               Stel samen met assistent Jules uw Programma van Eisen op.
-            </p>
+            </h1>
 
             
           </div>

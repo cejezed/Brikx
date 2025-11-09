@@ -1,12 +1,16 @@
-'use client';
+// /components/intake/StartWizardFromIntake.tsx
 
-import IntakeForm from './IntakeForm';
+"use client";
+
+import IntakeForm from "./IntakeForm";
 
 /**
- * Dumb wrapper:
- * - geen store- of type-imports
- * - alle logica (store lezen, validatie, generateChapters, setChapter, router.push)
- *   leeft in IntakeForm, conform Build v2.0 (Pijler 1–4).
+ * StartWizardFromIntake
+ *
+ * Bewust "dom" component:
+ * - Alle logica voor triage, generateChapters, setChapterFlow, goToChapter, enz.
+ *   leeft in IntakeForm (of daaronder), conform Build v2.0 (AI-First Triage).
+ * - Dit voorkomt dubbele bronnen van waarheid en SSR/hydration-issues.
  */
 export default function StartWizardFromIntake() {
   return <IntakeForm />;

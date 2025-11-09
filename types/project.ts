@@ -1,6 +1,7 @@
+// /types/project.ts
 // Kern-entity types voor Ruimtes, Wensen, Techniek en Duurzaamheid
 
-// Ruimtecategorie, incl. 'nvt' (niet van toepassing / onbekend)
+// Ruimtecategorie
 export type SpaceTag = "private" | "public" | "guest" | "future" | "nvt";
 
 export interface Dimensions {
@@ -14,41 +15,49 @@ export interface RoomDetail {
   fixedPlacement?: boolean;
 }
 
-export interface Space {
-  id: string;
-  type: string; // bv. "keuken", "slaapkamer"
-  tag: SpaceTag;
-  details?: RoomDetail[];
+export interface RoomConfig {
+  rooms?: RoomDetail[];
+  notes?: string;
 }
 
-// Wensen + prioriteit (MoSCoW), incl. 'unknown'
-export type WishPriority = "must" | "nice" | "future" | "unknown";
+// Wensen
+
+export type WishPriority = "unknown" | "must" | "nice" | "future";
 
 export interface WishItem {
   id: string;
   label: string;
-  confirmed: boolean;
-  priority?: WishPriority;
+  priority: WishPriority;
+  confirmed?: boolean;
 }
 
-/** TECHNIEK — met 'unknown' keuzes */
-export type BuildMethod = "traditioneel_baksteen" | "houtskeletbouw" | "staalframe" | "anders" | "unknown";
-export type Ventilation = "natuurlijk" | "C" | "D" | "balans_wtw" | "unknown";
-export type Heating = "all_electric_warmtepomp" | "hybride_warmtepomp" | "cv_gas" | "stadswarmte" | "unknown";
-export type Cooling = "passief" | "actief" | "geen" | "unknown";
-export type PvPreference = "geen" | "optioneel" | "maximeren" | "unknown";
+// Techniek v2
 
-export interface TechnicalPrefs {
-  buildMethod: BuildMethod;
-  insulationTargetRc?: number;   // Rc gevel/plafond indicatie
-  ventilation: Ventilation;
-  heating: Heating;
-  cooling: Cooling;
-  pv: PvPreference;
+export type Ambition = "unknown" | "basis" | "comfort" | "max";
+export type CurrentState =
+  | "unknown"
+  | "bestaand_blijft"
+  | "casco_aanpak"
+  | "sloop_en_opnieuw";
+export type BuildMethodV2 =
+  | "unknown"
+  | "traditioneel_baksteen"
+  | "houtskeletbouw"
+  | "staalframe"
+  | "anders";
+
+export interface TechnicalPrefsV2 {
+  ventilationAmbition: Ambition;
+  heatingAmbition: Ambition;
+  coolingAmbition: Ambition;
+  pvAmbition: Ambition;
+  currentState?: CurrentState;
+  buildMethod?: BuildMethodV2;
   notes?: string;
 }
 
-/** DUURZAAMHEID — met 'unknown' keuzes */
+// Duurzaamheid
+
 export type EnergyFocus = "comfort" | "kosten" | "co2" | "circulair" | "unknown";
 export type RainwaterReuse = "geen" | "wc_tuin" | "volledig" | "unknown";
 export type GreenRoof = "geen" | "gedeeltelijk" | "volledig" | "unknown";
@@ -59,7 +68,7 @@ export interface SustainabilityPrefs {
   rainwater: RainwaterReuse;
   greenRoof: GreenRoof;
   materials: MaterialPref;
-  epcTarget?: number;          // Indicatief (of BENG-doel, bij verbouw: energie-index)
-  insulationUpgrade?: boolean; // Vooral bij verbouwing relevant
+  epcTarget?: number;
+  insulationUpgrade?: boolean;
   notes?: string;
 }

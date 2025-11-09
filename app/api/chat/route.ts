@@ -1,227 +1,456 @@
 // /app/api/chat/route.ts
+
 import { NextRequest } from "next/server";
-import type { WritableStreamDefaultWriter } from "stream/web";
 import { ProModel } from "@/lib/ai/ProModel";
+import { Kennisbank } from "@/lib/rag/Kennisbank";
+import { createSSEStream, type SSEWriter } from "@/lib/sse/stream";
+import { logEvent } from "@/lib/logging/logEvent";
 
-// -- Types die je al hebt in /types/chat.ts -----------------------------
-// (We importeren niet om cirkels te vermijden; houd dit in sync met jouw types.)
-type ChatMode = "PREVIEW" | "PREMIUM";
-type ChapterKey =
-  | "basis"
-  | "budget"
-  | "ruimtes"
-  | "wensen"
-  | "techniek"
-  | "duurzaamheid"
-  | "risico"
-  | "preview";
+import type { ChatRequest } from "@/types/chat";
+import type {
+  WizardState,
+  ChapterKey as BaseChapterKey,
+} from "@/types/wizard";
 
-type WizardState = {
-  stateVersion: number;
-  chapterAnswers?: Record<string, any>;
-  triage?: Record<string, any>;
+export const runtime = "nodejs";
+export const maxDuration = 30;
+
+type ChapterKey = BaseChapterKey;
+
+type BrikxWizardState = WizardState & {
+  chapterFlow?: ChapterKey[];
+  triage?: (WizardState["triage"] & { currentChapter?: ChapterKey }) | undefined;
 };
 
-type ChatRequest = {
-  query: string;
-  wizardState: WizardState;
-  mode: ChatMode;
-  clientFastIntent?: {
-    type: string;
-    confidence: number;
-    action?: string;
-    chapter?: string;
-    field?: string;
-  };
-};
+export async function POST(req: NextRequest) {
+  const body = (await req.json()) as ChatRequest;
+  const requestId = crypto.randomUUID();
+  const startTime = Date.now();
 
-type ChatSSEEventName =
-  | "metadata"
-  | "patch"
-  | "navigate"
-  | "stream"
-  | "error"
-  | "done";
+  try {
+    const { stream, writer } = createSSEStream();
 
-// -- SSE helpers ---------------------------------------------------------
-function write(
-  writer: WritableStreamDefaultWriter,
-  event: ChatSSEEventName,
-  data: any
+    runAITriage(writer, {
+      requestId,
+      startTime,
+      query: body.query,
+      mode: body.mode,
+      clientFastIntent: body.clientFastIntent,
+      wizardState: body.wizardState as BrikxWizardState,
+    });
+
+    return new Response(stream, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+    });
+  } catch (error) {
+    await logEvent("chat.error", {
+      requestId,
+      error: String(error),
+      stage: "POST-handler",
+    });
+
+    return new Response(
+      `event: error\ndata: ${JSON.stringify({
+        message: "Server error",
+        requestId,
+      })}\n\n`,
+      {
+        status: 500,
+        headers: { "Content-Type": "text/event-stream" },
+      }
+    );
+  }
+}
+
+// ╔══════════════════════════════════════════════════╗
+// ║  CORE TRIAGE LOGICA – CONTEXT & FLOW-GATING      ║
+// ╚══════════════════════════════════════════════════╝
+
+async function runAITriage(
+  writer: SSEWriter,
+  ctx: {
+    requestId: string;
+    startTime: number;
+    query: string;
+    mode: "PREVIEW" | "PREMIUM";
+    wizardState: BrikxWizardState;
+    clientFastIntent?: ChatRequest["clientFastIntent"];
+  }
 ) {
-  const payload = typeof data === "string" ? data : JSON.stringify(data);
-  return writer.write(`event: ${event}\n` + `data: ${payload}\n\n`);
+  const { requestId, startTime, query, mode } = ctx;
+
+  // 1) Normaliseer inkomende state
+  const normalized = normalizeWizardState(ctx.wizardState);
+  const initialActive = getActiveChapter(normalized);
+  const initialFlow = getChapterFlow(normalized);
+
+  // 2) Verrijk state zodat ProModel genoeg context uit wizardState zelf kan halen
+  const wizardState: BrikxWizardState = {
+    ...normalized,
+    currentChapter: initialActive ?? normalized.currentChapter,
+    chapterFlow: initialFlow,
+    triage: {
+      ...(normalized.triage ?? {}),
+      currentChapter:
+        initialActive ??
+        normalized.triage?.currentChapter ??
+        normalized.currentChapter,
+    },
+  };
+
+  const activeChapter = getActiveChapter(wizardState);
+  const chapterFlow = getChapterFlow(wizardState);
+
+  try {
+    // STEP 1 — Essentials + Context-Aware Nudge
+    const missing = checkEssentials(wizardState);
+
+    if (missing.length > 0) {
+      const nudge = makeContextAwareNudge(query, missing);
+
+      await logEvent("triage.nudge", {
+        requestId,
+        missing,
+        query,
+        activeChapter,
+      });
+
+      writer.writeEvent("metadata", {
+        intent: "NUDGE",
+        confidence: 1.0,
+        policy: "ASK_CLARIFY",
+        nudge,
+        stateVersion: wizardState.stateVersion ?? 0,
+        activeChapter,
+      });
+
+      writer.writeEvent("stream", { text: nudge });
+      writer.writeEvent("done", {
+        logId: requestId,
+        tokensUsed: 0,
+        latencyMs: Date.now() - startTime,
+      });
+      writer.close();
+      return;
+    }
+
+    // STEP 2 — Classify intent (met verrijkte wizardState)
+    const classifyResult = await ProModel.classify(query, wizardState);
+    const { intent, confidence } = classifyResult;
+    const policy = determinePolicy(confidence, intent);
+
+    await logEvent("triage.classify", {
+      requestId,
+      intent,
+      confidence,
+      policy,
+      activeChapter,
+    });
+
+    writer.writeEvent("metadata", {
+      intent,
+      confidence,
+      policy,
+      stateVersion: wizardState.stateVersion ?? 0,
+      activeChapter,
+    });
+
+    // STEP 3 — Policy Branching
+    let patch: any = null;
+    let responseText = "";
+    let ragContext: any = null;
+
+    // 3A — VULLEN_DATA
+    if (intent === "VULLEN_DATA") {
+      patch = await ProModel.generatePatch(query, wizardState);
+
+      if (patch) {
+        const targetChapter = (patch.chapter ?? patch.chapterKey) as
+          | ChapterKey
+          | undefined;
+
+        if (targetChapter && !isAllowedChapter(targetChapter, wizardState)) {
+          await logEvent("triage.patch.blocked", {
+            requestId,
+            reason: "chapter_not_in_flow",
+            patch,
+            chapterFlow,
+          });
+
+          writer.writeEvent("stream", {
+            text:
+              "Ik kan deze stap niet toepassen, omdat dit hoofdstuk niet beschikbaar is in uw traject.",
+          });
+        } else {
+          writer.writeEvent("patch", patch);
+          await logEvent("triage.patch", {
+            requestId,
+            patch,
+          });
+        }
+      }
+
+      responseText =
+        responseText ||
+        "Dank u, ik heb dit verwerkt in uw ingevulde gegevens.";
+
+      // 3B — ADVIES_VRAAG (via RAG)
+    } else if (intent === "ADVIES_VRAAG") {
+      ragContext = await Kennisbank.query(query, {
+        chapter: activeChapter ?? undefined,
+        isPremium: mode === "PREMIUM",
+      });
+
+      if (ragContext) {
+        writer.writeEvent("rag_metadata", {
+          topicId: ragContext.topicId,
+          docsRetrieved: ragContext.docs.length,
+          cacheHit: ragContext.cacheHit,
+        });
+      }
+
+      responseText = await ProModel.generateResponse(query, ragContext, {
+        mode,
+        wizardState,
+      });
+
+      // 3C — NAVIGATIE (flow-gated)
+    } else if (intent === "NAVIGATIE") {
+      const target = resolveNavigationTarget(query, wizardState, chapterFlow);
+
+      if (target && isAllowedChapter(target, wizardState)) {
+        writer.writeEvent("navigate", { chapter: target });
+        responseText = `Prima, we gaan naar **${labelForChapter(
+          target
+        )}**.`;
+      } else if (target) {
+        responseText =
+          "Dat hoofdstuk is in uw huidige traject niet beschikbaar. Kies eerst een passende projectvariant of upgrade uw pakket.";
+      } else {
+        responseText =
+          "Ik kon niet goed bepalen naar welk onderdeel u wilt. Noem bijvoorbeeld: 'ga naar budget', 'ga naar wensen' of 'toon preview'.";
+      }
+
+      // 3D — SMALLTALK / fallback
+    } else {
+      responseText = await ProModel.generateResponse(query, null, {
+        mode,
+        wizardState,
+      });
+    }
+
+    // STEP 4 — Stream antwoordtekst
+    if (responseText) {
+      for (const chunk of chunkText(responseText)) {
+        writer.writeEvent("stream", { text: chunk });
+      }
+    }
+
+    writer.writeEvent("done", {
+      logId: requestId,
+      tokensUsed: classifyResult.tokensUsed ?? 0,
+      latencyMs: Date.now() - startTime,
+    });
+  } catch (error) {
+    await logEvent("triage.error", {
+      requestId,
+      error: String(error),
+    });
+    writer.writeEvent("error", {
+      message: "Er ging iets mis bij het verwerken van uw vraag.",
+    });
+  } finally {
+    writer.close();
+  }
 }
 
-function sseHeaders() {
+// ╔══════════════════════════════════════════════════╗
+// ║               HELPERS & UTILITIES                ║
+// ╚══════════════════════════════════════════════════╝
+
+function normalizeWizardState(state: BrikxWizardState): BrikxWizardState {
   return {
-    "Content-Type": "text/event-stream; charset=utf-8",
-    "Cache-Control": "no-cache, no-transform",
-    Connection: "keep-alive",
-    "X-Accel-Buffering": "no",
+    stateVersion: state.stateVersion ?? 0,
+    chapterAnswers: state.chapterAnswers ?? {},
+    triage: state.triage ?? {},
+    currentChapter:
+      state.currentChapter ?? state.triage?.currentChapter ?? undefined,
+    chapterFlow: state.chapterFlow ?? [],
+    focusedField: state.focusedField,
+    showExportModal: state.showExportModal,
   };
 }
 
-function essentialsMissing(ws: WizardState): { ok: boolean; missing: string[] } {
-  const basis = ws?.chapterAnswers?.basis ?? {};
+function getChapterFlow(state: BrikxWizardState): ChapterKey[] {
+  return Array.isArray(state.chapterFlow) ? state.chapterFlow : [];
+}
+
+function getActiveChapter(state: BrikxWizardState): ChapterKey | null {
+  if (state.currentChapter) return state.currentChapter;
+  if (state.triage?.currentChapter) return state.triage.currentChapter!;
+  const flow = getChapterFlow(state);
+  return flow.length > 0 ? flow[0] : null;
+}
+
+function isAllowedChapter(target: ChapterKey, state: BrikxWizardState): boolean {
+  const flow = getChapterFlow(state);
+  if (!flow || flow.length === 0) return true; // backwards compat
+  return flow.includes(target);
+}
+
+function checkEssentials(state: BrikxWizardState): string[] {
   const missing: string[] = [];
-  if (!basis.projectNaam || String(basis.projectNaam).trim() === "") {
+
+  if (!state.chapterAnswers?.basis?.projectNaam) {
     missing.push("basis.projectNaam");
   }
-  return { ok: missing.length === 0, missing };
+
+  if (!state.triage?.projectType) {
+    missing.push("triage.projectType");
+  }
+
+  return missing;
 }
 
-// -- POST handler --------------------------------------------------------
-export async function POST(req: NextRequest) {
-  const { readable, writable } = new TransformStream();
-  const writer = (writable as unknown as WritableStream).getWriter();
-
-  (async () => {
-    const started = Date.now();
-    try {
-      const body = (await req.json()) as ChatRequest;
-      const query = String(body?.query ?? "").trim();
-      const mode = (body?.mode ?? "PREVIEW") as ChatMode;
-      const wizardState = (body?.wizardState ?? { stateVersion: 1 }) as WizardState;
-
-      // A) Essentials gate (context-bewuste nudge, echo query)
-      const ess = essentialsMissing(wizardState);
-      if (!ess.ok) {
-        await write(writer, "metadata", {
-          intent: "ASK_ESSENTIALS",
-          policy: "ASK_CLARIFY",
-          essentials: ess.missing,
-        });
-        await write(
-          writer,
-          "stream",
-          `Ik wil **"${query}"** voor u verwerken, maar mis nog ${ess.missing.join(
-            ", "
-          )}. Mag ik eerst de **projectNaam** noteren? (Bijv.: \`projectnaam Villa Dijk\`).`
-        );
-        await write(writer, "done", { latencyMs: Date.now() - started });
-        await writer.close();
-        return;
+function makeContextAwareNudge(query: string, missing: string[]): string {
+  const pretty = missing
+    .map((key) => {
+      const [, field] = key.split(".");
+      switch (field) {
+        case "projectNaam":
+          return "een projectnaam";
+        case "projectType":
+          return "het type project (bijv. nieuwbouw, verbouwing)";
+        default:
+          return field;
       }
+    })
+    .join(" en ");
 
-      // B) Classify → intent
-      const cls = await ProModel.classify(query, wizardState);
-      await write(writer, "metadata", {
-        intent: cls.intent,
-        confidence: cls.confidence,
-        reason: cls.reason,
-        policy: "CLASSIFIED",
-      });
+  return `Ik wil graag **"${query}"** voor u verwerken. Mag ik daarvoor eerst ${pretty} noteren? Dan kan ik u gerichter helpen.`;
+}
 
-      // C) Policy branch
-      if (cls.intent === "NAVIGATIE") {
-        const key = query.toLowerCase().replace(/^ga naar\s+|^open\s+/i, "").trim();
-        const map: Record<string, ChapterKey> = {
-          basis: "basis",
-          budget: "budget",
-          ruimtes: "ruimtes",
-          wensen: "wensen",
-          techniek: "techniek",
-          duurzaamheid: "duurzaamheid",
-          risico: "risico",
-          preview: "preview",
-        };
-        const ch = map[key];
-        if (ch) {
-          await write(writer, "navigate", { chapter: ch });
-          await write(writer, "stream", { text: `Ik open **${ch}**. ` });
-        } else {
-          await write(writer, "stream", {
-            text: "Welk hoofdstuk wilt u openen? (basis, budget, ruimtes…)",
-          });
-        }
-        await write(writer, "done", { latencyMs: Date.now() - started });
-        await writer.close();
-        return;
-      }
+function determinePolicy(
+  confidence: number,
+  intent: string
+):
+  | "APPLY_OPTIMISTIC"
+  | "APPLY_WITH_INLINE_VERIFY"
+  | "ASK_CLARIFY"
+  | "CLASSIFY" {
+  if (intent === "VULLEN_DATA") {
+    if (confidence >= 0.95) return "APPLY_OPTIMISTIC";
+    if (confidence >= 0.7) return "APPLY_WITH_INLINE_VERIFY";
+    if (confidence >= 0.5) return "ASK_CLARIFY";
+    return "CLASSIFY";
+  }
 
-      if (cls.intent === "VULLEN_DATA") {
-        const patch = await ProModel.generatePatch(query, wizardState);
-        if (patch) {
-          await write(writer, "metadata", {
-            intent: "VULLEN_DATA",
-            policy: "APPLY_OPTIMISTIC",
-            source: "RULES",
-          });
-          await write(writer, "patch", patch);
+  if (intent === "ADVIES_VRAAG") {
+    if (confidence >= 0.7) return "APPLY_WITH_INLINE_VERIFY";
+    if (confidence >= 0.5) return "ASK_CLARIFY";
+    return "CLASSIFY";
+  }
 
-          // Navigatiehint: navigeer naar eerste chapter van patch
-          const chapter = patch.chapter as ChapterKey;
-          if (chapter) {
-            await write(writer, "navigate", { chapter });
-          }
-          await write(writer, "stream", { text: "Ik heb dit genoteerd in de wizard. " });
-          await write(writer, "done", { latencyMs: Date.now() - started });
-          await writer.close();
-          return;
-        }
+  if (intent === "NAVIGATIE") {
+    if (confidence >= 0.7) return "APPLY_OPTIMISTIC";
+    return "ASK_CLARIFY";
+  }
 
-        // Geen deterministische match → korte verduidelijking
-        await write(writer, "metadata", {
-          intent: "ASK_CLARIFY",
-          policy: "ASK_CLARIFY",
-        });
-        await write(writer, "stream", {
-          text:
-            "Wat wilt u precies invullen (bijv. ‘woonkamer 30 m²’ of ‘bandbreedte 250k–300k’)? ",
-        });
-        await write(writer, "done", { latencyMs: Date.now() - started });
-        await writer.close();
-        return;
-      }
+  return "CLASSIFY";
+}
 
-      if (cls.intent === "ADVIES_VRAAG" || cls.intent === "SMALLTALK") {
-        // (Optioneel) RAG context detectie; kan later gekoppeld worden
-        const topicId = ProModel.detectTopic(query);
-        const ragContext = null; // plug RAG here
+function resolveNavigationTarget(
+  query: string,
+  state: BrikxWizardState,
+  flow: ChapterKey[]
+): ChapterKey | null {
+  const q = query.toLowerCase();
 
-        const text = await ProModel.generateResponse(query, ragContext, {
-          mode,
-          wizardState,
-        } as any);
+  const map: Record<string, ChapterKey> = {
+    basis: "basis",
+    start: "basis",
+    introductie: "basis",
+    wensen: "wensen",
+    "wensen en eisen": "wensen",
+    kamers: "ruimtes",
+    ruimtes: "ruimtes",
+    indeling: "ruimtes",
+    budget: "budget",
+    kosten: "budget",
+    techniek: "techniek",
+    installaties: "techniek",
+    duurzaam: "duurzaam",
+    duurzaamheid: "duurzaam",
+    risico: "risico",
+    "risico's": "risico",
+    preview: "preview",
+    samenvatting: "preview",
+    export: "preview",
+    pve: "preview",
+  };
 
-        // stream als één chunk (je kunt dit per woord/zin knippen als gewenst)
-        await write(writer, "metadata", {
-          intent: cls.intent,
-          policy: ragContext ? "RAG" : "RESPOND",
-        });
-        await write(writer, "stream", { text });
-        await write(writer, "done", { latencyMs: Date.now() - started });
-        await writer.close();
-        return;
-      }
+  for (const [key, chapter] of Object.entries(map)) {
+    if (q.includes(key)) return chapter;
+  }
 
-      // OUT_OF_SCOPE of onbekend → zachte fallback
-      await write(writer, "metadata", {
-        intent: cls.intent,
-        policy: "RESPOND",
-      });
-      await write(
-        writer,
-        "stream",
-        `Ik richt me hier op het (ver)bouw-PvE. Wilt u gegevens invullen of advies per ruimte/onderwerp?`
-      );
-      await write(writer, "done", { latencyMs: Date.now() - started });
-      await writer.close();
-    } catch (e: any) {
-      await write(
-        writer,
-        "error",
-        JSON.stringify({
-          message: e?.message ?? "Onbekende fout",
-        })
-      );
-      await writer.close();
+  const active = getActiveChapter(state);
+  if (!active || !flow || flow.length === 0) return null;
+
+  const idx = flow.indexOf(active);
+  if (idx === -1) return null;
+
+  if (q.includes("volgende") || q.includes("next")) {
+    return flow[idx + 1] ?? flow[idx];
+  }
+  if (q.includes("vorige") || q.includes("terug") || q.includes("back")) {
+    return flow[idx - 1] ?? flow[idx];
+  }
+
+  return null;
+}
+
+function labelForChapter(ch: ChapterKey): string {
+  switch (ch) {
+    case "basis":
+      return "Basis";
+    case "wensen":
+      return "Wensen";
+    case "ruimtes":
+      return "Ruimtes";
+    case "budget":
+      return "Budget";
+    case "techniek":
+      return "Techniek";
+    case "duurzaam":
+      return "Duurzaamheid";
+    case "risico":
+      return "Risico's";
+    case "preview":
+      return "Preview & PvE";
+    default:
+      return ch;
+  }
+}
+
+function chunkText(text: string, size = 48): string[] {
+  const words = text.split(" ");
+  const chunks: string[] = [];
+  let buf: string[] = [];
+
+  for (const w of words) {
+    if ((buf.join(" ") + " " + w).length > size) {
+      chunks.push(buf.join(" ") + " ");
+      buf = [w];
+    } else {
+      buf.push(w);
     }
-  })();
+  }
 
-  return new Response(readable, {
-    status: 200,
-    headers: sseHeaders(),
-  });
+  if (buf.length) chunks.push(buf.join(" ") + " ");
+  return chunks;
 }

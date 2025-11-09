@@ -1,6 +1,7 @@
+// app/wizard/page.tsx - FIXED INFINITE LOOP
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import WizardLayout from '@/components/wizard/WizardLayout';
 import ChapterTabs, { type ChapterTab } from '@/components/wizard/ChapterTabs';
@@ -40,12 +41,14 @@ class Boundary extends React.Component<{ label: string; children: React.ReactNod
 type ActiveId = 'intake' | ChapterKey;
 
 export default function WizardPage() {
-  const currentChapter = useWizardState((s: any) => s.currentChapter as ChapterKey | null);
-  const goToChapter = useWizardState((s: any) => s.goToChapter as (ch: ChapterKey) => void);
-  const chapterFlow = useWizardState((s: any) => s.chapterFlow as ChapterKey[] | null);
+  const currentChapter = useWizardState((s) => s.currentChapter as ChapterKey | null);
+  const chapterFlow = useWizardState((s) => s.chapterFlow as ChapterKey[] | undefined);
+  
+  // 🆕 FIX: Use ref to prevent infinite loop
+  const goToChapterRef = useRef(useWizardState.getState().goToChapter);
 
   // ============================================================
-  // DYNAMISCHE TABS: strikt ChapterKey[], géén 'intake' hier!
+  // DYNAMISCHE TABS: gebruik chapterFlow uit store!
   // ============================================================
   const tabs: ChapterTab[] = useMemo(() => {
     const titles: Record<ChapterKey, string> = {
@@ -54,35 +57,57 @@ export default function WizardPage() {
       budget: 'Budget',
       ruimtes: 'Ruimtes',
       techniek: 'Techniek',
-      duurzaamheid: 'Duurzaamheid',
-      risico: "Risico's",
+      duurzaam: 'Duurzaamheid',
+      risico: 'Risicos',
       preview: 'Preview',
     };
-    const flow = Array.isArray(chapterFlow) ? (chapterFlow as ChapterKey[]) : [];
-    return flow.map((ch) => ({ id: ch, title: titles[ch] ?? ch }));
+
+    if (!chapterFlow || chapterFlow.length === 0) {
+      return [];
+    }
+
+    return chapterFlow.map((ch) => ({ id: ch, title: titles[ch] ?? ch }));
   }, [chapterFlow]);
 
-  // Active staat kan 'intake' of een ChapterKey zijn
-  const [active, setActive] = useState<ActiveId>(currentChapter ?? 'intake');
+  // Active staat - initialiseer slim
+  const [active, setActive] = useState<ActiveId>(() => {
+    if (!chapterFlow || chapterFlow.length === 0) {
+      return 'intake';
+    }
+    return currentChapter ?? chapterFlow[0];
+  });
 
+  // 🆕 FIX: Simplified effect - alleen wanneer chapterFlow ECHT verandert
+  const hasNavigatedRef = useRef(false);
+  
   useEffect(() => {
-    if (currentChapter && currentChapter !== active) setActive(currentChapter);
-    if (!currentChapter && active !== 'intake') setActive('intake');
-  }, [currentChapter, active]);
+    if (chapterFlow && chapterFlow.length > 0 && active === 'intake' && !hasNavigatedRef.current) {
+      const firstChapter = chapterFlow[0];
+      setActive(firstChapter);
+      goToChapterRef.current(firstChapter);
+      hasNavigatedRef.current = true;
+    }
+  }, [chapterFlow]); // 🆕 Alleen chapterFlow als dependency!
 
-  // Handler voor tabklik (komt van ChapterTabs → altijd ChapterKey)
+  // Sync active met currentChapter
+  useEffect(() => {
+    if (currentChapter && currentChapter !== active && active !== 'intake') {
+      setActive(currentChapter);
+    }
+  }, [currentChapter]); // 🆕 Alleen currentChapter als dependency!
+
+  // Handler voor tabklik
   const onTabChange = (id: ChapterKey) => {
     setActive(id);
-    goToChapter(id);
+    goToChapterRef.current(id);
   };
 
-  // Handler voor mobiele select (kan ook 'intake' zijn)
+  // Handler voor mobiele select
   const onSelectChange = (id: string) => {
     if (id === 'intake') {
       setActive('intake');
       return;
     }
-    // id moet nu een ChapterKey zijn
     onTabChange(id as ChapterKey);
   };
 
@@ -99,7 +124,7 @@ export default function WizardPage() {
     ruimtes: Ruimtes,
     budget: Budget,
     techniek: Techniek,
-    duurzaamheid: Duurzaamheid,
+    duurzaam: Duurzaamheid,
     risico: Risico,
     preview: Preview,
   };
@@ -116,33 +141,43 @@ export default function WizardPage() {
   // Middenkolom: Tabs + Content
   const middle = (
     <div className="space-y-4">
-      {/* Tabs */}
-      <div className="bg-white rounded-2xl shadow-sm ring-1 ring-black/5">
-        <div className="px-3 md:px-5 py-2">
-          {/* Desktop: toon ChapterTabs alléén wanneer we niet in 'intake' zitten */}
-          {active !== 'intake' && tabs.length > 0 && (
-            <div className="hidden md:block">
-              <ChapterTabs tabs={tabs} activeId={active as ChapterKey} onChange={onTabChange} />
-            </div>
-          )}
+      {/* Debug info (alleen in development) */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="text-xs text-gray-500 bg-yellow-50 border border-yellow-200 rounded p-2">
+          <strong>Debug:</strong> chapterFlow: {chapterFlow?.join(', ') || 'not set'} | 
+          active: {active} | tabs: {tabs.length}
+        </div>
+      )}
 
-          {/* Mobiel: altijd een select met 'Start' + flowtabs */}
-          <div className="md:hidden">
-            <select
-              className="w-full text-sm rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm"
-              value={active}
-              onChange={(e) => onSelectChange(e.target.value)}
-            >
-              <option value="intake">1. Start</option>
-              {tabs.map((t, i) => (
-                <option key={t.id} value={t.id}>
-                  {active === 'intake' ? i + 2 : i + 1}. {t.title}
-                </option>
-              ))}
-            </select>
+      {/* Tabs - ALLEEN tonen als chapterFlow gezet is */}
+      {tabs.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-sm ring-1 ring-black/5">
+          <div className="px-3 md:px-5 py-2">
+            {/* Desktop tabs */}
+            {active !== 'intake' && (
+              <div className="hidden md:block">
+                <ChapterTabs tabs={tabs} activeId={active as ChapterKey} onChange={onTabChange} />
+              </div>
+            )}
+
+            {/* Mobiel select */}
+            <div className="md:hidden">
+              <select
+                className="w-full text-sm rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm"
+                value={active}
+                onChange={(e) => onSelectChange(e.target.value)}
+              >
+                <option value="intake">1. Start</option>
+                {tabs.map((t, i) => (
+                  <option key={t.id} value={t.id}>
+                    {i + 2}. {t.title}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Content */}
       <div className="bg-white rounded-2xl shadow-sm ring-1 ring-black/5">

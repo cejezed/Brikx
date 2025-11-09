@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useWizardState } from "@/lib/stores/useWizardState";
+import React, { useMemo, useState } from "react";
+import useWizardState from "@/lib/stores/useWizardState";
+import FocusTarget from "@/components/wizard/FocusTarget";
 import type { ChapterKey } from "@/types/wizard";
-
 import type {
   SustainabilityPrefs,
   EnergyFocus,
@@ -12,7 +12,7 @@ import type {
   MaterialPref,
 } from "@/types/project";
 
-const CHAPTER_KEY: ChapterKey = "duurzaamheid";
+const CHAPTER_KEY: ChapterKey = "duurzaam";
 
 const FOCUS = [
   { value: "unknown", label: "Weet ik nog niet / n.v.t." },
@@ -44,13 +44,19 @@ const MATERIALS = [
 ] as const;
 
 export default function Duurzaamheid() {
-  const flow = useWizardState((s) => s.chapterFlow) ?? [];
-  const current = useWizardState((s) => s.currentChapter) ?? CHAPTER_KEY;
-  const goTo = useWizardState((s) => s.goToChapter);
-  const setAnswer = useWizardState((s) => s.setChapterAnswer);
-  const triage = useWizardState((s) => s.triage);
+  const flow = useWizardState((s: any) => s.chapterFlow) ?? [];
+  const current = useWizardState((s: any) => s.currentChapter) ?? CHAPTER_KEY;
+  const goTo = useWizardState((s: any) => s.goToChapter);
+  const patchChapterAnswer = useWizardState(
+    (s: any) => s.patchChapterAnswer
+  );
+  const triage = useWizardState((s: any) => s.triage);
 
-  const saved = (useWizardState((s) => s.chapterAnswers) as unknown as Record<string, SustainabilityPrefs> | undefined)?.[CHAPTER_KEY] as SustainabilityPrefs | undefined;
+  const saved =
+    (useWizardState((s: any) => s.chapterAnswers) as Record<
+      string,
+      SustainabilityPrefs
+    > | undefined)?.[CHAPTER_KEY];
 
   const [form, setForm] = useState<SustainabilityPrefs>(
     saved ?? {
@@ -59,174 +65,194 @@ export default function Duurzaamheid() {
       greenRoof: "unknown",
       materials: "unknown",
       epcTarget: triage?.projectType === "nieuwbouw" ? 0.4 : undefined,
-      insulationUpgrade: triage?.projectType !== "nieuwbouw" ? true : undefined,
+      insulationUpgrade:
+        triage?.projectType && triage.projectType !== "nieuwbouw"
+          ? true
+          : undefined,
       notes: "",
     }
   );
 
-  // ✅ FIX: Voeg fallback toe voor undefined flow/current
   const index = useMemo(() => {
     if (!Array.isArray(flow) || flow.length === 0) return -1;
     return flow.indexOf(current);
   }, [flow, current]);
 
-  const prevKey = index > 0 ? flow[index - 1] : undefined;
   const nextKey = useMemo(() => {
     if (!Array.isArray(flow) || flow.length === 0) return undefined;
     if (index === -1 || index >= flow.length - 1) return undefined;
     return flow[index + 1];
   }, [flow, index]);
 
+  const prevKey = index > 0 ? flow[index - 1] : undefined;
+
   const commit = (patch: Partial<SustainabilityPrefs>) => {
     const next = { ...form, ...patch };
     setForm(next);
-    if (setAnswer) {
-      setAnswer(CHAPTER_KEY, next);
-    }
+    patchChapterAnswer?.(CHAPTER_KEY, next);
   };
 
   const goNext = () => {
-    if (goTo) {
-      if (nextKey) {
-        goTo(nextKey as ChapterKey);
-      } else {
-        // @ts-ignore - "preview" is a router step, not a ChapterKey
-        goTo("preview");
-      }
-    }
+    if (!goTo) return;
+    if (nextKey) goTo(nextKey as ChapterKey);
+    else goTo("preview");
   };
 
   const goPrev = () => {
-    if (goTo && prevKey) {
-      goTo(prevKey as ChapterKey);
-    }
+    if (goTo && prevKey) goTo(prevKey as ChapterKey);
   };
 
-  const isVerbouwing = triage?.projectType === "verbouwing";
+  const isVerbouwing =
+    triage?.projectType === "verbouwing" ||
+    triage?.projectType === "renovatie";
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-6 max-w-3xl">
       <header>
         <h2 className="text-lg font-semibold">Duurzaamheid</h2>
         <p className="text-xs text-gray-600">
-          <strong>Uitleg:</strong> selecteer je <em>prioriteit/voorkeur</em> per thema. Onzeker? Kies "Weet ik nog niet / n.v.t.".
+          Selecteer per thema uw voorkeur. Onzeker? Kies "Weet ik nog niet / n.v.t.".
         </p>
       </header>
 
-      <div className="grid gap-4 max-w-3xl md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2">
         <label className="block">
           <span className="block text-sm mb-1">Hoofdfocus</span>
-          <select 
-            className="w-full border rounded px-3 py-2" 
+          <select
+            className="w-full border rounded px-3 py-2"
             value={form.focus}
-            onChange={(e) => commit({ focus: e.target.value as EnergyFocus })}
+            onChange={(e) =>
+              commit({ focus: e.target.value as EnergyFocus })
+            }
           >
             {FOCUS.map((f) => (
-              <option key={f.value} value={f.value}>{f.label}</option>
+              <option key={f.value} value={f.value}>
+                {f.label}
+              </option>
             ))}
           </select>
-          <p className="text-[11px] text-gray-500 mt-1">Waar leggen we de nadruk op in keuzes?</p>
         </label>
 
         <label className="block">
           <span className="block text-sm mb-1">Materialen</span>
-          <select 
-            className="w-full border rounded px-3 py-2" 
+          <select
+            className="w-full border rounded px-3 py-2"
             value={form.materials}
-            onChange={(e) => commit({ materials: e.target.value as MaterialPref })}
+            onChange={(e) =>
+              commit({ materials: e.target.value as MaterialPref })
+            }
           >
             {MATERIALS.map((m) => (
-              <option key={m.value} value={m.value}>{m.label}</option>
+              <option key={m.value} value={m.value}>
+                {m.label}
+              </option>
             ))}
           </select>
-          <p className="text-[11px] text-gray-500 mt-1">Bijv. biobased of standaard mix.</p>
         </label>
 
         <label className="block">
           <span className="block text-sm mb-1">Regenwater hergebruik</span>
-          <select 
-            className="w-full border rounded px-3 py-2" 
+          <select
+            className="w-full border rounded px-3 py-2"
             value={form.rainwater}
-            onChange={(e) => commit({ rainwater: e.target.value as RainwaterReuse })}
+            onChange={(e) =>
+              commit({ rainwater: e.target.value as RainwaterReuse })
+            }
           >
             {RAIN.map((r) => (
-              <option key={r.value} value={r.value}>{r.label}</option>
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
             ))}
           </select>
-          <p className="text-[11px] text-gray-500 mt-1">Optioneel; scheelt drinkwater/afvoer.</p>
         </label>
 
         <label className="block">
           <span className="block text-sm mb-1">Groendak</span>
-          <select 
-            className="w-full border rounded px-3 py-2" 
+          <select
+            className="w-full border rounded px-3 py-2"
             value={form.greenRoof}
-            onChange={(e) => commit({ greenRoof: e.target.value as GreenRoof })}
+            onChange={(e) =>
+              commit({ greenRoof: e.target.value as GreenRoof })
+            }
           >
             {ROOF.map((r) => (
-              <option key={r.value} value={r.value}>{r.label}</option>
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
             ))}
           </select>
-          <p className="text-[11px] text-gray-500 mt-1">Biodiversiteit/retentie/koelte.</p>
         </label>
 
         <label className="block">
           <span className="block text-sm mb-1">
-            {triage?.projectType === "nieuwbouw" ? "BENG/EPC-doel (indicatief)" : "Energie-index/EPC (indicatief)"}
+            {triage?.projectType === "nieuwbouw"
+              ? "BENG/EPC-doel (indicatief)"
+              : "Energie-index/EPC (indicatief)"}
           </span>
           <input
-            type="number" 
-            step={0.01} 
-            min={0} 
+            type="number"
+            step={0.01}
+            min={0}
             className="w-full border rounded px-3 py-2"
             value={form.epcTarget ?? ""}
-            onChange={(e) => commit({ epcTarget: e.target.value === "" ? undefined : Number(e.target.value) })}
-            placeholder={triage?.projectType === "nieuwbouw" ? "bijv. 0.4" : "bijv. 1.2"}
+            onChange={(e) =>
+              commit({
+                epcTarget:
+                  e.target.value === ""
+                    ? undefined
+                    : Number(e.target.value),
+              })
+            }
           />
-          <p className="text-[11px] text-gray-500 mt-1">Alleen invullen als je hier al een doel kent.</p>
         </label>
 
         {isVerbouwing && (
           <label className="block">
-            <span className="block text-sm mb-1">Isolatie-upgrade gepland?</span>
-            <select 
-              className="w-full border rounded px-3 py-2" 
+            <span className="block text-sm mb-1">
+              Isolatie-upgrade gepland?
+            </span>
+            <select
+              className="w-full border rounded px-3 py-2"
               value={String(!!form.insulationUpgrade)}
-              onChange={(e) => commit({ insulationUpgrade: e.target.value === "true" })}
+              onChange={(e) =>
+                commit({
+                  insulationUpgrade: e.target.value === "true",
+                })
+              }
             >
               <option value="true">Ja</option>
               <option value="false">Nee</option>
             </select>
-            <p className="text-[11px] text-gray-500 mt-1">Alleen relevant bij verbouwingen.</p>
           </label>
         )}
       </div>
 
-      <label className="block max-w-3xl">
-        <span className="block text-sm mb-1">Toelichting / extra wensen & aandachtspunten</span>
+      <label className="block">
+        <span className="block text-sm mb-1">
+          Toelichting / extra wensen & aandachtspunten
+        </span>
         <textarea
           className="w-full border rounded px-3 py-2 min-h-24"
           value={form.notes ?? ""}
           onChange={(e) => commit({ notes: e.target.value })}
-          placeholder="Bijv. voorkeur biobased gevel; groendak waar zichtbaar; extra aandacht voor hergebruik materialen."
         />
       </label>
 
-      {/* Navigation buttons */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 pt-2">
         {prevKey && (
-          <button 
-            type="button" 
-            className="px-4 py-2 border rounded hover:bg-gray-50 transition"
+          <button
+            type="button"
             onClick={goPrev}
+            className="px-4 py-2 border rounded hover:bg-gray-50 text-sm"
           >
             ← Vorige
           </button>
         )}
-        <button 
-          type="button" 
-          className="ml-auto px-4 py-2 border rounded bg-[#0d3d4d] text-white hover:opacity-90 transition"
+        <button
+          type="button"
           onClick={goNext}
+          className="ml-auto px-4 py-2 border rounded bg-[#0d3d4d] text-white hover:opacity-90 text-sm"
         >
           Opslaan & Verder →
         </button>

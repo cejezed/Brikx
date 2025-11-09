@@ -1,102 +1,121 @@
-// /components/chapters/Budget.tsx
-'use client';
+"use client";
 
-import React, { useMemo } from 'react';
-import useWizardState from '@/lib/stores/useWizardState';
-import type { ChapterKey } from '@/types/chat';
+import React, { useMemo } from "react";
+import useWizardState from "@/lib/stores/useWizardState";
+import type { ChapterKey } from "@/types/wizard";
 
-const CHAPTER: ChapterKey = 'budget';
+const CHAPTER: ChapterKey = "budget";
 
 type BudgetState = {
-  budgetTotaal?: number;
-  bandbreedte?: [number | null, number | null];
-  eigenInbreng?: number | null;
+  totaalBudget?: number;
+  minBudget?: number;
+  maxBudget?: number;
+  toelichting?: string;
+  [key: string]: any;
 };
 
 export default function ChapterBudget() {
-  const chapterAnswers = useWizardState((s) => s.chapterAnswers) as Record<string, any>;
-  const setChapterAnswer = useWizardState((s) => s.setChapterAnswer);
-  const getBudgetValue = useWizardState((s) => s.getBudgetValue);
+  const chapterAnswers = useWizardState(
+    (s: any) => s.chapterAnswers
+  ) as Record<string, any>;
+  const patchChapterAnswer = useWizardState(
+    (s: any) => s.patchChapterAnswer
+  );
+  const getBudgetValue = useWizardState((s: any) => s.getBudgetValue);
 
   const state: BudgetState = useMemo(
-    () => ({ ...(chapterAnswers?.[CHAPTER] ?? {}) }),
-    [chapterAnswers]
+    () => ({
+      ...(chapterAnswers?.[CHAPTER] ?? {}),
+      totaalBudget:
+        chapterAnswers?.[CHAPTER]?.totaalBudget ?? getBudgetValue() ?? undefined,
+    }),
+    [chapterAnswers, getBudgetValue]
   );
 
   const update = (patch: Partial<BudgetState>) => {
-    const next: BudgetState = { ...state, ...patch };
-    setChapterAnswer(CHAPTER, next);
+    patchChapterAnswer?.(CHAPTER, patch);
   };
 
-  const budgetTotaal = state.budgetTotaal ?? getBudgetValue() ?? undefined;
-  const [minBand, maxBand] = state.bandbreedte ?? [null, null];
-
   return (
-    <section className="space-y-6">
-      <header>
-        <h2 className="text-2xl font-semibold text-[#1A3E4C]">Budget</h2>
-        <p className="text-sm text-gray-600">Indicatief budget en bandbreedte.</p>
-      </header>
+    <div className="space-y-4 max-w-3xl">
+      <h2 className="text-xl font-semibold">Budget</h2>
+      <p className="text-sm text-muted-foreground">
+        Geef een realistische bandbreedte op. De assistent zorgt dat keuzes in
+        lijn blijven met dit budget.
+      </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <label className="block">
-          <span className="text-sm text-gray-700">Totaalbudget (€)</span>
-          <input
-            type="number"
-            className="mt-1 w-full rounded-md border-gray-300"
-            value={budgetTotaal ?? ''}
-            onChange={(e) => update({ budgetTotaal: e.target.value ? Number(e.target.value) : undefined })}
-            placeholder="250000"
-          />
+      {/* Totaalbudget */}
+      <div className="flex flex-col gap-2">
+        <label className="text-sm font-medium">
+          Totaalbudget (globale indicatie)
         </label>
-
-        <label className="block">
-          <span className="text-sm text-gray-700">Bandbreedte min (€)</span>
-          <input
-            type="number"
-            className="mt-1 w-full rounded-md border-gray-300"
-            value={minBand ?? ''}
-            onChange={(e) =>
-              update({
-                bandbreedte: [
-                  e.target.value ? Number(e.target.value) : null,
-                  state.bandbreedte?.[1] ?? null,
-                ],
-              })
-            }
-            placeholder="200000"
-          />
-        </label>
-
-        <label className="block">
-          <span className="text-sm text-gray-700">Bandbreedte max (€)</span>
-          <input
-            type="number"
-            className="mt-1 w-full rounded-md border-gray-300"
-            value={maxBand ?? ''}
-            onChange={(e) =>
-              update({
-                bandbreedte: [
-                  state.bandbreedte?.[0] ?? null,
-                  e.target.value ? Number(e.target.value) : null,
-                ],
-              })
-            }
-            placeholder="300000"
-          />
-        </label>
-      </div>
-
-      <label className="block">
-        <span className="text-sm text-gray-700">Eigen inbreng (€)</span>
         <input
           type="number"
-          className="mt-1 w-full rounded-md border-gray-300"
-          value={state.eigenInbreng ?? ''}
-          onChange={(e) => update({ eigenInbreng: e.target.value ? Number(e.target.value) : null })}
-          placeholder="50000"
+          className="border rounded-md px-3 py-2 text-sm"
+          value={state.totaalBudget ?? ""}
+          onChange={(e) =>
+            update({
+              totaalBudget: e.target.value
+                ? Number(e.target.value)
+                : undefined,
+            })
+          }
+          placeholder="Bijvoorbeeld 300000"
         />
-      </label>
-    </section>
+      </div>
+
+      {/* Min / Max */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium">Minimaal</label>
+          <input
+            type="number"
+            className="border rounded-md px-3 py-2 text-sm"
+            value={state.minBudget ?? ""}
+            onChange={(e) =>
+              update({
+                minBudget: e.target.value
+                  ? Number(e.target.value)
+                  : undefined,
+              })
+            }
+            placeholder="Ondergrens"
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium">Maximaal</label>
+          <input
+            type="number"
+            className="border rounded-md px-3 py-2 text-sm"
+            value={state.maxBudget ?? ""}
+            onChange={(e) =>
+              update({
+                maxBudget: e.target.value
+                  ? Number(e.target.value)
+                  : undefined,
+              })
+            }
+            placeholder="Bovengrens"
+          />
+        </div>
+      </div>
+
+      {/* Toelichting */}
+      <div className="flex flex-col gap-2">
+        <label className="text-sm font-medium">
+          Toelichting (wat valt binnen / buiten het budget?)
+        </label>
+        <textarea
+          className="border rounded-md px-3 py-2 text-sm min-h-[80px]"
+          value={state.toelichting ?? ""}
+          onChange={(e) =>
+            update({
+              toelichting: e.target.value || undefined,
+            })
+          }
+          placeholder="Bijvoorbeeld: exclusief keuken, inclusief installaties, reservering voor meerwerk..."
+        />
+      </div>
+    </div>
   );
 }

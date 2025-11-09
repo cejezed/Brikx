@@ -1,27 +1,33 @@
-"use client";
+// components/chat/HumanHandoffModal.tsx
+'use client';
 
-import React, { useState } from "react";
-import { X, Send, User, Mail, Phone, MessageSquare, AlertCircle } from "lucide-react";
-// Sluit aan op jouw bestaande Zustand store:
-import { useWizardState } from "@/lib/stores/useWizardState";
-import { useToast } from "@/components/ui/use-toast";
+import React, { useState } from 'react';
+import {
+  X,
+  Send,
+  User,
+  Mail,
+  Phone,
+  MessageSquare,
+  AlertCircle,
+} from 'lucide-react';
+import { useWizardState } from '@/lib/stores/useWizardState';
+import { useToast } from '@/components/ui/use-toast';
 
-type Props = { isOpen: boolean; onClose: () => void };
+type Props = {
+  isOpen: boolean;
+  onClose: () => void;
+};
 
 function snapshotWizard() {
-  // neem een “freeze” van de state op submit
   try {
-    const s = (useWizardState as any)?.getState?.() ?? {};
-    // Veelvoorkomende paden defensief uitlezen:
-    const values =
-      s.values ?? s.form ?? s.pve ?? s.answers ?? s.data ?? {};
+    const s = (useWizardState as any).getState?.() ?? {};
     return {
-      currentChapter: s.currentChapter ?? s.ui?.currentChapter ?? null,
-      focusedField: s.focusedField ?? s.ui?.focusedField ?? null,
-      completedSteps: s.completedSteps ?? null,
-      totalSteps: s.totalSteps ?? null,
-      progress: s.progress ?? null,
-      values,
+      triage: s.triage ?? {},
+      chapterAnswers: s.chapterAnswers ?? {},
+      currentChapter: s.currentChapter ?? s.triage?.currentChapter ?? null,
+      chapterFlow: Array.isArray(s.chapterFlow) ? s.chapterFlow : [],
+      stateVersion: s.stateVersion ?? 1,
     };
   } catch {
     return {};
@@ -30,61 +36,103 @@ function snapshotWizard() {
 
 export default function HumanHandoffModal({ isOpen, onClose }: Props) {
   const { toast } = useToast();
-  const [formData, setFormData] = useState({ question: "", name: "", email: "", phone: "" });
+  const [formData, setFormData] = useState({
+    question: '',
+    name: '',
+    email: '',
+    phone: '',
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.question.trim() || !formData.email.trim()) {
+      setError('Vul minimaal je vraag en e-mailadres in.');
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
+
     try {
       const ctx = snapshotWizard();
-      const res = await fetch("/api/human-handoff", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/human-handoff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...formData,
-          context: { ...ctx, timestamp: new Date().toISOString() },
+          question: formData.question,
+          name: formData.name || undefined,
+          email: formData.email,
+          phone: formData.phone || undefined,
+          context: {
+            wizard: ctx,
+            timestamp: new Date().toISOString(),
+            source: 'brikx-wizard-chat',
+          },
         }),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json?.error || "Er ging iets mis bij verzenden");
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          json?.error || 'Er ging iets mis bij het versturen van je vraag.'
+        );
+      }
 
       setSubmitted(true);
-      toast({ title: "Verstuurd", description: "We nemen binnen 24 uur contact op." });
+      toast({
+        title: 'Verstuurd',
+        description: 'We nemen binnen 24 uur contact met je op.',
+      });
 
+      // modal sluiten + resetten na korte delay
       setTimeout(() => {
         onClose();
-        setTimeout(() => {
-          setSubmitted(false);
-          setFormData({ question: "", name: "", email: "", phone: "" });
-          setError(null);
-        }, 250);
-      }, 2400);
+        setSubmitted(false);
+        setFormData({ question: '', name: '', email: '', phone: '' });
+        setError(null);
+      }, 1800);
     } catch (err: any) {
-      console.error("[handoff] error:", err);
-      setError(err?.message ?? "Onbekende fout");
-      toast({ variant: "destructive", title: "Versturen mislukt", description: err?.message ?? "Onbekende fout" });
+      console.error('[human-handoff]', err);
+      const msg =
+        err?.message || 'Onbekende fout bij het versturen van je vraag.';
+      setError(msg);
+      toast({
+        variant: 'destructive',
+        title: 'Versturen mislukt',
+        description: msg,
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-[var(--brx-ink)] to-[var(--brx-accent)] text-white px-6 py-4 rounded-t-2xl">
-          <div className="flex items-center justify-between">
+        <div className="sticky top-0 bg-gradient-to-r from-[#0d3d4d] to-[#1992c2] text-white px-6 py-4 rounded-t-2xl">
+          <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-full grid place-items-center">🏗️</div>
+              <div className="w-10 h-10 bg-white/15 rounded-full grid place-items-center">
+                🏗️
+              </div>
               <div>
-                <h3 className="font-bold text-lg">Vraag aan de Architect</h3>
-                <p className="text-xs text-white/80">We helpen je graag verder</p>
+                <h3 className="font-bold text-lg">Vraag aan de architect</h3>
+                <p className="text-xs text-white/80">
+                  Stuur je PvE + context direct naar een menselijk expert.
+                </p>
               </div>
             </div>
             <button
@@ -98,122 +146,136 @@ export default function HumanHandoffModal({ isOpen, onClose }: Props) {
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-6">
+        {/* Body */}
+        <div className="px-6 py-5 space-y-4">
           {!submitted ? (
             <>
-              <div className="bg-[#eef7f7] border border-[var(--brx-accent)]/30 rounded-lg p-4 mb-6">
-                <p className="text-sm text-[var(--brx-ink)]">
-                  Heb je een specifieke vraag waar je tegenaan loopt? Stel je vraag hieronder en we helpen je binnen 24 uur verder.
+              <div className="flex items-start gap-2 text-xs text-slate-600 bg-slate-50 border border-slate-100 rounded-xl p-2">
+                <AlertCircle className="w-4 h-4 mt-0.5 text-[#1992c2]" />
+                <p>
+                  We sturen je ingevulde gegevens mee zodat een architect snel
+                  kan beoordelen wat past bij jouw project. Je krijgt reactie
+                  via e-mail.
                 </p>
               </div>
 
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex gap-3">
-                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-red-900">Fout bij verzenden</p>
-                    <p className="text-sm text-red-700 mt-1">{error}</p>
-                  </div>
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+              <form onSubmit={handleSubmit} className="space-y-3">
+                <label className="block text-sm">
+                  <span className="flex items-center gap-2 text-slate-800 mb-1">
                     <MessageSquare className="w-4 h-4" />
-                    Waar loop je tegenaan? *
-                  </label>
+                    Jouw vraag
+                  </span>
                   <textarea
-                    required
+                    name="question"
                     value={formData.question}
-                    onChange={(e) => setFormData({ ...formData, question: e.target.value })}
-                    placeholder="Beschrijf je vraag of uitdaging..."
-                    rows={4}
-                    disabled={isSubmitting}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--brx-accent)] focus:border-transparent resize-none disabled:bg-gray-50 disabled:text-gray-500"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Hoe specifieker, hoe beter we je kunnen helpen</p>
-                </div>
-
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                    <User className="w-4 h-4" />
-                    Naam
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Je naam"
-                    disabled={isSubmitting}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--brx-accent)] focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                    <Mail className="w-4 h-4" />
-                    Email *
-                  </label>
-                  <input
-                    type="email"
+                    onChange={handleChange}
+                    className="w-full border rounded-xl px-3 py-2 min-h-[80px] text-sm"
+                    placeholder="Beschrijf kort je project of vraag. Bijv.: 'We twijfelen tussen uitbouw en opbouw, kun je meekijken naar haalbaarheid en budget?'"
                     required
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="je@email.nl"
-                    disabled={isSubmitting}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--brx-accent)] focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
                   />
+                </label>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className="block text-sm">
+                    <span className="flex items-center gap-2 text-slate-800 mb-1">
+                      <User className="w-4 h-4" />
+                      Naam (optioneel)
+                    </span>
+                    <input
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      className="w-full border rounded-xl px-3 py-2 text-sm"
+                      placeholder="Je naam"
+                    />
+                  </label>
+
+                  <label className="block text-sm">
+                    <span className="flex items-center gap-2 text-slate-800 mb-1">
+                      <Mail className="w-4 h-4" />
+                      E-mail
+                    </span>
+                    <input
+                      name="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      className="w-full border rounded-xl px-3 py-2 text-sm"
+                      placeholder="jij@example.nl"
+                      required
+                    />
+                  </label>
                 </div>
 
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm">
+                  <span className="flex items-center gap-2 text-slate-800 mb-1">
                     <Phone className="w-4 h-4" />
-                    Telefoonnummer (optioneel)
-                  </label>
+                    Telefoon (optioneel)
+                  </span>
                   <input
-                    type="tel"
+                    name="phone"
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="06 12345678"
-                    disabled={isSubmitting}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--brx-accent)] focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
+                    onChange={handleChange}
+                    className="w-full border rounded-xl px-3 py-2 text-sm"
+                    placeholder="Alleen als je gebeld wilt worden"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Voor een snellere reactie via telefoon</p>
-                </div>
+                </label>
+
+                {error && (
+                  <p className="flex items-center gap-1 text-xs text-red-600">
+                    <AlertCircle className="w-3 h-3" />
+                    {error}
+                  </p>
+                )}
 
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-gradient-to-r from-[var(--brx-ink)] to-[var(--brx-accent)] text-white py-3 rounded-lg font-semibold hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                  className="mt-2 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#0d3d4d] text-white text-sm font-medium hover:bg-[#0b3340] disabled:opacity-60 transition-colors"
                 >
                   {isSubmitting ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Versturen...
-                    </>
+                    'Versturen…'
                   ) : (
                     <>
-                      <Send className="w-5 h-5" />
-                      Verstuur vraag
+                      <Send className="w-4 h-4" />
+                      Verstuur naar architect
                     </>
                   )}
                 </button>
               </form>
 
-              <p className="text-xs text-gray-500 text-center mt-4">We reageren binnen 24 uur</p>
+              <p className="text-[10px] text-slate-400 text-center mt-3">
+                We reageren normaal binnen 24 uur op werkdagen.
+              </p>
             </>
           ) : (
             <div className="text-center py-8">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
-                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg
+                  className="w-8 h-8 text-green-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
                 </svg>
               </div>
-              <h4 className="text-xl font-bold text-gray-900 mb-2">Bedankt voor je vraag!</h4>
-              <p className="text-gray-600 mb-4">We nemen binnen 24 uur contact met je op via email.</p>
-              <p className="text-sm text-[var(--brx-ink)] font-medium">✓ Bevestiging verstuurd naar {formData.email}</p>
+              <h4 className="text-lg font-bold text-gray-900 mb-1">
+                Bedankt voor je vraag!
+              </h4>
+              <p className="text-sm text-gray-600 mb-1">
+                We nemen zo snel mogelijk contact met je op via e-mail.
+              </p>
+              {formData.email && (
+                <p className="text-xs text-[#0d3d4d]">
+                  Bevestiging gestuurd naar {formData.email}
+                </p>
+              )}
             </div>
           )}
         </div>

@@ -1,7 +1,8 @@
-// stores/wizardStore.ts
-export * from '@/lib/stores/useWizardState';
-import def from '@/lib/stores/useWizardState';
-export default def;
+// /stores/wizardStore.ts
 
-// Extra alias die sommige hoofdstukken gebruiken:
-export const useWizardStore = def;
+// Alias-layer zodat oude imports blijven werken:
+// - import { useWizardState } from "@/stores/wizardStore";
+// - import wizardStore from "@/stores/wizardStore";
+
+export * from "@/lib/stores/useWizardState";
+export { default } from "@/lib/stores/useWizardState";

@@ -1,206 +1,498 @@
 // components/chat/ChatPanel.tsx
 'use client';
 
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useRef,
+  useState,
+} from 'react';
 import { useWizardState } from '@/lib/stores/useWizardState';
-import type { ChapterKey } from '@/types/wizard';
+import ChatMessage from './ChatMessage';
+import ChatInput from './ChatInput';
+import HumanHandoffModal from './HumanHandoffModal';
+import detectFastIntent from '@/lib/chat/detectFastIntent';
+import applyChatResponse from '@/lib/chat/applyChatResponse';
+import type { ChapterKey } from '@/types/chat';
 
-// Los, tolerant type voor serverpatches (contract-onafhankelijk)
-type PatchEvent =
-  | { target?: 'triage' | 'chapterAnswers' | 'ui' | string; payload?: any; stateVersion?: number }
-  | { triage?: Record<string, any>; chapterAnswers?: Record<string, any> }
-  | Record<string, any>;
+type Msg = {
+  id: string;
+  role: 'user' | 'assistant';
+  text: string;
+};
 
-type Msg = { id: string; role: 'user'|'assistant'; text: string };
-type ChatSSEEventName = 'metadata'|'patch'|'navigate'|'stream'|'error'|'done';
+type ChatSSEEventName =
+  | 'metadata'
+  | 'patch'
+  | 'navigate'
+  | 'stream'
+  | 'rag_metadata'
+  | 'error'
+  | 'done';
 
-function cx(...p: Array<string|false|undefined>) { return p.filter(Boolean).join(' '); }
+const WELCOME_MESSAGE: Msg = {
+  id: 'welcome',
+  role: 'assistant',
+  text:
+    'Hoi! Ik ben **Jules**, uw digitale bouwcoach.\n\n' +
+    'Ik help u om stap voor stap een professioneel Programma van Eisen (PvE) op te bouwen.\n\n' +
+    'Tip: U kunt gewoon typen wat u wilt, bijvoorbeeld:\n' +
+    '- "budget 250k"\n' +
+    '- "we willen 3 slaapkamers en een werkkamer"\n' +
+    '- "ga naar wensen"\n\n' +
+    'Ik vul de wizard en navigeer automatisch mee. Waar zal ik mee beginnen?',
+};
+
+// Leest direct uit Zustand, zonder extra renders
+function snapshotWizardState() {
+  const s =
+    (useWizardState as any).getState?.() ??
+    {};
+  return {
+    stateVersion: s.stateVersion ?? 1,
+    triage: s.triage ?? {},
+    chapterAnswers: s.chapterAnswers ?? {},
+    currentChapter:
+      s.currentChapter ??
+      s.triage?.currentChapter ??
+      undefined,
+    chapterFlow: Array.isArray(s.chapterFlow)
+      ? s.chapterFlow
+      : [],
+    focusedField: s.focusedField,
+    showExportModal: !!s.showExportModal,
+  };
+}
 
 export default function ChatPanel() {
-  // Lees alleen wat gegarandeerd bestaat uit de store
-  const chapterAnswers = useWizardState((s) => s.chapterAnswers);
-  const triage = useWizardState((s) => s.triage);
-  const stateVersion = useWizardState((s) => (s as any).stateVersion);
-  const goToChapter = useWizardState((s: any) => s.goToChapter);
-  const patchTriage = useWizardState((s: any) => s.patchTriage);
-  const patchChapterAnswer = useWizardState((s: any) => s.patchChapterAnswer);
-
-  const [msgs, setMsgs] = useState<Msg[]>([]);
-  const [value, setValue] = useState('');
-  const [loading, setLoading] = useState(false);
-  const abortRef = useRef<AbortController|null>(null);
-
-  const wsForApi = useMemo(
-    () => ({ chapterAnswers, triage, stateVersion }),
-    [chapterAnswers, triage, stateVersion]
+  const goToChapter = useWizardState(
+    (s: any) => s.goToChapter
+  );
+  const patchTriage = useWizardState(
+    (s: any) => s.patchTriage
+  );
+  const patchChapterAnswer = useWizardState(
+    (s: any) => s.patchChapterAnswer
   );
 
-  // Flexibele applicator voor serverpatches (geen afhankelijkheid van store-implementatiedetail)
-  const applyPatchFlexible = useCallback((data: PatchEvent) => {
-    if (!data) return;
-    const d: any = data;
+  const [messages, setMessages] =
+    useState<Msg[]>([WELCOME_MESSAGE]);
+  const [loading, setLoading] =
+    useState(false);
+  const [showHandoff, setShowHandoff] =
+    useState(false);
 
-    // 1) Expliciet target/payload patroon
-    if (d.target === 'triage' && d.payload && patchTriage) {
-      patchTriage(d.payload);
-      return;
-    }
-    if (d.target === 'chapterAnswers' && d.payload && typeof d.payload === 'object' && patchChapterAnswer) {
-      for (const [ch, delta] of Object.entries(d.payload)) {
-        patchChapterAnswer(ch as string, delta);
-      }
-      return;
-    }
+  const abortRef =
+    useRef<AbortController | null>(null);
+  const streamingIdRef =
+    useRef<string | null>(null);
 
-    // 2) Breder patroon (root-level keys)
-    if (d.triage && patchTriage) {
-      patchTriage(d.triage);
-    }
-    if (d.chapterAnswers && typeof d.chapterAnswers === 'object' && patchChapterAnswer) {
-      for (const [ch, delta] of Object.entries(d.chapterAnswers)) {
-        patchChapterAnswer(ch as string, delta);
-      }
-    }
-    // 3) Optioneel: andere targets negeren of loggen
-    // console.debug('[patch:unhandled]', d);
-  }, [patchTriage, patchChapterAnswer]);
+  // Append tekst aan laatste streaming-assistantbericht
+  const appendStream = useCallback(
+    (chunk: string) => {
+      if (!chunk) return;
+      setMessages((prev) => {
+        let id = streamingIdRef.current;
+        if (!id) {
+          id = crypto.randomUUID();
+          streamingIdRef.current = id;
+          return [
+            ...prev,
+            {
+              id,
+              role: 'assistant',
+              text: chunk,
+            },
+          ];
+        }
+        return prev.map((m) =>
+          m.id === id
+            ? {
+                ...m,
+                text: (m.text || '') + chunk,
+              }
+            : m
+        );
+      });
+    },
+    []
+  );
 
-  const send = useCallback(async () => {
-    if (!value.trim() || loading) return;
-    const q = value.trim();
-    setMsgs((m) => [...m, { id: crypto.randomUUID(), role: 'user', text: q }]);
-    setValue('');
-    setLoading(true);
-
-    abortRef.current?.abort();
-    const ac = new AbortController();
-    abortRef.current = ac;
-
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
-      body: JSON.stringify({ query: q, wizardState: wsForApi, mode: 'PREVIEW' }),
-      signal: ac.signal,
-    }).catch((e) => ({ ok: false, statusText: String(e) } as any));
-
-    if (!res || !('ok' in res) || !res.ok || !res.body) {
-      setMsgs((m) => [
-        ...m,
-        { id: crypto.randomUUID(), role: 'assistant', text: `⚠️ Serverfout: ${(res as any)?.statusText ?? 'geen body'}` },
+  const startAssistantMessage =
+    useCallback(() => {
+      const id = crypto.randomUUID();
+      streamingIdRef.current = id;
+      setMessages((prev) => [
+        ...prev,
+        {
+          id,
+          role: 'assistant',
+          text: '',
+        },
       ]);
-      setLoading(false);
-      return;
-    }
+    }, []);
 
-    const dec = new TextDecoder();
-    const reader = res.body.getReader();
-    let buf = '';
-    const assistId = crypto.randomUUID();
-    setMsgs((m) => [...m, { id: assistId, role: 'assistant', text: '' }]);
-
-    const append = (t: string) =>
-      setMsgs((m) => m.map((x) => (x.id === assistId ? { ...x, text: x.text + t } : x)));
-
-    while (true) {
-      const { value: chunk, done } = await reader.read();
-      if (done) break;
-      buf += dec.decode(chunk, { stream: true });
-
-      let idx: number;
-      while ((idx = buf.indexOf('\n\n')) !== -1) {
-        const raw = buf.slice(0, idx).trimEnd();
-        buf = buf.slice(idx + 2);
-
-        let ev: ChatSSEEventName = 'stream';
-        let data: any = '';
-        for (const line of raw.split('\n')) {
-          if (line.startsWith('event:')) ev = line.slice(6).trim() as ChatSSEEventName;
-          else if (line.startsWith('data:')) data = line.slice(5).trim();
-        }
-        try { data = data ? JSON.parse(data) : data; } catch {}
-
-        if (ev === 'patch') {
-          try { applyPatchFlexible(data as PatchEvent); } catch (e) { console.warn('patch error', e, data); }
-        } else if (ev === 'navigate') {
-          const ch = String((data?.chapter ?? '')).trim() as ChapterKey;
-          goToChapter?.(ch);
-        } else if (ev === 'stream') {
-          append(typeof data === 'string' ? data : (data?.text ?? ''));
-        } else if (ev === 'error') {
-          append('\n⚠️ Er ging iets mis.');
-        } else if (ev === 'done') {
-          // einde
-        }
-      }
-    }
-
+  const stopStreaming = useCallback(() => {
+    streamingIdRef.current = null;
     setLoading(false);
-  }, [value, loading, wsForApi, applyPatchFlexible, goToChapter]);
+  }, []);
+
+  const handleSSEChunk = useCallback(
+    (
+      event: ChatSSEEventName,
+      rawData: string
+    ) => {
+      let data: any = rawData;
+
+      try {
+        if (
+          rawData &&
+          (rawData.startsWith('{') ||
+            rawData.startsWith('['))
+        ) {
+          data = JSON.parse(rawData);
+        }
+      } catch {
+        data = { text: rawData };
+      }
+
+      // Eerst via applyChatResponse proberen
+      const applied = applyChatResponse(
+        undefined,
+        (() => {
+          switch (event) {
+            case 'patch':
+              return { patch: data };
+            case 'navigate':
+              return { navigate: data };
+            case 'stream':
+              return {
+                text:
+                  typeof data ===
+                  'string'
+                    ? data
+                    : data.text,
+              };
+            default:
+              return { [event]: data };
+          }
+        })(),
+        {
+          patchTriage:
+            patchTriage || undefined,
+          patchChapterAnswer:
+            patchChapterAnswer ||
+            undefined,
+          goToChapter:
+            goToChapter || undefined,
+          appendStream: (t: string) =>
+            appendStream(t),
+        }
+      );
+
+      if (applied?.applied) {
+        return;
+      }
+
+      // Extra fallback handling
+      switch (event) {
+        case 'stream': {
+          const text =
+            typeof data === 'string'
+              ? data
+              : typeof data?.text ===
+                'string'
+              ? data.text
+              : '';
+          if (!text) return;
+          appendStream(text);
+          break;
+        }
+        case 'navigate': {
+          const ch: ChapterKey | undefined =
+            typeof data?.chapter ===
+            'string'
+              ? data.chapter
+              : undefined;
+          if (ch && goToChapter)
+            goToChapter(ch);
+          break;
+        }
+        case 'error': {
+          const msg =
+            data?.message ||
+            'Er ging iets mis bij het verwerken van uw vraag.';
+          appendStream(`\n⚠️ ${msg}`);
+          stopStreaming();
+          break;
+        }
+        case 'done': {
+          stopStreaming();
+          break;
+        }
+        default:
+          break;
+      }
+    },
+    [
+      appendStream,
+      goToChapter,
+      patchChapterAnswer,
+      patchTriage,
+      stopStreaming,
+    ]
+  );
+
+  // Let op: accepteert optionele tekst, zodat ChatInput
+  // `onSend(text)` kan aanroepen.
+  const sendMessage = useCallback(
+    async (rawText?: string) => {
+      const wizardState =
+        snapshotWizardState();
+
+      const q = (rawText ?? '')
+        .trim();
+      if (!q || loading) return;
+
+      // user message toevoegen
+      const userId =
+        crypto.randomUUID();
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: userId,
+          role: 'user',
+          text: q,
+        },
+      ]);
+      setLoading(true);
+
+      // vorige stream afbreken
+      if (abortRef.current)
+        abortRef.current.abort();
+      const ac =
+        new AbortController();
+      abortRef.current = ac;
+
+      const clientFastIntent =
+        detectFastIntent(q) ||
+        undefined;
+
+      // nieuwe assistant bubble
+      startAssistantMessage();
+
+      let res: Response;
+      try {
+        res = await fetch(
+          '/api/chat',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type':
+                'application/json',
+              Accept:
+                'text/event-stream',
+            },
+            body: JSON.stringify({
+              query: q,
+              wizardState,
+              mode: 'PREVIEW',
+              clientFastIntent,
+            }),
+            signal: ac.signal,
+          }
+        );
+      } catch (err: any) {
+        appendStream(
+          `⚠️ Ik kon de server niet bereiken (${err?.message || 'onbekende fout'}).`
+        );
+        stopStreaming();
+        return;
+      }
+
+      if (!res.ok || !res.body) {
+        appendStream(
+          `⚠️ Serverfout (${res.status}): ${res.statusText || 'onbekend'}.`
+        );
+        stopStreaming();
+        return;
+      }
+
+      const reader =
+        res.body.getReader();
+      const decoder =
+        new TextDecoder('utf-8');
+      let buffer = '';
+
+      try {
+        // SSE: "event: x\ndata: {...}\n\n"
+        while (true) {
+          const {
+            value,
+            done,
+          } = await reader.read();
+          if (done) break;
+          buffer +=
+            decoder.decode(
+              value,
+              { stream: true }
+            );
+
+          let idx: number;
+          while (
+            (idx =
+              buffer.indexOf(
+                '\n\n'
+              )) !== -1
+          ) {
+            const rawEvent =
+              buffer
+                .slice(0, idx)
+                .trim();
+            buffer =
+              buffer.slice(
+                idx + 2
+              );
+
+            if (!rawEvent)
+              continue;
+
+            let eventName: ChatSSEEventName | null =
+              null;
+            let dataStr = '';
+
+            for (const line of rawEvent.split(
+              '\n'
+            )) {
+              if (
+                line.startsWith(
+                  'event:'
+                )
+              ) {
+                eventName =
+                  line
+                    .slice(6)
+                    .trim() as ChatSSEEventName;
+              } else if (
+                line.startsWith(
+                  'data:'
+                )
+              ) {
+                dataStr +=
+                  line
+                    .slice(5)
+                    .trim();
+              }
+            }
+
+            if (!eventName)
+              continue;
+            handleSSEChunk(
+              eventName,
+              dataStr
+            );
+          }
+        }
+      } catch (err: any) {
+        if (ac.signal.aborted) {
+          appendStream(
+            '\n(⚠️ Chat onderbroken)'
+          );
+        } else {
+          appendStream(
+            `\n⚠️ Fout tijdens lezen van het antwoord: ${
+              err?.message ||
+              'onbekend'
+            }`
+          );
+        }
+      } finally {
+        stopStreaming();
+      }
+    },
+    [
+      appendStream,
+      handleSSEChunk,
+      loading,
+      startAssistantMessage,
+      stopStreaming,
+    ]
+  );
+
+  const handleAbort = useCallback(() => {
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+      stopStreaming();
+    }
+  }, [stopStreaming]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col rounded-2xl border bg-white">
-      {/* Header met groene gradient zoals gevraagd */}
-      <div
-        className="rounded-t-2xl px-4 py-3 text-white flex items-center gap-2"
-        style={{ background: 'linear-gradient(90deg, #0d3d4d 0%, #4db8ba 100%)' }}
-      >
-        <svg viewBox="0 0 24 24" className="w-5 h-5">
-          <rect x="4" y="8" width="16" height="10" rx="2" stroke="currentColor" strokeWidth="2" fill="none" />
-        </svg>
-        <div className="font-semibold">Chat met Jules</div>
-      </div>
-
-      {/* Messages */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
-        {msgs.length === 0 && (
-          <div className="text-gray-500 text-sm">
-            Tip: typ bijv. <em>“budget 250k”</em>, <em>“3 slaapkamers”</em> of <em>“woonkamer 30 m²”</em> — de wizard wordt automatisch gevuld.
+    <>
+      <div className="flex flex-col h-full border rounded-2xl overflow-hidden bg-white">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b bg-slate-50">
+          <div>
+            <div className="text-xs uppercase tracking-wide text-slate-500">
+              Brikx Assistent
+            </div>
+            <div className="text-sm text-slate-700">
+              Context-aware chat gekoppeld aan uw PvE-wizard
+            </div>
           </div>
-        )}
-        {msgs.map((m) => (
-          <div
-            key={m.id}
-            className={cx(
-              'max-w-[85%] whitespace-pre-wrap leading-relaxed',
-              m.role === 'user'
-                ? 'ml-auto rounded-xl bg-[#e7f3f4] px-3 py-2'
-                : 'mr-auto rounded-xl bg-gray-50 px-3 py-2'
-            )}
-          >
-            {m.text}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setShowHandoff(true)}
+              className="px-3 py-1.5 text-xs rounded-full border border-slate-300 hover:bg-slate-100"
+            >
+              Menselijke architect
+            </button>
           </div>
-        ))}
-      </div>
+        </div>
 
-      {/* Sticky input */}
-      <div className="sticky bottom-0 z-[5] border-t bg-white p-3">
-        <div className="flex items-center gap-2">
-          <input
-            className="flex-1 rounded-xl border px-3 py-2 outline-none focus:ring-2 focus:ring-[#4db8ba]"
-            placeholder="Typ je bericht…"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                send();
-              }
-            }}
-            disabled={loading}
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2 text-sm">
+          {messages.map((m) => (
+            <ChatMessage
+              key={m.id}
+              msg={m}
+            />
+          ))}
+          {loading && (
+            <div className="text-xs text-slate-400 mt-1">
+              Jules is aan het typen…
+            </div>
+          )}
+        </div>
+
+        {/* Input */}
+        <div className="border-t px-3 py-2">
+          <ChatInput
+            onSend={(text) =>
+              sendMessage(text)
+            }
           />
-          <button
-            onClick={send}
-            disabled={loading || !value.trim()}
-            className={cx(
-              'inline-flex items-center gap-2 rounded-xl px-3 py-2 text-white',
-              loading ? 'bg-gray-400' : 'bg-[#0d3d4d] hover:bg-[#0b3341]'
-            )}
-            title="Versturen"
-          >
-            Verstuur
-          </button>
+          <p className="mt-1 text-[10px] text-slate-400">
+            Slimme koppeling: antwoorden kunnen direct uw
+            hoofdstukken invullen of u naar het juiste
+            onderdeel sturen.
+          </p>
+          {loading && (
+            <button
+              type="button"
+              onClick={handleAbort}
+              className="mt-1 px-2 py-1 text-[10px] border rounded"
+            >
+              Stop antwoord
+            </button>
+          )}
         </div>
       </div>
-    </div>
+
+      <HumanHandoffModal
+        isOpen={showHandoff}
+        onClose={() => setShowHandoff(false)}
+      />
+    </>
   );
 }
