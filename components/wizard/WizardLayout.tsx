@@ -45,7 +45,7 @@ export default function WizardLayout({ left, middle, right }: WizardLayoutProps)
     ruimtes: Ruimtes,
     budget: Budget,
     techniek: Techniek,
-    duurzaamheid: Duurzaamheid,
+    duurzaam: Duurzaamheid,
     risico: Risico,
     preview: Preview,
   };
