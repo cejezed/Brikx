@@ -2,17 +2,14 @@
 
 import React, { useState } from "react";
 import { X, Send, User, Mail, Phone, MessageSquare, AlertCircle } from "lucide-react";
-// Sluit aan op jouw bestaande Zustand store:
 import { useWizardState } from "@/lib/stores/useWizardState";
 import { useToast } from "@/components/ui/use-toast";
 
 type Props = { isOpen: boolean; onClose: () => void };
 
 function snapshotWizard() {
-  // neem een “freeze” van de state op submit
   try {
     const s = (useWizardState as any)?.getState?.() ?? {};
-    // Veelvoorkomende paden defensief uitlezen:
     const values =
       s.values ?? s.form ?? s.pve ?? s.answers ?? s.data ?? {};
     return {
@@ -76,9 +73,9 @@ export default function HumanHandoffModal({ isOpen, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-[var(--brx-ink)] to-[var(--brx-accent)] text-white px-6 py-4 rounded-t-2xl">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col">
+        {/* Header - VAST */}
+        <div className="flex-shrink-0 bg-gradient-to-r from-[var(--brx-ink)] to-[var(--brx-accent)] text-white px-6 py-4 rounded-t-2xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white/20 rounded-full grid place-items-center">🏗️</div>
@@ -98,8 +95,8 @@ export default function HumanHandoffModal({ isOpen, onClose }: Props) {
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-6">
+        {/* Content - SCROLLABLE */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">
           {!submitted ? (
             <>
               <div className="bg-[#eef7f7] border border-[var(--brx-accent)]/30 rounded-lg p-4 mb-6">
@@ -183,26 +180,8 @@ export default function HumanHandoffModal({ isOpen, onClose }: Props) {
                   <p className="text-xs text-gray-500 mt-1">Voor een snellere reactie via telefoon</p>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full bg-gradient-to-r from-[var(--brx-ink)] to-[var(--brx-accent)] text-white py-3 rounded-lg font-semibold hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Versturen...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-5 h-5" />
-                      Verstuur vraag
-                    </>
-                  )}
-                </button>
+                <p className="text-xs text-gray-500 text-center">We reageren binnen 24 uur</p>
               </form>
-
-              <p className="text-xs text-gray-500 text-center mt-4">We reageren binnen 24 uur</p>
             </>
           ) : (
             <div className="text-center py-8">
@@ -216,6 +195,28 @@ export default function HumanHandoffModal({ isOpen, onClose }: Props) {
               <p className="text-sm text-[var(--brx-ink)] font-medium">✓ Bevestiging verstuurd naar {formData.email}</p>
             </div>
           )}
+        </div>
+
+        {/* Button - VAST ONDERIN */}
+        <div className="flex-shrink-0 px-6 py-4 border-t bg-gray-50 rounded-b-2xl">
+          <button
+            type="submit"
+            disabled={isSubmitting || submitted}
+            onClick={handleSubmit}
+            className="w-full bg-gradient-to-r from-[var(--brx-ink)] to-[var(--brx-accent)] text-white py-3 rounded-lg font-semibold hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+          >
+            {isSubmitting ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Versturen...
+              </>
+            ) : (
+              <>
+                <Send className="w-5 h-5" />
+                Verstuur vraag
+              </>
+            )}
+          </button>
         </div>
       </div>
     </div>

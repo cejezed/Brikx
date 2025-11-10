@@ -27,10 +27,14 @@ export async function POST(req: NextRequest) {
   const requestId = crypto.randomUUID();
   const startTime = Date.now();
 
+  console.log('[route.ts] POST /api/chat received:', body.query);
+
   try {
     const { stream, writer } = createSSEStream();
 
-    runAITriage(writer, {
+    console.log('[route.ts] SSE stream created, starting runAITriage');
+
+    await runAITriage(writer, {
       requestId,
       startTime,
       query: body.query,
@@ -38,6 +42,8 @@ export async function POST(req: NextRequest) {
       clientFastIntent: body.clientFastIntent,
       wizardState: body.wizardState as BrikxWizardState,
     });
+
+    console.log('[route.ts] runAITriage completed, returning stream');
 
     return new Response(stream, {
       status: 200,
@@ -48,6 +54,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
+    console.error('[route.ts] CAUGHT ERROR:', error);
     await logEvent("chat.error", {
       requestId,
       error: String(error),
@@ -67,9 +74,9 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// ╔══════════════════════════════════════════════════╗
-// ║  CORE TRIAGE LOGICA – CONTEXT & FLOW-GATING      ║
-// ╚══════════════════════════════════════════════════╝
+// ┌──────────────────────────────────────────────────────────────────────────────
+// │  CORE TRIAGE LOGICA – CONTEXT & FLOW-GATING
+// └──────────────────────────────────────────────────────────────────────────────
 
 async function runAITriage(
   writer: SSEWriter,
@@ -83,6 +90,8 @@ async function runAITriage(
   }
 ) {
   const { requestId, startTime, query, mode } = ctx;
+
+  console.log('[runAITriage] Starting with query:', query);
 
   // 1) Normaliseer inkomende state
   const normalized = normalizeWizardState(ctx.wizardState);
@@ -107,10 +116,12 @@ async function runAITriage(
   const chapterFlow = getChapterFlow(wizardState);
 
   try {
-    // STEP 1 — Essentials + Context-Aware Nudge
+    // STEP 1 – Essentials + Context-Aware Nudge
+    console.log('[runAITriage] Checking essentials...');
     const missing = checkEssentials(wizardState);
 
     if (missing.length > 0) {
+      console.log('[runAITriage] Missing essentials:', missing);
       const nudge = makeContextAwareNudge(query, missing);
 
       await logEvent("triage.nudge", {
@@ -120,6 +131,7 @@ async function runAITriage(
         activeChapter,
       });
 
+      console.log('[runAITriage] Sending nudge event');
       writer.writeEvent("metadata", {
         intent: "NUDGE",
         confidence: 1.0,
@@ -135,14 +147,18 @@ async function runAITriage(
         tokensUsed: 0,
         latencyMs: Date.now() - startTime,
       });
-      writer.close();
+  
+      console.log('[runAITriage] Nudge stream closed');
       return;
     }
 
-    // STEP 2 — Classify intent (met verrijkte wizardState)
+    // STEP 2 – Classify intent (met verrijkte wizardState)
+    console.log('[runAITriage] Classifying intent...');
     const classifyResult = await ProModel.classify(query, wizardState);
     const { intent, confidence } = classifyResult;
     const policy = determinePolicy(confidence, intent);
+
+    console.log('[runAITriage] Intent classified:', intent, 'confidence:', confidence, 'policy:', policy);
 
     await logEvent("triage.classify", {
       requestId,
@@ -160,13 +176,14 @@ async function runAITriage(
       activeChapter,
     });
 
-    // STEP 3 — Policy Branching
+    // STEP 3 – Policy Branching
     let patch: any = null;
     let responseText = "";
     let ragContext: any = null;
 
-    // 3A — VULLEN_DATA
+    // 3A – VULLEN_DATA
     if (intent === "VULLEN_DATA") {
+      console.log('[runAITriage] VULLEN_DATA - generating patch');
       patch = await ProModel.generatePatch(query, wizardState);
 
       if (patch) {
@@ -187,6 +204,7 @@ async function runAITriage(
               "Ik kan deze stap niet toepassen, omdat dit hoofdstuk niet beschikbaar is in uw traject.",
           });
         } else {
+          console.log('[runAITriage] Sending patch event:', patch);
           writer.writeEvent("patch", patch);
           await logEvent("triage.patch", {
             requestId,
@@ -199,8 +217,9 @@ async function runAITriage(
         responseText ||
         "Dank u, ik heb dit verwerkt in uw ingevulde gegevens.";
 
-      // 3B — ADVIES_VRAAG (via RAG)
+      // 3B – ADVIES_VRAAG (via RAG)
     } else if (intent === "ADVIES_VRAAG") {
+      console.log('[runAITriage] ADVIES_VRAAG - querying RAG');
       ragContext = await Kennisbank.query(query, {
         chapter: activeChapter ?? undefined,
         isPremium: mode === "PREMIUM",
@@ -219,8 +238,9 @@ async function runAITriage(
         wizardState,
       });
 
-      // 3C — NAVIGATIE (flow-gated)
+      // 3C – NAVIGATIE (flow-gated)
     } else if (intent === "NAVIGATIE") {
+      console.log('[runAITriage] NAVIGATIE - resolving target');
       const target = resolveNavigationTarget(query, wizardState, chapterFlow);
 
       if (target && isAllowedChapter(target, wizardState)) {
@@ -236,27 +256,31 @@ async function runAITriage(
           "Ik kon niet goed bepalen naar welk onderdeel u wilt. Noem bijvoorbeeld: 'ga naar budget', 'ga naar wensen' of 'toon preview'.";
       }
 
-      // 3D — SMALLTALK / fallback
+      // 3D – SMALLTALK / fallback
     } else {
+      console.log('[runAITriage] SMALLTALK/fallback - generating response');
       responseText = await ProModel.generateResponse(query, null, {
         mode,
         wizardState,
       });
     }
 
-    // STEP 4 — Stream antwoordtekst
+    // STEP 4 – Stream antwoordtekst
     if (responseText) {
+      console.log('[runAITriage] Streaming response text:', responseText.substring(0, 100));
       for (const chunk of chunkText(responseText)) {
         writer.writeEvent("stream", { text: chunk });
       }
     }
 
+    console.log('[runAITriage] Sending done event');
     writer.writeEvent("done", {
       logId: requestId,
       tokensUsed: classifyResult.tokensUsed ?? 0,
       latencyMs: Date.now() - startTime,
     });
   } catch (error) {
+    console.error('[runAITriage] CAUGHT ERROR:', error);
     await logEvent("triage.error", {
       requestId,
       error: String(error),
@@ -265,13 +289,14 @@ async function runAITriage(
       message: "Er ging iets mis bij het verwerken van uw vraag.",
     });
   } finally {
+    console.log('[runAITriage] Closing stream');
     writer.close();
   }
 }
 
-// ╔══════════════════════════════════════════════════╗
-// ║               HELPERS & UTILITIES                ║
-// ╚══════════════════════════════════════════════════╝
+// ┌──────────────────────────────────────────────────────────────────────────────
+// │               HELPERS & UTILITIES
+// └──────────────────────────────────────────────────────────────────────────────
 
 function normalizeWizardState(state: BrikxWizardState): BrikxWizardState {
   return {
@@ -386,8 +411,7 @@ function resolveNavigationTarget(
     installaties: "techniek",
     duurzaam: "duurzaam",
     duurzaamheid: "duurzaam",
-    risico: "risico",
-    "risico's": "risico",
+    risico: 'risico',
     preview: "preview",
     samenvatting: "preview",
     export: "preview",
@@ -429,7 +453,7 @@ function labelForChapter(ch: ChapterKey): string {
     case "duurzaam":
       return "Duurzaamheid";
     case "risico":
-      return "Risico's";
+      return "Risicos";
     case "preview":
       return "Preview & PvE";
     default:

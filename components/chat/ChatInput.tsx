@@ -1,40 +1,60 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback } from 'react';
 
-export default function ChatInput({ onSend }: { onSend: (text: string) => void }) {
-  const [val, setVal] = useState('');
+interface ChatInputProps {
+  value: string;
+  onChange: (value: string) => void;
+  onSend: () => void;
+  onAbort?: () => void;
+  disabled?: boolean;
+}
 
-  function submit() {
-    const t = val.trim();
-    if (!t) return;
-    onSend(t);
-    setVal('');
-  }
+export default function ChatInput({
+  value,
+  onChange,
+  onSend,
+  onAbort,
+  disabled,
+}: ChatInputProps) {
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (!disabled) onSend();
+      }
+    },
+    [onSend, disabled],
+  );
 
   return (
-    <div className="p-2">
-      <div className="flex gap-2">
-        <input
-          className="flex-1 border rounded px-3 py-2 text-sm outline-none"
-          placeholder="Typ je vraag of opdracht…"
-          value={val}
-          onChange={(e) => setVal(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              submit();
-            }
-          }}
-        />
+    <div className="flex items-center gap-2">
+      <input
+        className="flex-1 rounded-2xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+        placeholder="Stel je vraag aan Jules over je (ver)bouwplannen…"
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={handleKeyDown}
+      />
+      {disabled && onAbort ? (
         <button
-          onClick={submit}
-          className="px-3 py-2 rounded bg-[#0d3d4d] text-white text-sm disabled:opacity-60"
-          disabled={!val.trim()}
+          type="button"
+          onClick={onAbort}
+          className="px-3 py-2 text-xs rounded-2xl border border-slate-300"
+        >
+          Stop
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={onSend}
+          disabled={disabled || !value.trim()}
+          className="px-3 py-2 text-xs rounded-2xl bg-slate-900 text-white disabled:opacity-40"
         >
           Stuur
         </button>
-      </div>
+      )}
     </div>
   );
 }

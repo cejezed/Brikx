@@ -223,7 +223,7 @@ export default function WizardPage() {
         <div className="flex min-h-screen">
           <div className="hidden lg:flex flex-1"></div>
           <div className="w-full lg:w-[1552px] bg-gradient-to-b from-[#e7f3f4] to-[#e7f3f3]">
-            <WizardLayout left={left} middle={middle} right={right} />
+            <WizardLayout  />
           </div>
           <div className="hidden lg:flex flex-1"></div>
         </div>
