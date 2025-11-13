@@ -3,7 +3,7 @@
 
 import { useMemo, useCallback } from "react";
 import { useWizardState } from "@/lib/stores/useWizardState";
-import type { ChapterKey } from "@/types/wizard";
+import type { ChapterKey } from "@/types/chat";
 
 /**
  * Kleine util om veilig geneste paden te lezen uit een object.

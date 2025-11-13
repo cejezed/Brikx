@@ -1,5 +1,5 @@
 // lib/preview/buildPreview.ts
-// Build v2.0 – defensieve preview builder zonder niet-bestaande triage-velden te vereisen.
+// Build v3.0 – defensieve preview builder aligned met v3.0 data structure
 
 export type BuildPreviewInput = {
   triage: {
@@ -46,7 +46,7 @@ function formatBudget(n?: number): string {
 
 /**
  * Bouwt een lichtgewicht preview van de PvE-gegevens.
- * V2.0: geen harde aannames over optionele velden; lees alles defensief.
+ * V3.0: Aligned met v3.0 data structure (rooms, wishes in plaats van list, items)
  */
 export function buildPreview(input: BuildPreviewInput): BuildPreview {
   const triage = input?.triage ?? { projectType: [] };
@@ -61,34 +61,32 @@ export function buildPreview(input: BuildPreviewInput): BuildPreview {
   const ervaring = "—"; // (ruimte voor toekomstige logica)
   const intent = "—";   // (ruimte voor toekomstige logica)
 
-  // ===== Ruimtes =====
+  // ===== Ruimtes - ✅ v3.0: read from rooms array =====
   const ruimtesSrc = answers.ruimtes;
-  const ruimtesList: Array<{ id: string; type?: string; tag?: string }> = Array.isArray(ruimtesSrc?.list)
-    ? (ruimtesSrc.list as any[]).map((r) => ({
+  const ruimtesList: Array<{ id: string; type?: string; tag?: string }> = Array.isArray(ruimtesSrc?.rooms)
+    ? (ruimtesSrc.rooms as any[]).map((r) => ({
         id: String(r?.id ?? cryptoRandom()),
-        type: typeof r?.type === "string" ? r.type : r?.naam,
-        tag: typeof r?.tag === "string" ? r.tag : undefined,
+        type: typeof r?.type === "string" ? r.type : typeof r?.name === "string" ? r.name : r?.naam,
+        tag: typeof r?.group === "string" ? r.group : undefined,
       }))
     : [];
 
-  // ===== Wensen =====
+  // ===== Wensen - ✅ v3.0: read from wishes array =====
   const wensenSrc = answers.wensen;
-  const wensenList: Array<{ id: string; label: string; priority?: string }> = Array.isArray(wensenSrc?.items)
-    ? (wensenSrc.items as any[]).map((w) => ({
+  const wensenList: Array<{ id: string; label: string; priority?: string }> = Array.isArray(wensenSrc?.wishes)
+    ? (wensenSrc.wishes as any[]).map((w) => ({
         id: String(w?.id ?? cryptoRandom()),
         label:
           typeof w === "string"
             ? w
-            : typeof w?.label === "string"
-            ? w.label
             : typeof w?.text === "string"
             ? w.text
+            : typeof w?.label === "string"
+            ? w.label
             : "—",
         priority:
           typeof w?.priority === "string"
             ? w.priority
-            : typeof w?.prio === "string"
-            ? w.prio
             : undefined,
       }))
     : [];
@@ -105,10 +103,10 @@ export function buildPreview(input: BuildPreviewInput): BuildPreview {
   const triageExtra = safeTrim((triage as any)?.extra ?? (triage as any)?.notes);
   if (triageExtra) remarks.push(triageExtra);
 
-  const techniekNotes = safeTrim(techniek?.notes);
+  const techniekNotes = safeTrim(techniek?.opmerkingen ?? techniek?.notes);
   if (techniekNotes) remarks.push(techniekNotes);
 
-  const duurzaamNotes = safeTrim(duurzaamheid?.notes);
+  const duurzaamNotes = safeTrim(duurzaamheid?.opmerkingen ?? duurzaamheid?.notes);
   if (duurzaamNotes) remarks.push(duurzaamNotes);
 
   return {

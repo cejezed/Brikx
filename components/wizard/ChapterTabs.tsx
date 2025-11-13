@@ -1,7 +1,9 @@
+// /components/wizard/ChapterTabs.tsx
 'use client';
 
 import React from 'react';
-import type { ChapterKey } from '@/types/wizard';
+// ⚠️ FIX: Import pad gecorrigeerd naar de v3.0 'Single Source of Truth'
+import type { ChapterKey } from '@/types/project';
 
 export type ChapterTab = { id: ChapterKey; title: string };
 

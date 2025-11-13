@@ -1,5 +1,5 @@
 // /lib/archetypes/detectArchetype.ts
-// Archetype-detectie — defensief t.o.v. optionele intent
+// Archetype-detectie — defensief t.o.v. optionele intent/budget/projectType
 
 import type { TriageData } from "@/types/chat";
 
@@ -13,14 +13,30 @@ export type Archetype =
   | "onbekend";
 
 export function detectArchetype(triage: TriageData): Archetype {
-  const projectType = triage?.projectType?.toLowerCase();
-  const budget = Number.isFinite(triage?.budget as number) ? (triage!.budget as number) : undefined;
+  // projectType veilig normaliseren
+  const projectType =
+    typeof triage?.projectType === "string" && triage.projectType.trim().length > 0
+      ? triage.projectType.toLowerCase().trim()
+      : undefined;
 
-  // intent is optioneel; zet altijd veilig naar Set
+  // budget alleen meenemen als het een eindig getal is
+  const budget =
+    typeof triage?.budget === "number" && Number.isFinite(triage.budget)
+      ? triage.budget
+      : undefined;
+
+  // intent kan string of array of leeg zijn → naar array normaliseren
+  const intents: unknown[] = Array.isArray(triage?.intent)
+    ? (triage!.intent as unknown[])
+    : typeof triage?.intent === "string" && triage.intent.trim().length > 0
+    ? [triage.intent]
+    : [];
+
+  // naar Set met schone lowercase tags
   const intentTags = new Set(
-    (triage?.intent ?? [])
-      .filter(Boolean)
-      .map((s) => String(s).toLowerCase().trim())
+    intents
+      .filter((v: unknown) => v != null && String(v).trim().length > 0)
+      .map((s: unknown) => String(s).toLowerCase().trim())
   );
 
   // 1) Direct op projectType

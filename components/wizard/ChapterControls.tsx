@@ -1,8 +1,12 @@
+// /components/wizard/ChapterControls.tsx
+// ✅ 100% v3.0 Conform
+
 "use client";
 
 import { useCallback } from "react";
-import { useUiStore } from "@/lib/stores/useUiStore";
-import type { ChapterKey } from "@/types/wizard";
+import { useWizardState } from "@/lib/stores/useWizardState";
+// ⚠️ FIX: Import pad gecorrigeerd naar /types/project
+import type { ChapterKey } from "@/types/project";
 
 type ChapterItem = { key: ChapterKey; title: string };
 
@@ -13,7 +17,7 @@ export default function ChapterControls({
   chapters: ChapterItem[];
   activeIndex: number;
 }) {
-  const setCurrentChapter = useUiStore((s) => s.setCurrentChapter);
+  const setCurrentChapter = useWizardState((s) => s.setCurrentChapter);
 
   const goPrev = useCallback(() => {
     if (!chapters.length) return;

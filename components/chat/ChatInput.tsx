@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef, useEffect } from 'react';
 
 interface ChatInputProps {
   value: string;
@@ -17,6 +17,8 @@ export default function ChatInput({
   onAbort,
   disabled,
 }: ChatInputProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Enter' && !e.shiftKey) {
@@ -27,15 +29,24 @@ export default function ChatInput({
     [onSend, disabled],
   );
 
+  // Focus input after message is sent
+  useEffect(() => {
+    if (!disabled && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [disabled]);
+
   return (
     <div className="flex items-center gap-2">
       <input
+        ref={inputRef}
         className="flex-1 rounded-2xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10"
         placeholder="Stel je vraag aan Jules over je (ver)bouwplannen…"
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
+        autoFocus
       />
       {disabled && onAbort ? (
         <button

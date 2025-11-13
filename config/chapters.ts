@@ -1,29 +1,38 @@
-// config/chapters.ts
-// Centrale hoofdstukmapping — Intake weer als stap 1
+// /config/chapters.ts
+// ✅ v3.0 Conform: Mapt *alleen* de 7 data-hoofdstukken
+// zoals gedefinieerd in de ChapterDataMap (de 'Grondwet').
 
-import IntakeForm from "@/components/intake/IntakeForm";       // ← jouw bestaande, volledige intake
+import type { ChapterKey } from "@/types/project";
+import type { ComponentType } from "react";
+
+// Importeer de 7 chapter-componenten
 import ChapterBasis from "@/components/chapters/Basis";
 import ChapterRuimtes from "@/components/chapters/Ruimtes";
 import ChapterWensen from "@/components/chapters/Wensen";
 import ChapterBudget from "@/components/chapters/Budget";
 import ChapterTechniek from "@/components/chapters/Techniek";
-import ChapterDuurzaamheid from "@/components/chapters/Duurzaamheid";
+import ChapterDuurzaam from "@/components/chapters/Duurzaamheid"; 
 import ChapterRisico from "@/components/chapters/Risico";
-import PvEPreview from "@/components/chapters/Preview";
 
-export function generateChapters(_state?: any) {
+export type ChapterConfig = {
+  key: ChapterKey;
+  title: string;
+  Component: ComponentType<any>; // Type voor React component
+};
+
+/**
+ * Genereert de 7 kernhoofdstukken voor de wizard.
+ * * NOTA: 'Intake' en 'Preview' zijn in v3.0 aparte UI-states/routes
+ * en horen niet in de data-hoofdstuk-flow thuis.
+ */
+export function generateChapters(_state?: any): ChapterConfig[] {
   return [
-    // 🔵 Intake eerst — hiermee komt jouw volledige Archetype/Intake terug
-    { key: "intake", title: "Intake", Component: IntakeForm },
-
-    // daarna de reguliere hoofdstukken
     { key: "basis", title: "Basis", Component: ChapterBasis },
     { key: "ruimtes", title: "Ruimtes", Component: ChapterRuimtes },
     { key: "wensen", title: "Wensen", Component: ChapterWensen },
     { key: "budget", title: "Budget", Component: ChapterBudget },
     { key: "techniek", title: "Techniek", Component: ChapterTechniek },
-    { key: "duurzaamheid", title: "Duurzaamheid", Component: ChapterDuurzaamheid },
-    { key: "risico", title: "Risico", Component: ChapterRisico },
-    { key: "preview", title: "Preview", Component: PvEPreview },
+    { key: "duurzaam", title: "Duurzaam", Component: ChapterDuurzaam },
+    { key: "risico", title: "Risico's", Component: ChapterRisico },
   ];
 }

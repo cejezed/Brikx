@@ -1,76 +1,91 @@
-// /types/chat.ts
-// ✅ Single source of truth: gebruik de WizardState/TriageData uit /types/wizard
-export type { WizardState, TriageData } from "@/types/wizard";
+"use client";
 
-// Overige types die specifiek zijn voor chat/SSE
+import React, { useState } from "react";
+import { useWizardState } from "@/lib/stores/useWizardState";
+import type { WizardState } from "@/types/project";
 
-export interface ChatRequest {
-  query: string;
-  wizardState: import("@/types/wizard").WizardState;
-  mode: "PREVIEW" | "PREMIUM";
-  clientFastIntent?: {
-    type: string;
-    confidence: number;
-    action?: string;
-    chapter?: string;
-    field?: string;
+type DownloadPdfButtonProps = {
+  label?: string;
+  className?: string;
+};
+
+function buildWizardSnapshot(state: WizardState): Partial<WizardState> {
+  return {
+    stateVersion: state.stateVersion,
+    chapterAnswers: state.chapterAnswers,
+    currentChapter: state.currentChapter,
+    chapterFlow: state.chapterFlow,
+    mode: state.mode,
   };
 }
 
-// === SSE events ===
-export type ChatSSEEventType =
-  | "metadata"
-  | "patch"
-  | "stream"
-  | "rag_metadata"
-  | "error"
-  | "done";
+export default function DownloadPdfButton({
+  label = "Download PvE als PDF",
+  className = "",
+}: DownloadPdfButtonProps) {
+  const wizardState = useWizardState((s) => s as WizardState);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-export interface ChatSSEEvent {
-  event: ChatSSEEventType;
-  data: string; // JSON-stringified payload
-}
+  const handleDownload = async () => {
+    setError(null);
+    setLoading(true);
 
-export type PolicyType =
-  | "APPLY_OPTIMISTIC"
-  | "APPLY_WITH_INLINE_VERIFY"
-  | "ASK_CLARIFY"
-  | "CLASSIFY";
+    try {
+      const snapshot = buildWizardSnapshot(wizardState);
 
-export interface MetadataEvent {
-  intent:
-    | "VULLEN_DATA"
-    | "ADVIES_VRAAG"
-    | "NAVIGATIE"
-    | "NUDGE"
-    | "SMALLTALK";
-  confidence: number; // 0.0–1.0
-  policy: PolicyType;
-  nudge?: string;
-  stateVersion: number;
-}
+      const res = await fetch("/api/pdf", {
+        // ⚠️ Pas dit pad aan naar jouw daadwerkelijke export-endpoint
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ wizardState: snapshot }),
+      });
 
-export interface PatchEvent {
-  chapter: string;
-  delta: {
-    path: string; // e.g. "rooms" of "wensen[0]"
-    operation: "add" | "set" | "append" | "remove";
-    value?: any;
+      if (!res.ok) {
+        throw new Error(
+          `PDF generatie mislukt (${res.status} ${res.statusText})`
+        );
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "Brikx-PvE.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e: any) {
+      console.error("[DownloadPdfButton] error", e);
+      setError(
+        e?.message ||
+          "Er ging iets mis bij het genereren van de PDF."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
-}
 
-export interface StreamEvent {
-  text: string;
-}
-
-export interface RAGMetadataEvent {
-  topicId: string;
-  docsRetrieved: number;
-  cacheHit: boolean;
-}
-
-export interface DoneEvent {
-  logId: string;
-  tokensUsed: number;
-  latencyMs: number;
+  return (
+    <div className={`flex flex-col gap-1 ${className}`}>
+      <button
+        type="button"
+        onClick={handleDownload}
+        disabled={loading}
+        className={`inline-flex items-center justify-center rounded-md px-3 py-1.5 text-xs font-medium border border-slate-300 bg-white hover:bg-slate-50 ${
+          loading ? "opacity-60 cursor-not-allowed" : ""
+        }`}
+      >
+        {loading ? "PDF genereren..." : label}
+      </button>
+      {error && (
+        <p className="text-[10px] text-red-600">
+          {error}
+        </p>
+      )}
+    </div>
+  );
 }

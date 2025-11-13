@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import type { ChapterKey } from '@/types/wizard';
+import type { ChapterKey } from '@/types/chat';
 
 interface UIState {
   currentChapter: ChapterKey;

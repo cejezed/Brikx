@@ -1,45 +1,54 @@
-// components/chapters/Risico.tsx
+// /components/chapters/Risico.tsx
+// ✅ v3.0 Conform: Leest RisicoData en gebruikt updateChapterData.
+
 'use client';
 
 import React, { useMemo, useState } from 'react';
 import { useWizardState } from '@/lib/stores/useWizardState';
-import { useToast as useRealToast } from '@/components/ui/toast'; // ✅ juiste import
+import { useToast as useRealToast } from '@/components/ui/toast';
+// ✅ v3.0: Importeer de *echte* scanfunctie
+import { scan } from '@/lib/risk/scan'; 
+import type { Risk } from '@/types/project';
 
 /** -------------------------------------------
- *  UI-layer die nooit crasht als Toast ontbreekt
+ * UI-laag
  * ------------------------------------------- */
 
-// Een simpele UI-component die een toast-functie als prop krijgt
-function RisicoUI({ toast }: { toast: (o: { title?: string; description?: string }) => void }) {
-  // @ts-ignore - accepts partial/dynamic chapter data at runtime
-  const risicoObj = useWizardState((s) => s.chapterAnswers?.risico ?? {}) as Record<string, any>;
-  // @ts-ignore - accepts partial patches at runtime
-  const patchChapter = useWizardState((s) => s.patchChapterAnswer);
+function RisicoUI({ toast }: { toast: (o: { variant?: string; title?: string; description?: string }) => void }) {
+  // ✅ v3.0: Lees de *volledige* state voor de scanfunctie
+  const allAnswers = useWizardState((s) => s.chapterAnswers);
+  // ✅ v3.0: Lees de specifieke data voor weergave
+  const risicoData = useWizardState((s) => s.chapterAnswers.risico);
+  // ✅ v3.0: Haal de *correcte* mutatie-functie op
+  const updateChapterData = useWizardState((s) => s.updateChapterData);
 
   const [busy, setBusy] = useState(false);
 
-  const summary: string = useMemo(() => {
-    if (typeof risicoObj?.summary === 'string') return risicoObj.summary;
-    return 'Nog geen risicoanalyse uitgevoerd. Klik op “Opnieuw scannen” om te starten.';
-  }, [risicoObj]);
+  // ✅ v3.0: Lees de 'risks' array uit de state
+  const risks: Risk[] = useMemo(() => risicoData?.risks ?? [], [risicoData]);
 
   async function rescan() {
     try {
       setBusy(true);
-      // 🔧 hier zou normaal je echte risico-logic komen (AI/regels/etc.)
-      // We mocken een output:
-      const newSummary =
-        '⚠️ Mogelijke aandachtspunten:\n' +
-        '- Budgetdruk bij isolatiepakket\n' +
-        '- Doorlooptijd vergunningstraject onzeker\n' +
-        '- Installatiekeuze beïnvloedt TCO\n';
+      
+      // 1. ✅ v3.0: Roep de echte scanfunctie aan met de v3.0 state
+      const newRisks = scan(allAnswers);
 
-      // Schrijf naar de store via generieke API
-      patchChapter('risico', { summary: newSummary, updatedAt: new Date().toISOString() });
+      // 2. ✅ v3.0: Gebruik 'updateChapterData' om de state te bij te werken
+      updateChapterData('risico', (prev) => ({
+        ...prev,
+        risks: newRisks,
+        // Eenvoudige logica om een 'overallRisk' te bepalen
+        overallRisk: newRisks.some(r => r.severity === 'hoog') 
+          ? 'hoog' 
+          : newRisks.some(r => r.severity === 'medium') 
+          ? 'medium' 
+          : newRisks.length > 0 ? 'laag' : undefined,
+      }));
 
       toast({
         title: 'Risicoanalyse ververst',
-        description: 'Nieuwe signalen zijn toegevoegd aan je overzicht.',
+        description: `${newRisks.length} risico's/signalen gevonden.`,
       });
     } catch (e) {
       toast({
@@ -52,8 +61,13 @@ function RisicoUI({ toast }: { toast: (o: { title?: string; description?: string
   }
 
   async function copyToClipboard() {
+    // ✅ v3.0: Maak een 'summary' van de 'risks' array
+    const summary = risks.length > 0
+      ? risks.map(r => `[${r.severity || 'laag'}] ${r.description}`).join('\n')
+      : 'Geen risico\'s gevonden.';
+      
     try {
-      await navigator.clipboard.writeText(summary || '');
+      await navigator.clipboard.writeText(summary);
       toast({ title: 'Gekopieerd', description: 'De risico-samenvatting staat op het klembord.' });
     } catch (e) {
       toast({ title: 'Kopiëren mislukt', description: e instanceof Error ? e.message : String(e) });
@@ -68,41 +82,71 @@ function RisicoUI({ toast }: { toast: (o: { title?: string; description?: string
           disabled={busy}
           className="px-3 py-1.5 rounded bg-[#0d3d4d] text-white text-sm disabled:opacity-60"
         >
-          {busy ? 'Scannen…' : 'Opnieuw scannen'}
+          {busy ? 'Scannen…' : '(Her)scan project'}
         </button>
         <button
           onClick={copyToClipboard}
-          className="px-3 py-1.5 rounded border border-gray-300 text-sm hover:bg-gray-50"
+          disabled={risks.length === 0}
+          className="px-3 py-1.5 rounded border border-gray-300 text-sm hover:bg-gray-50 disabled:opacity-50"
         >
           Kopiëren
         </button>
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white p-4 whitespace-pre-wrap text-sm leading-relaxed">
-        {summary}
+      {/* ✅ v3.0: Render de 'risks' array */}
+      <div className="space-y-3">
+        {risks.length === 0 ? (
+          <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-600">
+            Nog geen risicoanalyse uitgevoerd. Klik op "Scan project" om te starten.
+          </div>
+        ) : (
+          risks.map((risk) => (
+            <div 
+              key={risk.id} 
+              className={`rounded-lg border p-4 ${
+                risk.severity === 'hoog' ? 'bg-red-50 border-red-200' :
+                risk.severity === 'medium' ? 'bg-amber-50 border-amber-200' :
+                'bg-white border-gray-200'
+              }`}
+            >
+              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                risk.severity === 'hoog' ? 'bg-red-100 text-red-800' :
+                risk.severity === 'medium' ? 'bg-amber-100 text-amber-800' :
+                'bg-gray-100 text-gray-700'
+              }`}>
+                {risk.severity || 'laag'}
+              </span>
+              <p className="text-sm font-medium mt-2">{risk.description}</p>
+              {risk.mitigation && (
+                <p className="text-sm text-gray-600 mt-1">
+                  <strong>Suggestie:</strong> {risk.mitigation}
+                </p>
+              )}
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
 }
 
-// Probeert de echte useToast te gebruiken
+// -------------------------------------------
+// Veiligheids-wrappers (Error Boundary, etc.)
+// Deze zijn prima en hoeven niet te wijzigen.
+// -------------------------------------------
+
 function RisicoWithToast() {
   const { toast } = useRealToast();
   return <RisicoUI toast={(o) => toast(o)} />;
 }
 
-// Fallback zonder provider (geen hook-gebruik!)
 function RisicoNoToast() {
   const logToast = (o: { title?: string; description?: string }) => {
-    // Minimalistische fallback zodat de UI niet crasht
-    // en je toch feedback ziet in de console.
-    // eslint-disable-next-line no-console
     console.log('[toast:fallback]', o.title ?? '', o.description ?? '');
   };
   return <RisicoUI toast={logToast} />;
 }
 
-// Error boundary die provider-fouten opvangt (zoals “useToast must be used within <ToastProvider>”)
 class ToastBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
   constructor(props: { children: React.ReactNode }) {
     super(props);
@@ -111,18 +155,13 @@ class ToastBoundary extends React.Component<{ children: React.ReactNode }, { has
   static getDerivedStateFromError() {
     return { hasError: true };
   }
-  componentDidCatch() {
-    // geen-op: we schakelen over naar fallback UI
-  }
+  componentDidCatch() {}
   render() {
     if (this.state.hasError) return <RisicoNoToast />;
     return this.props.children as React.ReactNode;
   }
 }
 
-/** -------------------------------------------
- *  Default export – veilig met provider óf zonder
- * ------------------------------------------- */
 export default function Risico() {
   return (
     <ToastBoundary>

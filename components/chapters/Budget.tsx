@@ -1,121 +1,191 @@
+// /components/chapters/ChapterBudget.tsx
 "use client";
 
-import React, { useMemo } from "react";
-import useWizardState from "@/lib/stores/useWizardState";
-import type { ChapterKey } from "@/types/wizard";
+import React, { useEffect, useMemo } from "react";
+import { useWizardState } from "@/lib/stores/useWizardState";
+import FocusTarget from "@/components/wizard/FocusTarget";
+import type { ChapterKey } from "@/types/project";
 
 const CHAPTER: ChapterKey = "budget";
 
 type BudgetState = {
-  totaalBudget?: number;
+  budgetTotaal?: number;
   minBudget?: number;
   maxBudget?: number;
-  toelichting?: string;
-  [key: string]: any;
+  notes?: string;
+};
+
+// Zorgt voor consistente basis + optioneel vullen vanuit centrale budgetbron
+const ensure = (
+  prevRaw: BudgetState | undefined
+): BudgetState => {
+  const prev = (prevRaw as BudgetState) || {};
+  return prev;
 };
 
 export default function ChapterBudget() {
-  const chapterAnswers = useWizardState(
-    (s: any) => s.chapterAnswers
-  ) as Record<string, any>;
-  const patchChapterAnswer = useWizardState(
-    (s: any) => s.patchChapterAnswer
-  );
-  const getBudgetValue = useWizardState((s: any) => s.getBudgetValue);
+  // ✅ Individual selectors (no array destructuring, no shallow)
+  const dataRaw = useWizardState((s) => s.chapterAnswers?.[CHAPTER] as BudgetState | undefined);
+  const updateChapterData = useWizardState((s) => s.updateChapterData);
+  const setCurrentChapter = useWizardState((s) => s.setCurrentChapter);
+  const setFocusedField = useWizardState((s) => s.setFocusedField);
+  const currentChapter = useWizardState((s) => s.currentChapter);
 
+  // triage kan in sommige builds ontbreken; selecteer los en tolerant
+  const triage = useWizardState((s) => (s as any).triage);
+
+  // Actief hoofdstuk zetten — met guard om ping-pong te voorkomen
+  useEffect(() => {
+    if (currentChapter !== CHAPTER) setCurrentChapter(CHAPTER);
+  }, [currentChapter, setCurrentChapter]);
+
+  // Consistente state + optioneel vullen vanuit centrale budgetbron
   const state: BudgetState = useMemo(
-    () => ({
-      ...(chapterAnswers?.[CHAPTER] ?? {}),
-      totaalBudget:
-        chapterAnswers?.[CHAPTER]?.totaalBudget ?? getBudgetValue() ?? undefined,
-    }),
-    [chapterAnswers, getBudgetValue]
+    () => ensure(dataRaw),
+    [dataRaw]
   );
 
-  const update = (patch: Partial<BudgetState>) => {
-    patchChapterAnswer?.(CHAPTER, patch);
+  const patch = (patch: Partial<BudgetState>) => {
+    updateChapterData(CHAPTER, (prevRaw) => {
+      const base = ensure(prevRaw as BudgetState | undefined);
+      const next: BudgetState = {
+        ...base,
+        ...patch,
+      };
+
+      // Kleine sanity checks (optioneel, mild)
+      if (
+        typeof next.minBudget === "number" &&
+        typeof next.maxBudget === "number" &&
+        next.minBudget > next.maxBudget
+      ) {
+        // Swap indien per ongeluk omgedraaid
+        return {
+          ...next,
+          minBudget: next.maxBudget,
+          maxBudget: next.minBudget,
+        };
+      }
+
+      return next;
+    });
+  };
+
+  const formatProjectContext = () => {
+    if (!triage) return "";
+    const { projectType, projectSize } = triage;
+    if (!projectType && !projectSize) return "";
+    if (projectType && projectSize) return `${projectType} · ${projectSize}`;
+    return projectType || projectSize || "";
   };
 
   return (
-    <div className="space-y-4 max-w-3xl">
-      <h2 className="text-xl font-semibold">Budget</h2>
-      <p className="text-sm text-muted-foreground">
-        Geef een realistische bandbreedte op. De assistent zorgt dat keuzes in
-        lijn blijven met dit budget.
-      </p>
-
-      {/* Totaalbudget */}
-      <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium">
-          Totaalbudget (globale indicatie)
-        </label>
-        <input
-          type="number"
-          className="border rounded-md px-3 py-2 text-sm"
-          value={state.totaalBudget ?? ""}
-          onChange={(e) =>
-            update({
-              totaalBudget: e.target.value
-                ? Number(e.target.value)
-                : undefined,
-            })
-          }
-          placeholder="Bijvoorbeeld 300000"
-        />
+    <section className="space-y-4 max-w-3xl">
+      {/* Titel + context */}
+      <div className="space-y-1">
+        <h2 className="text-sm md:text-base font-semibold text-gray-900">Budget</h2>
+        <p className="text-xs md:text-sm text-gray-600">
+          Een realistische bandbreedte helpt om <strong>ontwerpkeuzes, materialen en fasering</strong> in lijn te
+          houden met uw mogelijkheden. We gebruiken dit budget ook in de risicocheck en het Programma van Eisen.
+        </p>
+        {formatProjectContext() && (
+          <p className="text-[10px] text-gray-500">Projectcontext: {formatProjectContext()}</p>
+        )}
       </div>
 
-      {/* Min / Max */}
+      {/* Totaalbudget */}
+      <FocusTarget chapter={CHAPTER} fieldId={`${CHAPTER}.budgetTotaal`}>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs md:text-sm font-medium text-gray-800">Totaalbudget (globale indicatie)</label>
+          <input
+            type="number"
+            className="border rounded-md px-3 py-2 text-sm"
+            value={state.budgetTotaal ?? ""}
+            onChange={(e) =>
+              patch({
+                budgetTotaal: e.target.value ? Number(e.target.value) : undefined,
+              })
+            }
+            placeholder="Bijvoorbeeld 300000"
+          />
+          <p className="text-[10px] text-gray-500">
+            Inclusief bouwkosten, aannemer, architect, adviseurs en btw (tenzij u bewust anders noteert bij toelichting).
+          </p>
+        </div>
+      </FocusTarget>
+
+      {/* Min / Max bandbreedte */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium">Minimaal</label>
-          <input
-            type="number"
-            className="border rounded-md px-3 py-2 text-sm"
-            value={state.minBudget ?? ""}
-            onChange={(e) =>
-              update({
-                minBudget: e.target.value
-                  ? Number(e.target.value)
-                  : undefined,
-              })
-            }
-            placeholder="Ondergrens"
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium">Maximaal</label>
-          <input
-            type="number"
-            className="border rounded-md px-3 py-2 text-sm"
-            value={state.maxBudget ?? ""}
-            onChange={(e) =>
-              update({
-                maxBudget: e.target.value
-                  ? Number(e.target.value)
-                  : undefined,
-              })
-            }
-            placeholder="Bovengrens"
-          />
-        </div>
+        <FocusTarget chapter={CHAPTER} fieldId={`${CHAPTER}.minBudget`}>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs md:text-sm font-medium text-gray-800">Minimale raming</label>
+            <input
+              type="number"
+              className="border rounded-md px-3 py-2 text-sm"
+              value={state.minBudget ?? ""}
+              onChange={(e) =>
+                patch({
+                  minBudget: e.target.value ? Number(e.target.value) : undefined,
+                })
+              }
+              placeholder="Ondergrens (bijv. 260000)"
+            />
+            <p className="text-[10px] text-gray-500">Ondergrens waarboven het plan nog haalbaar is.</p>
+          </div>
+        </FocusTarget>
+
+        <FocusTarget chapter={CHAPTER} fieldId={`${CHAPTER}.maxBudget`}>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs md:text-sm font-medium text-gray-800">Maximale raming</label>
+            <input
+              type="number"
+              className="border rounded-md px-3 py-2 text-sm"
+              value={state.maxBudget ?? ""}
+              onChange={(e) =>
+                patch({
+                  maxBudget: e.target.value ? Number(e.target.value) : undefined,
+                })
+              }
+              placeholder="Bovengrens (bijv. 340000)"
+            />
+            <p className="text-[10px] text-gray-500">Boven deze grens wordt het plan oncomfortabel of onrealistisch.</p>
+          </div>
+        </FocusTarget>
       </div>
 
       {/* Toelichting */}
-      <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium">
-          Toelichting (wat valt binnen / buiten het budget?)
-        </label>
-        <textarea
-          className="border rounded-md px-3 py-2 text-sm min-h-[80px]"
-          value={state.toelichting ?? ""}
-          onChange={(e) =>
-            update({
-              toelichting: e.target.value || undefined,
-            })
-          }
-          placeholder="Bijvoorbeeld: exclusief keuken, inclusief installaties, reservering voor meerwerk..."
-        />
+      <FocusTarget chapter={CHAPTER} fieldId={`${CHAPTER}.notes`}>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs md:text-sm font-medium text-gray-800">
+            Toelichting: wat valt binnen / buiten dit budget?
+          </label>
+          <textarea
+            className="border rounded-md px-3 py-2 text-sm min-h-[80px]"
+            value={state.notes ?? ""}
+            onChange={(e) =>
+              patch({
+                notes: e.target.value || undefined,
+              })
+            }
+            placeholder={`Bijvoorbeeld:
+- Inclusief keuken en badkamer, exclusief losse meubels
+- Inclusief installaties en warmtepomp
+- Reservering voor 10-15% onvoorzien`}
+          />
+          <p className="text-[10px] text-gray-500">
+            Deze tekst nemen we letterlijk mee in uw PvE, zodat alle partijen hetzelfde uitgangspunt hanteren.
+          </p>
+        </div>
+      </FocusTarget>
+
+      {/* Hint naar AI / chat */}
+      <div className="text-[10px] text-gray-500 bg-gray-50 border border-dashed rounded-md px-3 py-2">
+        Tip: u kunt in de chat ook zeggen{" "}
+        <span className="italic">
+          "Reken met maximaal 325.000 inclusief verbouwing, maar exclusief keuken."
+        </span>{" "}
+        – dan werken we dit hoofdstuk automatisch bij.
       </div>
-    </div>
+    </section>
   );
 }

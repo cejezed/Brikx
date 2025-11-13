@@ -1,44 +1,102 @@
-// lib/ai/promptTemplates.ts
+// /lib/ai/promptTemplates.ts
+// ✅ BRIKX Build v3.0 - Prompt Builder
+// - 100% type-driven (WizardState, Wish)
+// - Leest kerninfo uit chapterAnswers (basis, wensen)
+// - Respecteert PREVIEW vs PREMIUM gedrag
+// - Geen v2.0 triage / any-lekken
 
-type BuildPromptIn = {
-  mode?: "preview" | "premium";
-  project_type?: string | null;
-  project_size?: string | number | null;
-  wizardState?: any;
-  missing_fields?: string[];
+import type { WizardState, Wish } from "@/types/project";
+import type { MissingItem } from "./missing";
+
+export type BuildPromptIn = {
+  mode?: "PREVIEW" | "PREMIUM" | "preview" | "premium";
+  wizardState?: Partial<WizardState>;
+  missing?: MissingItem[]; // optioneel, voor context over essentials
 };
 
-export function buildPrompt(input: BuildPromptIn) {
-  const {
-    mode = "preview",
-    project_type,
-    project_size,
-    wizardState,
-    missing_fields = [],
-  } = input ?? {};
+export function buildPrompt(input?: BuildPromptIn) {
+  const safeInput = input ?? {};
 
-  const triage = wizardState?.triage ?? {};
-  const wensen = wizardState?.chapterAnswers?.wensen ?? [];
+  const mode =
+    (safeInput.mode || "PREVIEW").toString().toUpperCase() ===
+    "PREMIUM"
+      ? "PREMIUM"
+      : "PREVIEW";
 
+  const wizardState = safeInput.wizardState ?? {};
+
+  const basis: any = wizardState.chapterAnswers?.basis ?? {};
+  const wensenData: any =
+    wizardState.chapterAnswers?.wensen ?? {};
+
+  const projectType = basis.projectType || "-";
+  const projectSize = basis.projectSize || "-";
+  const projectNaam = basis.projectNaam || "-";
+  const locatie = basis.locatie || "-";
+  const currentChapter =
+    wizardState.currentChapter || "basis";
+
+  // Wensen: ga uit van Wish[] met .text, maar fail-safe als het anders is
+  const wensenList: string[] = Array.isArray(
+    wensenData?.wishes
+  )
+    ? (wensenData.wishes as Wish[])
+        .map((w) =>
+          typeof w === "string"
+            ? w
+            : w?.text || ""
+        )
+        .filter((s) => s && s.trim().length > 0)
+    : [];
+
+  const missingSummary =
+    safeInput.missing && safeInput.missing.length
+      ? safeInput.missing
+          .map(
+            (m) =>
+              `${m.label} (${m.chapter})`
+          )
+          .join(", ")
+      : "-";
+
+  // SYSTEM: gedrag van Jules
   const sysBase = [
-    "Je bent Jules, een behulpzame architect-assistent.",
-    "Antwoorden in het Nederlands, kort en to-the-point.",
-    "Lieg niet; als je iets niet zeker weet, geef aan wat de gebruiker kan doen (bv. gemeente/architect raadplegen).",
+    "Je bent Jules, de vaste digitale bouwcoach van Brikx.",
+    "Je praat in het Nederlands.",
+    "Je antwoorden zijn helder, concreet en niet onnodig lang.",
+    "Je verzint geen feiten: als je iets niet zeker weet, zeg dat expliciet en verwijs naar betrouwbare bronnen (gemeente, omgevingsloket, constructeur, architect).",
   ].join(" ");
 
   const sysMode =
-    mode === "premium"
-      ? "Premium-modus: je mag richtwaarden, regelgeving en technische details noemen, maar voeg een korte disclaimer toe."
-      : "Preview-modus: vermijd bedragen en concrete regelgeving; focus op begrippen, volgende stappen en waar de gebruiker info kan vinden.";
+    mode === "PREMIUM"
+      ? [
+          "Je zit in PREMIUM-modus:",
+          "je mag globale richtbedragen, technische diepgang en verwijzingen naar regelgeving geven,",
+          "maar voeg bij bedragen en regels altijd kort een nuance of disclaimer toe.",
+        ].join(" ")
+      : [
+          "Je zit in PREVIEW-modus:",
+          "vermijd concrete bedragen en exacte juridische uitspraken,",
+          "focus op uitleg, opties, aandachtspunten en volgende stappen voor de gebruiker.",
+        ].join(" ");
 
+  // DEVELOPER: gestructureerde context zodat het model state-aware blijft
   const developer = [
-    `Projecttype: ${project_type ?? triage?.projectType ?? "-"}`,
-    `Schaal: ${project_size ?? triage?.projectSize ?? "-"}`,
-    `Ervaring: ${triage?.ervaring ?? "-"}`,
-    `Urgentie: ${triage?.urgentie ?? "-"}`,
-    `Intentie: ${triage?.intent ?? "-"}`,
-    `Bekende wensen: ${Array.isArray(wensen) ? wensen.map((w: any) => w?.titel).filter(Boolean).join(", ") : "-"}`,
-    `Ontbrekende kernvelden: ${missing_fields.join(", ") || "-"}`,
+    "--- CONTEXT ---",
+    `Projectnaam: ${projectNaam}`,
+    `Projecttype: ${projectType}`,
+    `Schaal / omvang: ${projectSize}`,
+    `Locatie: ${locatie}`,
+    `Huidig wizard-hoofdstuk: ${currentChapter}`,
+    `Bekende wensen: ${
+      wensenList.length
+        ? wensenList.join(", ")
+        : "-"
+    }`,
+    `Ontbrekende essentiële velden: ${missingSummary}`,
+    "Gebruik deze context om antwoorden te verankeren in dit specifieke project.",
+    "Verwijs waar zinvol naar relevante hoofdstukken (basis, ruimtes, wensen, budget, techniek, duurzaam, risico) in plaats van losstaande adviezen.",
+    "--- EINDE CONTEXT ---",
   ].join("\n");
 
   return {

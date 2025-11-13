@@ -1,32 +1,30 @@
-// components/wizard/NudgeBanner.tsx
+// /components/wizard/NudgeBanner.tsx
+// ✅ 100% v3.0 Conform
+
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { groupMissingByChapter, nextMissing, MissingItem } from "@/lib/ai/missing";
 import { useWizardState } from "@/lib/stores/useWizardState";
-import { useUiStore } from "@/lib/stores/useUiStore";
 import { logEvent } from "@/lib/logging/logEvent";
 
 /**
  * NudgeBanner toont boven het Canvas welke essentiële velden nog ontbreken
  * (globaal en/of per huidig hoofdstuk) en biedt directe knoppen om te focussen.
- *
- * - Werkt samen met Spotlight (setFocusedField)
- * - Past taal "u/uw" toe
- * - Logt nudge-clicks
  */
 
 export default function NudgeBanner() {
-  const wizardState = useWizardState();
-  const currentChapter = useUiStore(s => s.currentChapter);
-  const setFocusedField = useUiStore(s => s.setFocusedField);
+  // ✅ v3.0: Lees *alle* state uit de centrale store
+  const wizardState = useWizardState(); // Voor de 'group' en 'next' functies
+  const currentChapter = useWizardState(s => s.currentChapter);
+  const setFocusedField = useWizardState(s => s.setFocusedField);
 
   const grouped = useMemo(() => groupMissingByChapter(wizardState), [wizardState]);
   const next = useMemo(() => nextMissing(wizardState, currentChapter), [wizardState, currentChapter]);
 
   const [collapsed, setCollapsed] = useState(false);
 
-  // Automatisch tonen als er iets essentieels mist in het huidige hoofdstuk of globaal
+  // Automatisch tonen als er iets essentieels mist
   useEffect(() => {
     if (!next) return;
     setCollapsed(false);
@@ -38,8 +36,11 @@ export default function NudgeBanner() {
   const currentList: MissingItem[] = currentChapter ? (grouped[currentChapter] ?? []) : [];
 
   function goTo(item: MissingItem) {
-    // ✅ FIX: setFocusedField verwacht string format "chapter:fieldId"
-    setFocusedField(`${item.chapter}:${item.fieldId}`);
+    const focusKey = `${item.chapter}:${item.fieldId}`;
+    
+    // ✅ v3.0 FIX: Cast de string naar het specifieke type dat de store verwacht
+    setFocusedField(focusKey as `${string}:${string}`);
+    
     logEvent("nudge.goto_field", { chapter: item.chapter, fieldId: item.fieldId, source: "nudge_banner" });
   }
 

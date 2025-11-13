@@ -29,10 +29,11 @@ export default function BrikxHeaderLanding() {
             {/* Desktop nav */}
             <nav className="hidden md:flex gap-6 items-center">
               <Link href="/" className="text-white hover:text-[#4db8ba]">Home</Link>
-              <a href="/#voordelen" className="text-white hover:text-[#4db8ba]">Voordelen</a>
-              <a href="/#werkwijze" className="text-white hover:text-[#4db8ba]">Hoe werkt het</a>
-              <a href="/#prijzen" className="text-white hover:text-[#4db8ba]">Prijzen</a>
-              <a href="/#faq" className="text-white hover:text-[#4db8ba]">FAQ</a>
+              {/* 💡 FIX: <a> tags vervangen door <Link> */}
+              <Link href="/#voordelen" className="text-white hover:text-[#4db8ba]">Voordelen</Link>
+              <Link href="/#werkwijze" className="text-white hover:text-[#4db8ba]">Hoe werkt het</Link>
+              <Link href="/#prijzen" className="text-white hover:text-[#4db8ba]">Prijzen</Link>
+              <Link href="/#faq" className="text-white hover:text-[#4db8ba]">FAQ</Link>
               <Link
                 href="/login"
                 className="bg-[#4db8ba] hover:bg-[#3da7a9] text-white px-5 py-2 rounded-[22px] font-medium"
@@ -59,10 +60,11 @@ export default function BrikxHeaderLanding() {
         <div className="md:hidden bg-[#0d3d4d] shadow-md">
           <div className="mx-auto max-w-[1500px] px-6 py-4 flex flex-col gap-3">
             <Link href="/" onClick={() => setOpen(false)} className="text-white hover:text-[#4db8ba]">Home</Link>
-            <a href="/#voordelen" onClick={() => setOpen(false)} className="text-white hover:text-[#4db8ba]">Voordelen</a>
-            <a href="/#werkwijze" onClick={() => setOpen(false)} className="text-white hover:text-[#4db8ba]">Hoe werkt het</a>
-            <a href="/#prijzen" onClick={() => setOpen(false)} className="text-white hover:text-[#4db8ba]">Prijzen</a>
-            <a href="/#faq" onClick={() => setOpen(false)} className="text-white hover:text-[#4db8ba]">FAQ</a>
+            {/* 💡 FIX: <a> tags vervangen door <Link> */}
+            <Link href="/#voordelen" onClick={() => setOpen(false)} className="text-white hover:text-[#4db8ba]">Voordelen</Link>
+            <Link href="/#werkwijze" onClick={() => setOpen(false)} className="text-white hover:text-[#4db8ba]">Hoe werkt het</Link>
+            <Link href="/#prijzen" onClick={() => setOpen(false)} className="text-white hover:text-[#4db8ba]">Prijzen</Link>
+            <Link href="/#faq" onClick={() => setOpen(false)} className="text-white hover:text-[#4db8ba]">FAQ</Link>
             <Link
               href="/login"
               onClick={() => setOpen(false)}

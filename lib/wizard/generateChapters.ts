@@ -1,44 +1,88 @@
-// /lib/generateChapters.ts
+// /lib/wizard/generateChapters.ts
+// BRIKX Build v3.0 - Dynamische chapter flow o.b.v. Shared Brain
+//
+// Principes:
+// - Input = volledige WizardState (geen aparte triage-objecten).
+// - Flow past zich aan op basis van BasisData.projectType.
+// - Alleen geldige ChapterKeys: 'basis' | 'ruimtes' | 'wensen' | 'budget' | 'techniek' | 'duurzaam' | 'risico'.
+// - Geen 'preview' als chapter; dat is puur UI/route.
 
-import type { ChapterKey, TriageData } from "@/types/chat";
+import type { ChapterKey, WizardState, BasisData } from "@/types/project";
 
-/**
- * Generate chapter flow op basis van triage.
- *
- * Build v2.0 principes:
- * - Altijd AI-First Triage (intake) → bepaalt volgorde.
- * - Preview users krijgen basis-flow.
- * - Premium / complexere cases kunnen later uitgebreid worden.
- *
- * Deze implementatie is bewust deterministisch en simpel,
- * zodat server & client exact dezelfde volgorde delen.
- */
-export function generateChapters(triage: TriageData | undefined): ChapterKey[] {
-  const flow: ChapterKey[] = [];
+export function generateChapters(wizardState: WizardState): ChapterKey[] {
+  const basis = wizardState.chapterAnswers.basis as BasisData | undefined;
+  const projectType = basis?.projectType; // 'nieuwbouw' | 'verbouwing' | 'bijgebouw' | 'hybride' | 'anders'
 
-  // 1) Basis is altijd eerst
-  flow.push("basis");
+  const flow: ChapterKey[] = [
+    "basis",
+    "ruimtes",
+    "wensen",
+    "budget",
+  ];
 
-  // 2) Wensen en Ruimtes vrijwel altijd relevant
-  flow.push("wensen", "ruimtes");
-
-  // 3) Budget altijd meenemen (centrale as)
-  flow.push("budget");
-
-  // 4) Condities op basis van projectType e.d.
-  const type = triage?.projectType?.toLowerCase() ?? "";
-
-  if (type.includes("nieuwbouw") || type.includes("uitbouw") || type.includes("verbouwing")) {
-    flow.push("techniek");
-    flow.push("duurzaam");
+  // Techniek & Duurzaam bij “serieuze” schil/gebouw-ingrepen
+  if (
+    projectType === "nieuwbouw" ||
+    projectType === "verbouwing" ||
+    projectType === "bijgebouw" ||
+    projectType === "hybride"
+  ) {
+    flow.push("techniek", "duurzaam");
   }
 
-  // 5) Risico-module altijd beschikbaar als checklaag (Build v2.0 Pijler 4)
-  flow.push("risico");
+  // Risico alleen bij complexere trajecten
+  if (
+    projectType === "nieuwbouw" ||
+    projectType === "verbouwing" ||
+    projectType === "hybride"
+  ) {
+    flow.push("risico");
+  }
 
-  // 6) Preview & export samenvatting
-  flow.push("preview");
+  // Dedup + guard op geldige keys
+  const seen = new Set<ChapterKey>();
+  const ordered: ChapterKey[] = [];
 
-  // Uniek + stabiele volgorde
-  return Array.from(new Set(flow));
+  for (const ch of flow) {
+    if (
+      (ch === "basis" ||
+        ch === "ruimtes" ||
+        ch === "wensen" ||
+        ch === "budget" ||
+        ch === "techniek" ||
+        ch === "duurzaam" ||
+        ch === "risico") &&
+      !seen.has(ch)
+    ) {
+      seen.add(ch);
+      ordered.push(ch);
+    }
+  }
+
+  return ordered;
+}
+
+export function isChapterInFlow(
+  chapter: ChapterKey,
+  wizardState: WizardState
+): boolean {
+  return generateChapters(wizardState).includes(chapter);
+}
+
+export function getNextChapter(
+  current: ChapterKey,
+  wizardState: WizardState
+): ChapterKey | undefined {
+  const flow = generateChapters(wizardState);
+  const idx = flow.indexOf(current);
+  return idx >= 0 && idx < flow.length - 1 ? flow[idx + 1] : undefined;
+}
+
+export function getPreviousChapter(
+  current: ChapterKey,
+  wizardState: WizardState
+): ChapterKey | undefined {
+  const flow = generateChapters(wizardState);
+  const idx = flow.indexOf(current);
+  return idx > 0 ? flow[idx - 1] : undefined;
 }

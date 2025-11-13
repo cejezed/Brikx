@@ -1,79 +1,70 @@
-// lib/drafts/api.ts
-// Build v2.0 — drafts API helpers (frontend). Defensief & store-los waar mogelijk.
+// /lib/drafts/api.ts
+// ============================================================================
+// BRIKX Build v3.1 – Drafts API helpers (authenticated)
+// - Gebruikt WizardState als bron van waarheid
+// - Vereist dat backend endpoints userId uit sessie halen
+// - Geen v2-legacy, geen any-magic
+// ============================================================================
+
+"use client";
 
 import { useWizardState } from "@/lib/stores/useWizardState";
-
-/** ===== Types ===== */
-export type Archetype =
-  | "nieuwbouw"
-  | "verbouwing"
-  | "aanbouw"
-  | "renovatie"
-  | "interieur"
-  | string;
+import type {
+  WizardState,
+  ChapterKey,
+  ChapterDataMap,
+} from "@/types/project";
 
 export type DraftRow = {
   id: string;
   title: string;
-  updated_at: string;   // ISO string
-  created_at?: string;  // ISO string
+  updated_at: string; // ISO
+  created_at?: string;
 };
 
+// Wat we naar de server sturen
 export type DraftPayload = {
-  triage: Record<string, any> | undefined;
-  archetype: Archetype | null;
-  chapterFlow: string[];
-  currentChapter: string | null;
-  chapterAnswers: Record<string, any>;
-  stateVersion?: number;
+  wizardState: Partial<WizardState>;
 };
 
-/** ===== Local helpers ===== */
-function inferArchetypeFromTriage(triage: any): Archetype | null {
-  if (triage && typeof triage.archetype === "string" && triage.archetype.trim()) {
-    return triage.archetype as Archetype;
-  }
-  const pt = triage?.projectType;
-  const list: string[] = Array.isArray(pt) ? pt : pt ? [pt] : [];
-  for (const v of list) {
-    const k = String(v).toLowerCase();
-    if (["nieuwbouw", "verbouwing", "aanbouw", "renovatie", "interieur"].includes(k)) {
-      return k as Archetype;
-    }
-  }
-  return null;
-}
+// ─────────────────────────────────────────────────────────────
+// Snapshot van de huidige wizard-state
+// ─────────────────────────────────────────────────────────────
 
-/** Bouw een payload uit de huidige wizard-store (defensief). */
-export function buildDraftPayload(): DraftPayload {
-  const s = useWizardState.getState() as any;
-
-  const triage = s?.triage;
-  const archetype = inferArchetypeFromTriage(triage);
-
+function buildWizardSnapshot(): Partial<WizardState> {
+  const s = useWizardState.getState();
   return {
-    triage,
-    archetype,
-    chapterFlow: Array.isArray(s?.chapterFlow) ? s.chapterFlow : [],
-    currentChapter: typeof s?.currentChapter === "string" ? s.currentChapter : null,
-    chapterAnswers: (s?.chapterAnswers as Record<string, any>) ?? {},
-    stateVersion: typeof s?.stateVersion === "number" ? s.stateVersion : undefined,
+    stateVersion: s.stateVersion,
+    chapterAnswers: s.chapterAnswers,
+    currentChapter: s.currentChapter,
+    chapterFlow: s.chapterFlow,
+    mode: s.mode,
+    triage: s.triage,
   };
 }
 
-/** ===== Network helpers (verwacht bestaande Next.js API routes) ===== */
-/** Lijst alle drafts in de huidige (anonieme) sessie. */
-export async function listDrafts(endpoint = "/api/drafts/list"): Promise<DraftRow[]> {
+export function buildDraftPayload(): DraftPayload {
+  return { wizardState: buildWizardSnapshot() };
+}
+
+// ─────────────────────────────────────────────────────────────
+// API calls (verwachten AUTH op backend)
+// ─────────────────────────────────────────────────────────────
+
+export async function listDrafts(
+  endpoint = "/api/drafts/list"
+): Promise<DraftRow[]> {
   const res = await fetch(endpoint, { method: "GET" });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`listDrafts failed: ${res.status} ${res.statusText} ${text}`);
+    throw new Error(
+      `listDrafts failed: ${res.status} ${res.statusText} ${text}`
+    );
   }
   const rows = (await res.json().catch(() => [])) as DraftRow[];
   return Array.isArray(rows) ? rows : [];
 }
 
-/** Genereer payload en sla op; retourneert de aangemaakte/gewijzigde row. */
 export async function saveCurrentWizardAsDraft(
   title?: string,
   endpoint = "/api/drafts/save"
@@ -86,28 +77,38 @@ export async function saveCurrentWizardAsDraft(
     body: JSON.stringify({ title, payload }),
     keepalive: true,
   });
+
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`saveDraft failed: ${res.status} ${res.statusText} ${text}`);
+    throw new Error(
+      `saveDraft failed: ${res.status} ${res.statusText} ${text}`
+    );
   }
-  // backend mag DraftRow of {row: DraftRow} teruggeven – beide ondersteunen
+
   const data = await res.json().catch(() => ({}));
   const row: DraftRow = (data?.row ?? data) as DraftRow;
-  if (!row || !row.id) throw new Error("saveDraft: ongeldige serverrespons");
+
+  if (!row || !row.id) {
+    throw new Error("saveDraft: ongeldige serverrespons");
+  }
+
   return row;
 }
 
-/** Verwijder een draft op id. */
-export async function deleteDraft(id: string, endpoint = "/api/drafts/delete"): Promise<void> {
+export async function deleteDraft(
+  id: string,
+  endpoint = "/api/drafts/delete"
+): Promise<void> {
   const url = `${endpoint}?id=${encodeURIComponent(id)}`;
   const res = await fetch(url, { method: "DELETE" });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`deleteDraft failed: ${res.status} ${res.statusText} ${text}`);
+    throw new Error(
+      `deleteDraft failed: ${res.status} ${res.statusText} ${text}`
+    );
   }
 }
 
-/** Hernoem een draft. */
 export async function updateDraft(
   id: string,
   title: string,
@@ -120,72 +121,84 @@ export async function updateDraft(
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`updateDraft failed: ${res.status} ${res.statusText} ${text}`);
+    throw new Error(
+      `updateDraft failed: ${res.status} ${res.statusText} ${text}`
+    );
   }
 }
 
-/** Laad een draftpayload en zet ‘m terug in de wizard-store. */
+// ─────────────────────────────────────────────────────────────
+// Draft laden -> wizard-store vullen
+// ─────────────────────────────────────────────────────────────
+
 export async function loadDraftIntoWizard(
   id: string,
   endpoint = "/api/drafts/load"
 ): Promise<DraftPayload> {
   const url = `${endpoint}?id=${encodeURIComponent(id)}`;
   const res = await fetch(url, { method: "GET" });
+
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`loadDraft failed: ${res.status} ${res.statusText} ${text}`);
+    throw new Error(
+      `loadDraft failed: ${res.status} ${res.statusText} ${text}`
+    );
   }
-  const payload = (await res.json().catch(() => ({}))) as Partial<DraftPayload>;
 
-  // Defensieve toepassing op de store
-  const store = useWizardState.getState() as any;
-  const patchTriage = store?.patchTriage as ((d: Record<string, any>) => void) | undefined;
-  const patchChapterAnswer = store?.patchChapterAnswer as
-    | ((chapter: string, delta: Record<string, any>) => void)
-    | undefined;
-  const goToChapter = store?.goToChapter as ((ch: string) => void) | undefined;
-  const setChapterFlow = store?.setChapterFlow as ((flow: string[]) => void) | undefined;
+  const raw = await res.json().catch(() => ({} as any));
 
-  if (payload.triage && typeof patchTriage === "function") {
-    patchTriage(payload.triage);
+  const payload: DraftPayload =
+    "wizardState" in raw
+      ? (raw as DraftPayload)
+      : { wizardState: raw as Partial<WizardState> };
+
+  const { wizardState } = payload;
+  const store = useWizardState.getState();
+
+  // Reset eerst naar een schone basis
+  store.reset();
+
+  // Triages & meta
+  if (wizardState.triage) {
+    store.setTriage(wizardState.triage);
   }
-  if (payload.chapterAnswers && typeof patchChapterAnswer === "function") {
-    for (const [chapter, delta] of Object.entries(payload.chapterAnswers)) {
-      patchChapterAnswer(chapter, delta as Record<string, any>);
+
+  if (Array.isArray(wizardState.chapterFlow)) {
+    store.setChapterFlow(
+      wizardState.chapterFlow as ChapterKey[]
+    );
+  }
+
+  if (
+    wizardState.chapterAnswers &&
+    typeof wizardState.chapterAnswers === "object"
+  ) {
+    const answers =
+      wizardState.chapterAnswers as Partial<ChapterDataMap>;
+    for (const [chapter, data] of Object.entries(answers)) {
+      if (!data) continue;
+      store.updateChapterData(
+        chapter as ChapterKey,
+        () => data as any
+      );
     }
   }
-  if (Array.isArray(payload.chapterFlow) && typeof setChapterFlow === "function") {
-    setChapterFlow(payload.chapterFlow);
-  }
-  if (payload.currentChapter && typeof goToChapter === "function") {
-    goToChapter(payload.currentChapter);
+
+  if (wizardState.currentChapter) {
+    store.setCurrentChapter(
+      wizardState.currentChapter as ChapterKey
+    );
   }
 
-  // Geef een volledig, veilige payload terug aan de aanroeper
-  return {
-    triage: payload.triage ?? {},
-    archetype: payload.archetype ?? inferArchetypeFromTriage(payload.triage) ?? null,
-    chapterFlow: Array.isArray(payload.chapterFlow) ? payload.chapterFlow : [],
-    currentChapter:
-      typeof payload.currentChapter === "string" ? payload.currentChapter : null,
-    chapterAnswers: payload.chapterAnswers ?? {},
-    stateVersion:
-      typeof payload.stateVersion === "number" ? payload.stateVersion : undefined,
-  };
+  if (wizardState.mode) {
+    store.setMode(wizardState.mode);
+  }
+
+  return payload;
 }
 
-/** Eenvoudige helpers die je evt. elders nog gebruikt (compat-laag) */
+// Optionele korte helpers
 export async function saveDraft(endpoint = "/api/drafts/save") {
   const row = await saveCurrentWizardAsDraft(undefined, endpoint);
   return { id: row.id, ok: true };
-}
-
-export async function loadDraft(endpoint = "/api/drafts/load") {
-  // zonder id heeft dit weinig zin; bewaar voor backward-compat als noop
-  const res = await fetch(endpoint, { method: "GET" });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`loadDraft failed: ${res.status} ${res.statusText} ${text}`);
-  }
-  return (await res.json().catch(() => ({}))) as Partial<DraftPayload>;
 }

@@ -1,232 +1,270 @@
+// /components/chapters/ChapterBasis.tsx
+// ✅ v3.0 Conform: Met onFocus-handlers om de ExpertCorner te activeren
+
 "use client";
 
-import React, { useEffect, useMemo } from "react";
-import useWizardState from "@/lib/stores/useWizardState";
+import React, { useEffect } from "react";
+import { useWizardState } from "@/lib/stores/useWizardState";
+import { generateChapters } from "@/lib/wizard/generateChapters";
+import type { ChapterKey, BasisData, BudgetData } from "@/types/project";
 import FocusTarget from "@/components/wizard/FocusTarget";
-import { useUiStore } from "@/lib/stores/useUiStore";
+import ChapterControls from "@/components/wizard/ChapterControls";
+// ✅ v3.0: Importeer de focus-helper
+import { createFocusKey } from "@/lib/wizard/focusKeyHelper";
 
-type BasisAnswers = {
-  projectNaam?: string;
-  locatie?: string;
-  oppervlakteM2?: number | "";
-  bewonersAantal?: number | "";
-  startMaand?: string;
-  budgetIndicatie?: number | null;
-  toelichting?: string;
-};
+const CHAPTER: ChapterKey = "basis";
 
 export default function ChapterBasis() {
-  const chapterAnswers = useWizardState(
-    (s: any) => s.chapterAnswers
-  ) as Record<string, any>;
-  const patchChapterAnswer = useWizardState(
-    (s: any) => s.patchChapterAnswer
+  // Losse selectors
+  const basisRaw = useWizardState(
+    (s) => s.chapterAnswers.basis as BasisData | undefined
   );
-  const triage = useWizardState((s: any) => s.triage);
-  const { setCurrentChapter } = useUiStore();
+  const budgetRaw = useWizardState(
+    (s) => s.chapterAnswers.budget as BudgetData | undefined
+  );
+  const chapterFlowRaw = useWizardState((s) => s.chapterFlow);
+  const updateChapterData = useWizardState((s) => s.updateChapterData);
+  const setCurrentChapter = useWizardState((s) => s.setCurrentChapter);
+  const setChapterFlow = useWizardState((s) => s.setChapterFlow);
+  const currentChapter = useWizardState((s) => s.currentChapter);
 
+  // ✅ STAP 1: Haal de setter voor de ExpertCorner op
+  const setFocusedField = useWizardState((s) => s.setFocusedField);
+
+  // Fallbacks
+  const basisData: BasisData = basisRaw ?? ({} as BasisData);
+  const budgetData: BudgetData = budgetRaw ?? ({} as BudgetData);
+  const chapterFlow = chapterFlowRaw ?? [];
+
+  // ✅ Loop-veilige hook: stelt alleen in als dit niet de actieve chapter is
   useEffect(() => {
-    setCurrentChapter?.("basis");
-  }, [setCurrentChapter]);
+    if (currentChapter !== CHAPTER) setCurrentChapter(CHAPTER);
+  }, [currentChapter, setCurrentChapter]);
 
-  const basis: BasisAnswers = useMemo(
-    () => ({ ...(chapterAnswers?.basis ?? {}) }),
-    [chapterAnswers?.basis]
-  );
+  // ✅ Loop-veilige hook: update de flow alleen als het projectType wijzigt
+  useEffect(() => {
+    const state = useWizardState.getState();
+    const newFlow = generateChapters(state);
+    const same =
+      newFlow.length === chapterFlow.length &&
+      newFlow.every((v, i) => v === chapterFlow[i]);
+    if (!same) setChapterFlow(newFlow);
+  }, [basisData?.projectType, chapterFlow, setChapterFlow]);
 
-  function update<K extends keyof BasisAnswers>(key: K, value: BasisAnswers[K]) {
-    patchChapterAnswer?.("basis", { [key]: value });
-  }
+  // ✅ v3.0 Unified updater (alle Basis-velden behalve budget)
+  const update = <K extends keyof BasisData>(field: K, value: BasisData[K]) => {
+    updateChapterData(CHAPTER, (prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
 
-  function updateBudget(val: number | null) {
-    patchChapterAnswer?.("basis", { budgetIndicatie: val });
-    // sync naar Budget-hoofdstuk met sleutel totaalBudget
-    patchChapterAnswer?.("budget", {
-      totaalBudget: val ?? undefined,
-    });
-  }
+  // ✅ Specifieke handler voor budget:
+  // schrijft DIRECT naar budget.budgetTotaal zodat Basis & Budget dezelfde bron delen
+  const updateBudget = (raw: string) => {
+    const val =
+      raw.trim() === "" ? undefined : Number(raw.replace(/\D+/g, ""));
+    updateChapterData("budget", (prev) => ({
+      ...prev,
+      budgetTotaal: val,
+    }));
+  };
 
-  const budgetFromStore = useMemo(
-    () => chapterAnswers?.budget?.totaalBudget ?? null,
-    [chapterAnswers?.budget?.totaalBudget]
-  );
-
-  const projectTypeLabel = useMemo(() => {
-    const map: Record<string, string> = {
-      nieuwbouw: "Nieuwbouw",
-      verbouwing: "Verbouwing",
-      hybride: "Hybride / combinatie",
-      nieuwbouw_woning: "Nieuwbouw",
-      complete_renovatie: "Renovatie",
-      bijgebouw: "Bijgebouw",
-      verbouwing_zolder: "Zolderverbouwing",
-      hybride_project: "Hybride",
-    };
-    const raw =
-      (triage as any)?.projectType ??
-      (triage as any)?.project_type ??
-      (triage as any)?.archetype;
-    return map[String(raw)] ?? "—";
-  }, [triage]);
+  // ✅ STAP 2: Helper-functie voor focus
+  const handleFocus = (fieldId: keyof BasisData) => {
+    setFocusedField(createFocusKey(CHAPTER, fieldId));
+  };
 
   return (
     <section className="space-y-6 max-w-3xl">
-      <FocusTarget chapter="basis" fieldId="__chapterTop">
-        <div />
+      {/* Header */}
+      <FocusTarget chapter={CHAPTER} fieldId="__header">
+        <header className="space-y-1">
+          <h1 className="text-xl font-semibold text-slate-900">Start uw project</h1>
+          <p className="text-sm text-slate-600">
+            Vertel ons de basisgegevens. De wizard past zich automatisch aan op
+            basis van uw keuzes.
+          </p>
+        </header>
       </FocusTarget>
 
-      <div className="rounded-xl border border-neutral-200 p-4 bg-neutral-50">
-        <p className="text-sm text-neutral-700">
-          <span className="font-medium">Intake-overzicht:</span> Projecttype{" "}
-          <span className="font-medium">{projectTypeLabel}</span>, Budget{" "}
-          <span className="font-medium">
-            €
-            {Number(
-              budgetFromStore ??
-                basis?.budgetIndicatie ??
-                (triage as any)?.budget ??
-                0
-            ).toLocaleString("nl-NL")}
-          </span>
-          .
+      {/* PROJECT TYPE */}
+      <FocusTarget chapter={CHAPTER} fieldId="projectType">
+        <label className="block text-sm font-medium text-slate-800">
+          Wat voor project wilt u uitwerken?
+        </label>
+        <select
+          className="w-full rounded-md border px-3 py-2 text-sm"
+          value={basisData?.projectType ?? ""}
+          // ✅ STAP 3: Voeg onFocus toe
+          onFocus={() => handleFocus("projectType")}
+          onChange={(e) =>
+            update("projectType", e.target.value as BasisData["projectType"])
+          }
+        >
+          <option value="">Kies een optie…</option>
+          <option value="nieuwbouw">Nieuwbouw woning</option>
+          <option value="verbouwing">Verbouwing / renovatie</option>
+          <option value="bijgebouw">Bijgebouw / uitbreiding</option>
+          <option value="hybride">Hybride / combinatie</option>
+          <option value="anders">Anders / weet ik nog niet precies</option>
+        </select>
+        <p className="text-xs text-slate-500 mt-1">
+          Uw keuze bepaalt welke hoofdstukken hierboven verschijnen.
         </p>
-        <p className="text-xs text-neutral-500 mt-1">
-          Aanpassen kan altijd in de betreffende hoofdstukken.
-        </p>
-      </div>
+      </FocusTarget>
 
-      {/* Projectnaam */}
-      <FocusTarget chapter="basis" fieldId="projectNaam">
+      {/* PROJECT NAME */}
+      <FocusTarget chapter={CHAPTER} fieldId="projectNaam">
         <label className="block">
           <span className="block text-sm font-medium mb-1">
-            Projectnaam
+            Projectnaam (optioneel)
           </span>
           <input
             className="w-full border rounded px-3 py-2 text-sm"
-            value={basis.projectNaam ?? ""}
+            value={basisData?.projectNaam ?? ""}
+            // ✅ STAP 3: Voeg onFocus toe
+            onFocus={() => handleFocus("projectNaam")}
             onChange={(e) => update("projectNaam", e.target.value)}
             placeholder="Bijv. Renovatie woning Van Dijk"
           />
         </label>
       </FocusTarget>
 
-      {/* Locatie */}
-      <FocusTarget chapter="basis" fieldId="locatie">
+      {/* LOCATION */}
+      <FocusTarget chapter={CHAPTER} fieldId="locatie">
         <label className="block">
           <span className="block text-sm font-medium mb-1">
-            Locatie / adres
+            Locatie / adres (optioneel)
           </span>
           <input
             className="w-full border rounded px-3 py-2 text-sm"
-            value={basis.locatie ?? ""}
+            value={basisData?.locatie ?? ""}
+            // ✅ STAP 3: Voeg onFocus toe
+            onFocus={() => handleFocus("locatie")}
             onChange={(e) => update("locatie", e.target.value)}
-            placeholder="Straat + plaats (optioneel)"
+            placeholder="Straat + plaats"
           />
         </label>
       </FocusTarget>
 
-      {/* Oppervlakte + bewoners */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FocusTarget chapter="basis" fieldId="oppervlakteM2">
-          <label className="block">
-            <span className="block text-sm font-medium mb-1">
-              Oppervlakte (m², indicatie)
-            </span>
-            <input
-              inputMode="numeric"
-              pattern="[0-9]*"
-              className="w-full border rounded px-3 py-2 text-sm"
-              value={basis.oppervlakteM2 ?? ""}
-              onChange={(e) =>
-                update(
-                  "oppervlakteM2",
-                  e.target.value === ""
-                    ? ""
-                    : Number(e.target.value.replace(/\D+/g, ""))
-                )
-              }
-              placeholder="bijv. 120"
-            />
-          </label>
-        </FocusTarget>
-
-        <FocusTarget chapter="basis" fieldId="bewonersAantal">
-          <label className="block">
-            <span className="block text-sm font-medium mb-1">
-              Aantal bewoners (indicatie)
-            </span>
-            <input
-              inputMode="numeric"
-              pattern="[0-9]*"
-              className="w-full border rounded px-3 py-2 text-sm"
-              value={basis.bewonersAantal ?? ""}
-              onChange={(e) =>
-                update(
-                  "bewonersAantal",
-                  e.target.value === ""
-                    ? ""
-                    : Number(e.target.value.replace(/\D+/g, ""))
-                )
-              }
-              placeholder="bijv. 4"
-            />
-          </label>
-        </FocusTarget>
-      </div>
-
-      {/* Start + Budget */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FocusTarget chapter="basis" fieldId="startMaand">
-          <label className="block">
-            <span className="block text-sm font-medium mb-1">
-              Gewenste start (maand)
-            </span>
-            <input
-              type="month"
-              className="w-full border rounded px-3 py-2 text-sm"
-              value={basis.startMaand ?? ""}
-              onChange={(e) => update("startMaand", e.target.value)}
-            />
-          </label>
-        </FocusTarget>
-
-        <FocusTarget chapter="basis" fieldId="budgetIndicatie">
-          <label className="block">
-            <span className="block text-sm font-medium mb-1">
-              Budget (indicatie)
-            </span>
-            <input
-              inputMode="numeric"
-              pattern="[0-9]*"
-              className="w-full border rounded px-3 py-2 text-sm"
-              value={budgetFromStore ?? ""}
-              onChange={(e) => {
-                const raw = e.target.value.replace(/\D+/g, "");
-                updateBudget(raw === "" ? null : Number(raw));
-              }}
-              placeholder="bijv. 250000"
-            />
-            <span className="block text-xs text-neutral-500 mt-1">
-              Gesynchroniseerd met het hoofdstuk Budget.
-            </span>
-          </label>
-        </FocusTarget>
-      </div>
-
-      {/* Toelichting */}
-      <FocusTarget chapter="basis" fieldId="toelichting">
+      {/* BUDGET */}
+      <FocusTarget chapter={CHAPTER} fieldId="budget">
         <label className="block">
           <span className="block text-sm font-medium mb-1">
-            Korte toelichting
+            Richtbudget (globaal)
+          </span>
+          <div className="flex gap-2 items-center">
+            <span className="text-sm text-slate-500">€</span>
+            <input
+              inputMode="numeric"
+              pattern="[0-9]*"
+              className="w-full rounded-md border px-3 py-2 text-sm"
+              // ⬇️ leest nu uit budget.budgetTotaal (zelfde bron als Budget-hoofdstuk)
+              value={budgetData?.budgetTotaal ?? ""}
+              // ✅ STAP 3: Voeg onFocus toe
+              onFocus={() => handleFocus("budget")}
+              onChange={(e) => updateBudget(e.target.value)}
+              placeholder="bijv. 250000"
+            />
+          </div>
+          <p className="text-xs text-slate-500 mt-1">
+            Dit wordt de basis voor het <strong>Budget</strong>-hoofdstuk.
+          </p>
+        </label>
+      </FocusTarget>
+
+      {/* PROJECT SIZE */}
+      <FocusTarget chapter={CHAPTER} fieldId="projectSize">
+        <label className="block text-sm font-medium text-slate-800">
+          Hoe groot is het ongeveer?
+        </label>
+        <select
+          className="w-full rounded-md border px-3 py-2 text-sm"
+          value={basisData?.projectSize ?? ""}
+          // ✅ STAP 3: Voeg onFocus toe
+          onFocus={() => handleFocus("projectSize")}
+          onChange={(e) =>
+            update("projectSize", e.target.value as BasisData["projectSize"])
+          }
+        >
+          <option value="">Kies een categorie…</option>
+          <option value="<75m2">Compact (&lt; 75 m²)</option>
+          <option value="75-150m2">Normaal (75–150 m²)</option>
+          <option value="150-250m2">Ruim (150–250 m²)</option>
+          <option value=">250m2">Groot (&gt; 250 m²)</option>
+        </select>
+      </FocusTarget>
+
+      {/* URGENCY */}
+      <FocusTarget chapter={CHAPTER} fieldId="urgency">
+        <label className="block text-sm font-medium text-slate-800">
+          Wanneer wilt u ongeveer starten?
+        </label>
+        <select
+          className="w-full rounded-md border px-3 py-2 text-sm"
+          value={basisData?.urgency ?? ""}
+          // ✅ STAP 3: Voeg onFocus toe
+          onFocus={() => handleFocus("urgency")}
+          onChange={(e) =>
+            update("urgency", e.target.value as BasisData["urgency"])
+          }
+        >
+          <option value="">Kies een indicatie…</option>
+          <option value="<3mnd">Binnen 3 maanden</option>
+          <option value="3-6mnd">Binnen 3–6 maanden</option>
+          <option value="6-12mnd">Binnen 6–12 maanden</option>
+          <option value=">12mnd">Langer dan 12 maanden</option>
+          <option value="onzeker">Nog geen idee</option>
+        </select>
+      </FocusTarget>
+
+      {/* EXPERIENCE */}
+      <FocusTarget chapter={CHAPTER} fieldId="ervaring">
+        <label className="block text-sm font-medium text-slate-800">
+          Hoe ervaren bent u met bouwprojecten?
+        </label>
+        <select
+          className="w-full rounded-md border px-3 py-2 text-sm"
+          value={basisData?.ervaring ?? ""}
+          // ✅ STAP 3: Voeg onFocus toe
+          onFocus={() => handleFocus("ervaring")}
+          onChange={(e) =>
+            update("ervaring", e.target.value as BasisData["ervaring"])
+          }
+        >
+          <option value="">Kies een optie…</option>
+          <option value="starter">Dit is mijn eerste keer</option>
+          <option value="enigszins">Ik heb eerder een project gedaan</option>
+          <option value="ervaren">Ik ben zeer ervaren / professioneel</option>
+        </select>
+      </FocusTarget>
+
+      {/* TOELICHTING */}
+      <FocusTarget chapter={CHAPTER} fieldId="toelichting">
+        <label className="block">
+          <span className="block text-sm font-medium mb-1">
+            Korte toelichting (optioneel)
           </span>
           <textarea
             className="w-full border rounded px-3 py-2 min-h-24 text-sm"
-            value={basis.toelichting ?? ""}
+            value={basisData?.toelichting ?? ""}
+            // ✅ STAP 3: Voeg onFocus toe
+            onFocus={() => handleFocus("toelichting")}
             onChange={(e) => update("toelichting", e.target.value)}
-            placeholder="Beschrijf kort wat u wilt bereiken…"
+            placeholder="Beschrijf kort wat u wilt bereiken. Dit geeft de AI context."
           />
         </label>
       </FocusTarget>
+
+      {/* NAVIGATION */}
+      <ChapterControls
+        chapters={chapterFlow.map((ch: ChapterKey) => ({
+          key: ch,
+          title: ch, // (Idealiter zou dit een 'mooie' titel moeten zijn)
+        }))}
+        activeIndex={0} // (Aanname: Basis is altijd 0)
+      />
     </section>
   );
 }

@@ -1,148 +1,126 @@
 // /types/chat.ts
-// Canonische types afgestemd op je bestaande useWizardState, ChatPanel,
-// WizardRouter, ExportModal en ProModel (Build v2.0 compatible).
+// Chat- & SSE-contract volgens BRIKX BUILD MANIFEST v3.0
+// Belangrijk: project-types via import("./project") refereren (geen lokale schaduwtypes)
 
-// ─────────────────────────────────────────────
-// Hoofdstukken (wizard + navigatie)
-// ─────────────────────────────────────────────
+// Re-export: maak van chat.ts de centrale hub
+export type {
+  ChapterKey,
+  PatchEvent,
+  PatchDelta,
+  WizardState,
+  BasisData,
+} from "./project";
 
-export type ChapterKey =
-  | "basis"
-  | "wensen"
-  | "ruimtes"
-  | "budget"
-  | "techniek"
-  | "duurzaam"
-  | "risico"
-  | "preview"
-  | (string & {}); // future-safe / server kan andere keys pushen
+// ==== Intent & Policy ====
+export type Intent =
+  | "VULLEN_DATA"
+  | "ADVIES_VRAAG"
+  | "NAVIGATIE"
+  | "NUDGE"
+  | "SMALLTALK"
+  | "CLASSIFY";
 
-// ─────────────────────────────────────────────
-// Triage data
-// ─────────────────────────────────────────────
+export type Policy =
+  | "APPLY_OPTIMISTIC"
+  | "APPLY_WITH_INLINE_VERIFY"
+  | "ASK_CLARIFY"
+  | "JUST_ANSWER"
+  | "JUST_NUDGE"
+  | "IGNORE";
 
-export interface TriageData {
-  projectType?: string;
-  projectSize?: string;
-  intent?: string[];          // bijv. ["structured"], ["exploratory"]
-  urgentie?: string;          // oude key
-  urgency?: string;           // nieuwe / gebruikte key in UI & exports
-  budget?: number;
-  currentChapter?: ChapterKey;
-}
-
-// ─────────────────────────────────────────────
-// Shared WizardState (client + server contract)
-// Dit is precies de "basis" waar WizardStore op voortbouwt.
-// ─────────────────────────────────────────────
-
-export interface WizardState {
-  stateVersion: number;
-
-  triage?: TriageData;
-  chapterAnswers?: Record<string, any>;
-
-  currentChapter?: ChapterKey;
-  chapterFlow?: ChapterKey[];
-
-  focusedField?: string | null;
-  showExportModal?: boolean;
-}
-
-// ─────────────────────────────────────────────
-// Chat / SSE types (sluit aan op bestaande code)
-// ─────────────────────────────────────────────
-
-export interface ChatRequest {
-  query: string;
-  wizardState: WizardState;
-  mode: "PREVIEW" | "PREMIUM";
-  clientFastIntent?: {
-    type: string;
-    confidence: number;
-    action?: string;
-    chapter?: ChapterKey;
-    field?: string;
-  };
-}
-
-export type ChatSSEEventName =
-  | "metadata"
-  | "patch"
-  | "navigate"
-  | "stream"
-  | "rag_metadata"
-  | "error"
-  | "done";
-
+// ==== Events ====
 export interface MetadataEvent {
-  intent:
-    | "VULLEN_DATA"
-    | "ADVIES_VRAAG"
-    | "NAVIGATIE"
-    | "NUDGE"
-    | "SMALLTALK"
-    | "CLASSIFY";
-  confidence: number;
-  policy:
-    | "APPLY_OPTIMISTIC"
-    | "APPLY_WITH_INLINE_VERIFY"
-    | "ASK_CLARIFY"
-    | "CLASSIFY";
-  nudge?: string;
+  intent: Intent;
+  confidence: number; // 0.0 - 1.0
+  policy: Policy;
   stateVersion: number;
-}
-
-export interface PatchDelta {
-  path: string;
-  operation: "add" | "set" | "append" | "remove";
-  value?: any;
-}
-
-export interface PatchEvent {
-  chapter: ChapterKey | string;
-  delta: PatchDelta;
 }
 
 export interface StreamEvent {
   text: string;
-}
-
-export interface RAGMetadataEvent {
-  topicId: string;
-  docsRetrieved: number;
-  cacheHit: boolean;
-}
-
-export interface DoneEvent {
-  logId: string;
-  tokensUsed: number;
-  latencyMs: number;
+  done?: boolean;
 }
 
 export interface ErrorEvent {
   message: string;
+  recoverable?: boolean;
 }
+
+export interface RagMetadataEvent {
+  nuggets: Array<{
+    id: string;
+    title: string;
+    source: string;
+    relevance: number;
+    tags?: string[];
+  }>;
+}
+
+// Navigatie-event naar een specifiek hoofdstuk
+export interface NavigateEvent {
+  chapter: import("./project").ChapterKey;
+}
+
+// ==== SSE ====
+export type ChatSSEEventName =
+  | "metadata"
+  | "patch"
+  | "stream"
+  | "rag_metadata"
+  | "navigate"
+  | "error"
+  | "done";
 
 export type ChatSSEEvent =
   | { event: "metadata"; data: MetadataEvent }
-  | { event: "patch"; data: PatchEvent }
-  | { event: "navigate"; data: { chapter?: ChapterKey } }
+  | { event: "patch"; data: import("./project").PatchEvent }
   | { event: "stream"; data: StreamEvent }
-  | { event: "rag_metadata"; data: RAGMetadataEvent }
-  | { event: "done"; data: DoneEvent }
-  | { event: "error"; data: ErrorEvent };
+  | { event: "rag_metadata"; data: RagMetadataEvent }
+  | { event: "navigate"; data: NavigateEvent }
+  | { event: "error"; data: ErrorEvent }
+  | { event: "done"; data: string };
+
+// ==== Client Fast Intent ====
+export interface ClientFastIntent {
+  type: string;
+  confidence: number;
+  action?: string;
+  chapter?: import("./project").ChapterKey;
+  field?: string;
+}
+
+// ==== Chat request/response ====
+export interface ChatRequest {
+  query: string;
+  wizardState: import("./project").WizardState; // gedeelde state
+  mode: "PREVIEW" | "PREMIUM";
+  clientFastIntent?: ClientFastIntent;
+  history?: Array<{
+    role: "user" | "assistant";
+    content: string;
+  }>;
+}
 
 export interface ChatResponse {
-  intent: MetadataEvent["intent"];
+  intent: Intent;
   confidence: number;
-  policy: MetadataEvent["policy"];
-  patch?: PatchEvent;
+  policy: Policy;
+  patch?: import("./project").PatchEvent; // ONLY 'set' | 'append' | 'remove'
   response: string;
   nudge?: string;
   metadata?: {
-    latencyMs: number;
-    tokensUsed: number;
+    latencyMs?: number;
+    tokensUsed?: number;
     conflict?: boolean;
   };
 }
+
+// ==== Legacy/compat: TriageData (alleen als hulp-type voor oude utils) ====
+export interface TriageData {
+  projectType?: string | null;
+  ervaring?: "starter" | "gemiddeld" | "ervaren" | string | null;
+  intent?: string | null;
+  urgentie?: "laag" | "normaal" | "hoog" | string | null;
+  budget?: number | null;
+}
+// Tip: langzaam uitfaseren; triage hoort niet in WizardState.

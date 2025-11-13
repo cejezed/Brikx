@@ -1,8 +1,11 @@
+// /components/chapters/ChapterNav.tsx
 "use client";
 
 import { useCallback } from "react";
-import { useUiStore } from "@/lib/stores/useUiStore";
-import type { ChapterKey } from "@/types/wizard";
+// ⚠️ FIX: Importeer de v3.0 centrale store
+import { useWizardState } from "@/lib/stores/useWizardState";
+// ⚠️ FIX: Importeer types van de v3.0 'Single Source of Truth'
+import type { ChapterKey } from "@/types/project";
 
 type ChapterItem = { key: ChapterKey; title: string };
 
@@ -13,7 +16,8 @@ export default function ChapterControls({
   chapters: ChapterItem[];
   activeIndex: number;
 }) {
-  const setCurrentChapter = useUiStore((s) => s.setCurrentChapter);
+  // ⚠️ FIX: Haal de setter op uit de correcte store
+  const setCurrentChapter = useWizardState((s) => s.setCurrentChapter);
 
   const goPrev = useCallback(() => {
     if (!chapters.length) return;

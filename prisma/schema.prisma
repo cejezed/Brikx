@@ -1,0 +1,90 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// CUSTOMER EXAMPLE EXTRACTION SYSTEM
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+model CustomerExample {
+  id            String   @id @default(cuid())
+  type          String   // 'DIRECT_ACTIONABLE' | 'EMOTIONAL_SIGNAL'
+  
+  // Content (ANONYMIZED!)
+  userQuery     String
+  interpretation Json    // Complete correctInterpretation object
+  tags          String[]
+  
+  // Metadata (NO PII!)
+  sourceHash    String   // NOT filename!
+  batchHash     String   // NOT batch name!
+  extractedAt   DateTime @default(now())
+  
+  // Quality & Status
+  qualityScore  Float
+  status        String   @default("PENDING_REVIEW")
+  
+  // Relations
+  batchId       String
+  batch         ExtractionBatch @relation(fields: [batchId], references: [id])
+  
+  feedback      ExampleFeedback[]
+  
+  @@index([sourceHash])
+  @@index([batchHash])
+  @@index([status])
+  @@index([qualityScore])
+}
+
+model ExtractionBatch {
+  id                  String   @id @default(cuid())
+  batchHash           String   @unique
+  status              String   @default("PROCESSING")
+  
+  documentsTotal      Int
+  documentsProcessed  Int      @default(0)
+  examplesExtracted   Int      @default(0)
+  examplesApproved    Int      @default(0)
+  examplesRejected    Int      @default(0)
+  
+  metrics             Json?
+  
+  createdAt           DateTime @default(now())
+  completedAt         DateTime?
+  
+  examples            CustomerExample[]
+  errors              ExtractionError[]
+}
+
+model ExtractionError {
+  id           String   @id @default(cuid())
+  batchId      String
+  batch        ExtractionBatch @relation(fields: [batchId], references: [id])
+  
+  sourceHash   String
+  errorType    String
+  errorMessage String   @db.Text
+  timestamp    DateTime @default(now())
+}
+
+model ExampleFeedback {
+  id             String   @id @default(cuid())
+  exampleId      String
+  example        CustomerExample @relation(fields: [exampleId], references: [id])
+  
+  wasHelpful     Boolean
+  userQuery      String
+  aiResponse     String   @db.Text
+  userCorrection String?  @db.Text
+  
+  timestamp      DateTime @default(now())
+  
+  @@index([exampleId])
+}

@@ -1,49 +1,68 @@
 // /app/api/chat/route.ts
+// ✅ v3.3: Fixed imports, removed unused
 
 import { NextRequest } from "next/server";
 import { ProModel } from "@/lib/ai/ProModel";
 import { Kennisbank } from "@/lib/rag/Kennisbank";
 import { createSSEStream, type SSEWriter } from "@/lib/sse/stream";
 import { logEvent } from "@/lib/logging/logEvent";
+import {
+  computeMissingFields,
+  type MissingItem,
+} from "@/lib/ai/missing";
+import {
+  classifyMissing,
+  makeSoftNudgeForStrong,
+} from "@/lib/ai/essentials";
+// ✅ FIX: Import uit lib/utils/patch (niet store)
+import { transformWithDelta, normalizePatchEvent } from "@/lib/utils/patch";
+import { validateChapter } from "@/lib/wizard/CHAPTER_SCHEMAS";
 
 import type { ChatRequest } from "@/types/chat";
 import type {
   WizardState,
-  ChapterKey as BaseChapterKey,
-} from "@/types/wizard";
+  ChapterKey,
+  PatchEvent,
+  GeneratePatchResult,
+} from "@/types/project";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
-type ChapterKey = BaseChapterKey;
-
-type BrikxWizardState = WizardState & {
-  chapterFlow?: ChapterKey[];
-  triage?: (WizardState["triage"] & { currentChapter?: ChapterKey }) | undefined;
+type ServerWizardState = WizardState & {
+  mode?: "PREVIEW" | "PREMIUM";
+  triage?: any;
 };
+
+// ┌──────────────────────────────────────────────────────────────
+// │ POST handler
+// └──────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   const body = (await req.json()) as ChatRequest;
   const requestId = crypto.randomUUID();
   const startTime = Date.now();
 
-  console.log('[route.ts] POST /api/chat received:', body.query);
+  console.log("[/api/chat] received:", body.query);
 
   try {
     const { stream, writer } = createSSEStream();
 
-    console.log('[route.ts] SSE stream created, starting runAITriage');
+    const initialState = (body.wizardState ||
+      {}) as ServerWizardState;
 
-    await runAITriage(writer, {
+    const mode: "PREVIEW" | "PREMIUM" =
+      body.mode || initialState.mode || "PREVIEW";
+
+    runAITriage(writer, {
       requestId,
       startTime,
       query: body.query,
-      mode: body.mode,
+      mode,
+      wizardState: initialState,
       clientFastIntent: body.clientFastIntent,
-      wizardState: body.wizardState as BrikxWizardState,
+      history: body.history,
     });
-
-    console.log('[route.ts] runAITriage completed, returning stream');
 
     return new Response(stream, {
       status: 200,
@@ -54,7 +73,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[route.ts] CAUGHT ERROR:', error);
+    console.error("[/api/chat] CAUGHT ERROR:", error);
     await logEvent("chat.error", {
       requestId,
       error: String(error),
@@ -74,9 +93,9 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// ┌──────────────────────────────────────────────────────────────────────────────
-// │  CORE TRIAGE LOGICA – CONTEXT & FLOW-GATING
-// └──────────────────────────────────────────────────────────────────────────────
+// ┌──────────────────────────────────────────────────────────────
+// │ CORE TRIAGE LOGIC (v3.3: Complete)
+// └──────────────────────────────────────────────────────────────
 
 async function runAITriage(
   writer: SSEWriter,
@@ -85,53 +104,61 @@ async function runAITriage(
     startTime: number;
     query: string;
     mode: "PREVIEW" | "PREMIUM";
-    wizardState: BrikxWizardState;
+    wizardState: ServerWizardState;
     clientFastIntent?: ChatRequest["clientFastIntent"];
+    history?: ChatRequest["history"];
   }
 ) {
-  const { requestId, startTime, query, mode } = ctx;
+  const { requestId, startTime, query, mode, history } = ctx;
 
-  console.log('[runAITriage] Starting with query:', query);
+  console.log("[runAITriage] query:", query);
 
-  // 1) Normaliseer inkomende state
+  // 1) Normaliseer state
   const normalized = normalizeWizardState(ctx.wizardState);
   const initialActive = getActiveChapter(normalized);
   const initialFlow = getChapterFlow(normalized);
 
-  // 2) Verrijk state zodat ProModel genoeg context uit wizardState zelf kan halen
-  const wizardState: BrikxWizardState = {
+  // 2) Verrijk state
+  const wizardState: ServerWizardState = {
     ...normalized,
     currentChapter: initialActive ?? normalized.currentChapter,
     chapterFlow: initialFlow,
-    triage: {
-      ...(normalized.triage ?? {}),
-      currentChapter:
-        initialActive ??
-        normalized.triage?.currentChapter ??
-        normalized.currentChapter,
-    },
   };
 
   const activeChapter = getActiveChapter(wizardState);
   const chapterFlow = getChapterFlow(wizardState);
 
   try {
-    // STEP 1 – Essentials + Context-Aware Nudge
-    console.log('[runAITriage] Checking essentials...');
-    const missing = checkEssentials(wizardState);
+    // ┌─────────────────────────────────────────────────────────
+    // │ STEP 1: GRADUATED ESSENTIALS GATE (v3.3)
+    // └─────────────────────────────────────────────────────────
 
-    if (missing.length > 0) {
-      console.log('[runAITriage] Missing essentials:', missing);
-      const nudge = makeContextAwareNudge(query, missing);
+    console.log("[runAITriage] Checking essentials (graduated)...");
+    const missingItems = computeMissingFields(wizardState);
+    const { critical, strong, hasCritical, hasStrong } =
+      classifyMissing(missingItems);
+
+    // Hard block: CRITICAL essentials
+    if (hasCritical) {
+      console.log(
+        "[runAITriage] HARD BLOCK: Critical essentials missing:",
+        critical.map((c) => c.fieldId)
+      );
+
+      const firstCritical = critical[0];
+      const nudge = makeContextAwareNudge(
+        query,
+        [firstCritical]
+      );
 
       await logEvent("triage.nudge", {
         requestId,
-        missing,
+        severity: "CRITICAL",
+        missing: critical.map((m) => m.fieldId),
         query,
         activeChapter,
       });
 
-      console.log('[runAITriage] Sending nudge event');
       writer.writeEvent("metadata", {
         intent: "NUDGE",
         confidence: 1.0,
@@ -147,18 +174,29 @@ async function runAITriage(
         tokensUsed: 0,
         latencyMs: Date.now() - startTime,
       });
-  
-      console.log('[runAITriage] Nudge stream closed');
-      return;
+
+      return; // STOP
     }
 
-    // STEP 2 – Classify intent (met verrijkte wizardState)
-    console.log('[runAITriage] Classifying intent...');
-    const classifyResult = await ProModel.classify(query, wizardState);
+    // ✅ GAAN DOOR: Critical is OK, strong kan wachten
+    if (hasStrong) {
+      console.log(
+        "[runAITriage] Soft prompt: STRONG essentials missing:",
+        strong.map((s) => s.fieldId)
+      );
+    }
+
+    // ┌─────────────────────────────────────────────────────────
+    // │ STEP 2: CLASSIFY INTENT
+    // └─────────────────────────────────────────────────────────
+
+    console.log("[runAITriage] Classifying intent...");
+    const classifyResult = await ProModel.classify(
+      query,
+      wizardState
+    );
     const { intent, confidence } = classifyResult;
     const policy = determinePolicy(confidence, intent);
-
-    console.log('[runAITriage] Intent classified:', intent, 'confidence:', confidence, 'policy:', policy);
 
     await logEvent("triage.classify", {
       requestId,
@@ -176,72 +214,124 @@ async function runAITriage(
       activeChapter,
     });
 
-    // STEP 3 – Policy Branching
-    let patch: any = null;
+    // ┌─────────────────────────────────────────────────────────
+    // │ STEP 3: POLICY BRANCHES (v3.3: Multiple patches)
+    // └─────────────────────────────────────────────────────────
+
     let responseText = "";
-    let ragContext: any = null;
+    const patchesApplied: PatchEvent[] = [];
 
-    // 3A – VULLEN_DATA
     if (intent === "VULLEN_DATA") {
-      console.log('[runAITriage] VULLEN_DATA - generating patch');
-      patch = await ProModel.generatePatch(query, wizardState);
+      console.log("[runAITriage] VULLEN_DATA → generatePatches");
 
-      if (patch) {
-        const targetChapter = (patch.chapter ?? patch.chapterKey) as
-          | ChapterKey
-          | undefined;
+      const llmResult = await ProModel.generatePatch(
+        query,
+        wizardState,
+        history
+      );
+      responseText = llmResult.followUpQuestion || "";
 
-        if (targetChapter && !isAllowedChapter(targetChapter, wizardState)) {
-          await logEvent("triage.patch.blocked", {
+      // ✅ v3.3: Multiple patches processing
+      const patches = llmResult.patches ?? [];
+
+      for (const rawPatch of patches) {
+        // ✅ FIX: Use normalizePatchDelta helper
+        const patch = normalizePatchEvent(rawPatch as PatchEvent);
+        const targetChapter = patch.chapter;
+
+        console.log(`[runAITriage] Processing patch for ${targetChapter}`);
+
+        // 1. Check allowed
+        if (!isAllowedChapter(targetChapter, wizardState)) {
+          console.warn(
+            `[runAITriage] Patch rejected: chapter ${targetChapter} not in flow`
+          );
+          responseText = `Ik kan het deel **${labelForChapter(targetChapter)}** nog niet toepassen, omdat dit niet in uw huidige traject zit.`;
+          break; // Stop at first disallowed
+        }
+
+        // 2. Transform + validate
+        const prevData =
+          wizardState.chapterAnswers[targetChapter as ChapterKey] ?? {};
+        const nextData = transformWithDelta(
+          prevData as any,
+          patch.delta
+        );
+
+        if (!validateChapter(targetChapter, nextData)) {
+          console.warn(
+            `[runAITriage] Patch validation FAILED for ${targetChapter}:`,
+            patch.delta
+          );
+
+          responseText =
+            "Ik kan dit nog niet verwerken omdat het geen geldige situatie oplevert. Kunt u dit wat concreter maken?";
+
+          await logEvent("triage.patch_rejected", {
             requestId,
-            reason: "chapter_not_in_flow",
-            patch,
-            chapterFlow,
+            chapter: targetChapter,
+            delta: patch.delta,
+            reason: "validation_failed",
           });
 
-          writer.writeEvent("stream", {
-            text:
-              "Ik kan deze stap niet toepassen, omdat dit hoofdstuk niet beschikbaar is in uw traject.",
-          });
-        } else {
-          console.log('[runAITriage] Sending patch event:', patch);
-          writer.writeEvent("patch", patch);
-          await logEvent("triage.patch", {
-            requestId,
-            patch,
+          break; // Stop at first invalid
+        }
+
+        // 3. Apply + emit
+        wizardState.chapterAnswers[targetChapter as ChapterKey] = nextData as any;
+        wizardState.stateVersion = (wizardState.stateVersion ?? 0) + 1;
+
+        writer.writeEvent("patch", patch);
+        patchesApplied.push(patch);
+
+        console.log(
+          `[runAITriage] Patch applied: ${targetChapter} (state v${wizardState.stateVersion})`
+        );
+
+        await logEvent("triage.patch_applied", {
+          requestId,
+          chapter: targetChapter,
+          delta: patch.delta,
+        });
+      }
+
+      // Emit navigate to last-touched chapter
+      if (patchesApplied.length > 0) {
+        const lastChapter = patchesApplied[patchesApplied.length - 1]
+          .chapter;
+        writer.writeEvent("navigate", { chapter: lastChapter });
+      }
+
+      // ✅ v3.3: Soft prompt for STRONG essentials
+      if (hasStrong && !responseText) {
+        const softNudge = makeSoftNudgeForStrong(strong);
+        if (softNudge) {
+          responseText = softNudge;
+          writer.writeEvent("metadata", {
+            hint: "STRONG_ESSENTIALS",
+            fields: strong.map((s) => s.fieldId),
           });
         }
       }
-
-      responseText =
-        responseText ||
-        "Dank u, ik heb dit verwerkt in uw ingevulde gegevens.";
-
-      // 3B – ADVIES_VRAAG (via RAG)
     } else if (intent === "ADVIES_VRAAG") {
-      console.log('[runAITriage] ADVIES_VRAAG - querying RAG');
-      ragContext = await Kennisbank.query(query, {
+      console.log("[runAITriage] ADVIES_VRAAG → RAG");
+      const ragContext = await Kennisbank.query(query, {
         chapter: activeChapter ?? undefined,
         isPremium: mode === "PREMIUM",
       });
 
-      if (ragContext) {
-        writer.writeEvent("rag_metadata", {
-          topicId: ragContext.topicId,
-          docsRetrieved: ragContext.docs.length,
-          cacheHit: ragContext.cacheHit,
-        });
-      }
-
-      responseText = await ProModel.generateResponse(query, ragContext, {
-        mode,
-        wizardState,
-      });
-
-      // 3C – NAVIGATIE (flow-gated)
+      responseText = await ProModel.generateResponse(
+        query,
+        ragContext,
+        { mode, wizardState, history }
+      );
     } else if (intent === "NAVIGATIE") {
-      console.log('[runAITriage] NAVIGATIE - resolving target');
-      const target = resolveNavigationTarget(query, wizardState, chapterFlow);
+      console.log("[runAITriage] NAVIGATIE");
+      const target = resolveNavigationTarget(
+        query,
+        wizardState,
+        chapterFlow
+      );
 
       if (target && isAllowedChapter(target, wizardState)) {
         writer.writeEvent("navigate", { chapter: target });
@@ -250,112 +340,108 @@ async function runAITriage(
         )}**.`;
       } else if (target) {
         responseText =
-          "Dat hoofdstuk is in uw huidige traject niet beschikbaar. Kies eerst een passende projectvariant of upgrade uw pakket.";
+          "Dat hoofdstuk is in uw huidige traject niet beschikbaar.";
       } else {
         responseText =
-          "Ik kon niet goed bepalen naar welk onderdeel u wilt. Noem bijvoorbeeld: 'ga naar budget', 'ga naar wensen' of 'toon preview'.";
+          "Ik kon niet goed bepalen naar welk onderdeel u wilt. Probeer: 'ga naar [hoofdstuk]'.";
       }
-
-      // 3D – SMALLTALK / fallback
     } else {
-      console.log('[runAITriage] SMALLTALK/fallback - generating response');
-      responseText = await ProModel.generateResponse(query, null, {
-        mode,
-        wizardState,
-      });
+      console.log("[runAITriage] SMALLTALK/FALLBACK");
+      responseText = await ProModel.generateResponse(
+        query,
+        null,
+        { mode, wizardState, history }
+      );
     }
 
-    // STEP 4 – Stream antwoordtekst
+    // ┌─────────────────────────────────────────────────────────
+    // │ STEP 4: STREAM TEXT (SSE-volgorde: patches eerst!)
+    // └─────────────────────────────────────────────────────────
+
     if (responseText) {
-      console.log('[runAITriage] Streaming response text:', responseText.substring(0, 100));
       for (const chunk of chunkText(responseText)) {
         writer.writeEvent("stream", { text: chunk });
       }
     }
 
-    console.log('[runAITriage] Sending done event');
     writer.writeEvent("done", {
       logId: requestId,
       tokensUsed: classifyResult.tokensUsed ?? 0,
       latencyMs: Date.now() - startTime,
     });
   } catch (error) {
-    console.error('[runAITriage] CAUGHT ERROR:', error);
+    console.error("[runAITriage] CAUGHT ERROR:", error);
     await logEvent("triage.error", {
       requestId,
       error: String(error),
     });
     writer.writeEvent("error", {
-      message: "Er ging iets mis bij het verwerken van uw vraag.",
+      message:
+        "Er ging iets mis bij het verwerken van uw vraag.",
     });
   } finally {
-    console.log('[runAITriage] Closing stream');
+    console.log("[runAITriage] Closing stream");
     writer.close();
   }
 }
 
-// ┌──────────────────────────────────────────────────────────────────────────────
-// │               HELPERS & UTILITIES
-// └──────────────────────────────────────────────────────────────────────────────
+// ┌──────────────────────────────────────────────────────────────
+// │ HELPERS
+// └──────────────────────────────────────────────────────────────
 
-function normalizeWizardState(state: BrikxWizardState): BrikxWizardState {
+function normalizeWizardState(
+  state: ServerWizardState
+): ServerWizardState {
   return {
-    stateVersion: state.stateVersion ?? 0,
+    stateVersion: state.stateVersion ?? 1,
     chapterAnswers: state.chapterAnswers ?? {},
-    triage: state.triage ?? {},
-    currentChapter:
-      state.currentChapter ?? state.triage?.currentChapter ?? undefined,
-    chapterFlow: state.chapterFlow ?? [],
+    currentChapter: state.currentChapter,
+    chapterFlow: Array.isArray(state.chapterFlow)
+      ? state.chapterFlow
+      : [],
     focusedField: state.focusedField,
     showExportModal: state.showExportModal,
+    mode: state.mode,
+    triage: state.triage,
   };
 }
 
-function getChapterFlow(state: BrikxWizardState): ChapterKey[] {
-  return Array.isArray(state.chapterFlow) ? state.chapterFlow : [];
+function getChapterFlow(
+  state: ServerWizardState
+): ChapterKey[] {
+  return Array.isArray(state.chapterFlow)
+    ? state.chapterFlow
+    : [];
 }
 
-function getActiveChapter(state: BrikxWizardState): ChapterKey | null {
+function getActiveChapter(
+  state: ServerWizardState
+): ChapterKey | null {
   if (state.currentChapter) return state.currentChapter;
-  if (state.triage?.currentChapter) return state.triage.currentChapter!;
   const flow = getChapterFlow(state);
   return flow.length > 0 ? flow[0] : null;
 }
 
-function isAllowedChapter(target: ChapterKey, state: BrikxWizardState): boolean {
+function isAllowedChapter(
+  target: ChapterKey,
+  state: ServerWizardState
+): boolean {
   const flow = getChapterFlow(state);
-  if (!flow || flow.length === 0) return true; // backwards compat
+  if (!flow || flow.length === 0) return true;
   return flow.includes(target);
 }
 
-function checkEssentials(state: BrikxWizardState): string[] {
-  const missing: string[] = [];
+function makeContextAwareNudge(
+  query: string,
+  missingItems: MissingItem[]
+): string {
+  const sorted = [...missingItems].sort((a, b) => {
+    if (a.severity === b.severity) return 0;
+    return a.severity === "required" ? -1 : 1;
+  });
 
-  if (!state.chapterAnswers?.basis?.projectNaam) {
-    missing.push("basis.projectNaam");
-  }
-
-  if (!state.triage?.projectType) {
-    missing.push("triage.projectType");
-  }
-
-  return missing;
-}
-
-function makeContextAwareNudge(query: string, missing: string[]): string {
-  const pretty = missing
-    .map((key) => {
-      const [, field] = key.split(".");
-      switch (field) {
-        case "projectNaam":
-          return "een projectnaam";
-        case "projectType":
-          return "het type project (bijv. nieuwbouw, verbouwing)";
-        default:
-          return field;
-      }
-    })
-    .join(" en ");
+  const first = sorted[0];
+  const pretty = first.label;
 
   return `Ik wil graag **"${query}"** voor u verwerken. Mag ik daarvoor eerst ${pretty} noteren? Dan kan ik u gerichter helpen.`;
 }
@@ -368,30 +454,28 @@ function determinePolicy(
   | "APPLY_WITH_INLINE_VERIFY"
   | "ASK_CLARIFY"
   | "CLASSIFY" {
-  if (intent === "VULLEN_DATA") {
-    if (confidence >= 0.95) return "APPLY_OPTIMISTIC";
-    if (confidence >= 0.7) return "APPLY_WITH_INLINE_VERIFY";
-    if (confidence >= 0.5) return "ASK_CLARIFY";
-    return "CLASSIFY";
-  }
-
-  if (intent === "ADVIES_VRAAG") {
-    if (confidence >= 0.7) return "APPLY_WITH_INLINE_VERIFY";
-    if (confidence >= 0.5) return "ASK_CLARIFY";
-    return "CLASSIFY";
-  }
-
   if (intent === "NAVIGATIE") {
-    if (confidence >= 0.7) return "APPLY_OPTIMISTIC";
-    return "ASK_CLARIFY";
+    return confidence >= 0.7
+      ? "APPLY_OPTIMISTIC"
+      : "ASK_CLARIFY";
   }
-
-  return "CLASSIFY";
+  if (intent === "ADVIES_VRAAG") {
+    return confidence >= 0.7
+      ? "APPLY_WITH_INLINE_VERIFY"
+      : "ASK_CLARIFY";
+  }
+  if (intent === "SMALLTALK") {
+    return "CLASSIFY";
+  }
+  // VULLEN_DATA
+  return confidence >= 0.9
+    ? "APPLY_WITH_INLINE_VERIFY"
+    : "ASK_CLARIFY";
 }
 
 function resolveNavigationTarget(
   query: string,
-  state: BrikxWizardState,
+  state: ServerWizardState,
   flow: ChapterKey[]
 ): ChapterKey | null {
   const q = query.toLowerCase();
@@ -411,11 +495,12 @@ function resolveNavigationTarget(
     installaties: "techniek",
     duurzaam: "duurzaam",
     duurzaamheid: "duurzaam",
-    risico: 'risico',
-    preview: "preview",
-    samenvatting: "preview",
-    export: "preview",
-    pve: "preview",
+    risico: "risico",
+    "risico's": "risico",
+    preview: "basis",
+    samenvatting: "basis",
+    export: "basis",
+    pve: "basis",
   };
 
   for (const [key, chapter] of Object.entries(map)) {
@@ -429,36 +514,30 @@ function resolveNavigationTarget(
   if (idx === -1) return null;
 
   if (q.includes("volgende") || q.includes("next")) {
-    return flow[idx + 1] ?? flow[idx];
+    return (flow[idx + 1] ?? flow[idx]) || null;
   }
-  if (q.includes("vorige") || q.includes("terug") || q.includes("back")) {
-    return flow[idx - 1] ?? flow[idx];
+  if (
+    q.includes("vorige") ||
+    q.includes("terug") ||
+    q.includes("back")
+  ) {
+    return (flow[idx - 1] ?? flow[idx]) || null;
   }
 
   return null;
 }
 
 function labelForChapter(ch: ChapterKey): string {
-  switch (ch) {
-    case "basis":
-      return "Basis";
-    case "wensen":
-      return "Wensen";
-    case "ruimtes":
-      return "Ruimtes";
-    case "budget":
-      return "Budget";
-    case "techniek":
-      return "Techniek";
-    case "duurzaam":
-      return "Duurzaamheid";
-    case "risico":
-      return "Risicos";
-    case "preview":
-      return "Preview & PvE";
-    default:
-      return ch;
-  }
+  const labels: Record<ChapterKey, string> = {
+    basis: "Basis",
+    wensen: "Wensen",
+    ruimtes: "Ruimtes",
+    budget: "Budget",
+    techniek: "Techniek",
+    duurzaam: "Duurzaamheid",
+    risico: "Risico's",
+  };
+  return labels[ch] ?? ch;
 }
 
 function chunkText(text: string, size = 48): string[] {
@@ -467,7 +546,8 @@ function chunkText(text: string, size = 48): string[] {
   let buf: string[] = [];
 
   for (const w of words) {
-    if ((buf.join(" ") + " " + w).length > size) {
+    const next = (buf.join(" ") + " " + w).trim();
+    if (next.length > size && buf.length) {
       chunks.push(buf.join(" ") + " ");
       buf = [w];
     } else {
@@ -475,6 +555,9 @@ function chunkText(text: string, size = 48): string[] {
     }
   }
 
-  if (buf.length) chunks.push(buf.join(" ") + " ");
+  if (buf.length) {
+    chunks.push(buf.join(" ") + " ");
+  }
+
   return chunks;
 }

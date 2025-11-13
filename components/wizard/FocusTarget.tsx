@@ -1,39 +1,56 @@
+// /components/wizard/FocusTarget.tsx
 'use client';
 
-import { useUiStore } from '@/lib/stores/useUiStore';
+import { useWizardState } from '@/lib/stores/useWizardState';
+// ✅ v3.0: Helper wordt nu gebruikt
+import { isFocusedOn } from '@/lib/wizard/focusKeyHelper'; 
 import { useEffect, useRef } from 'react';
-import type { ChapterKey } from '@/types/wizard';
+import type { ChapterKey } from '@/types/project';
 
 interface FocusTargetProps {
   chapter: ChapterKey;
   fieldId: string;
   children: React.ReactNode;
+  highlightDuration?: number; // Optional: customize highlight duration
 }
 
-export default function FocusTarget({ chapter, fieldId, children }: FocusTargetProps) {
+export default function FocusTarget({ 
+  chapter, 
+  fieldId, 
+  children,
+  highlightDuration = 2000 
+}: FocusTargetProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const focusedField = useUiStore((s) => s.focusedField);
   
-  const isFocused = focusedField === `${chapter}:${fieldId}`;
+  // ✅ v3.0: Lees focusedField uit store (en zet undefined om naar null)
+  const focusedField = useWizardState((s) => s.focusedField ?? null);
+  const setFocusedField = useWizardState((s) => s.setFocusedField);
+  
+  // ✅ Type-safe focus key checking
+  const isFocused = isFocusedOn(focusedField, chapter, fieldId);
 
   useEffect(() => {
     if (isFocused && ref.current) {
+      // 1. Scroll to field
       ref.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      ref.current.classList.add('focused-field');
       
+      // 2. Auto-remove highlight after duration
       const timer = setTimeout(() => {
-        ref.current?.classList.remove('focused-field');
-      }, 2000);
+        // ⚠️ FIX: De store verwacht 'null' om de focus te wissen, geen 'undefined'.
+        setFocusedField(null); 
+      }, highlightDuration);
 
       return () => clearTimeout(timer);
     }
-  }, [isFocused]);
+  }, [isFocused, highlightDuration, setFocusedField]);
 
   return (
     <div
       ref={ref}
       className={`rounded-xl transition-all duration-200 ${
-        isFocused ? 'ring-2 ring-[#4db8ba] bg-[#f6fbfc]' : ''
+        isFocused 
+          ? 'ring-2 ring-accent bg-accent/5 shadow-md'
+          : ''
       }`}
     >
       {children}
