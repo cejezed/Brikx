@@ -323,7 +323,7 @@ export default function Preview() {
                 <DataItem label="Grondak Oppervlak (m²)" value={chapterAnswers.duurzaam.groendakOppervlak} />
                 <DataItem label="Water Retentie Tuin" value={chapterAnswers.duurzaam.waterRetentieTuin} />
                 <DataItem label="Klimaatadaptief" value={chapterAnswers.duurzaam.klimaatadaptief} />
-                <DataItem label="Flexibele Indeling Concept" value={chapterAnswers.duurzaam.flexibelIndelingsConcept} />
+                <DataItem label="Flexibele Indeling" value={chapterAnswers.duurzaam.flexibelIndeling} />
                 <DataItem label="Installaties Toekomstgericht" value={chapterAnswers.duurzaam.installatiesToekomstgericht} />
               </div>
             </div>

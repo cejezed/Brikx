@@ -943,14 +943,14 @@ function buildSuggestionsFromDuurzaam(
 
   // ✅ Thuisbatterij
   if (
-    // ⚠️ FIX: Moet matchen met Duurzaamheid.tsx ('ja' of 'overwegen')
-    (duurzaam.thuisbatterij === "ja" || duurzaam.thuisbatterij === "overwegen") &&
+    // ✅ FIXED: Gebruik "ja_korte_termijn" i.p.v. "ja" (type: "geen" | "overwegen" | "ja_korte_termijn")
+    (duurzaam.thuisbatterij === "ja_korte_termijn" || duurzaam.thuisbatterij === "overwegen") &&
     (!techniek.batterijVoorziening || techniek.batterijVoorziening === "geen")
   ) {
     s.push({
       label: "Thuisbatterij gewenst: ruimte en bekabeling opnemen.",
-      patch: { 
-        batterijVoorziening: duurzaam.thuisbatterij === "ja" ? "batterij_gepland" : "voorbereid" 
+      patch: {
+        batterijVoorziening: duurzaam.thuisbatterij === "ja_korte_termijn" ? "batterij_gepland" : "voorbereid"
       },
     });
   }

@@ -12,12 +12,12 @@ describe("transformWithDelta", () => {
     it("should set scalar value", () => {
       const prev = { projectType: "verbouwing" };
       const delta: PatchDelta = {
-        path: "projectName",
+        path: "projectNaam",
         operation: "set",
         value: "Villa Test",
       };
-      const result = transformWithDelta(prev, delta);
-      expect(result.projectName).toBe("Villa Test");
+      const result = transformWithDelta(prev, delta) as any;
+      expect(result.projectNaam).toBe("Villa Test");
       expect(result.projectType).toBe("verbouwing"); // Original preserved
     });
   });
@@ -36,24 +36,24 @@ describe("transformWithDelta", () => {
     });
 
     it("should initialize array if missing", () => {
-      const prev = {};
+      const prev = {} as any;
       const delta: PatchDelta = {
         path: "rooms",
         operation: "append",
         value: { id: "1", name: "Room1" },
       };
-      const result = transformWithDelta(prev, delta);
+      const result = transformWithDelta(prev, delta) as any;
       expect(result.rooms).toEqual([{ id: "1", name: "Room1" }]);
     });
 
     it("should handle non-array gracefully", () => {
-      const prev = { rooms: "not an array" };
+      const prev = { rooms: "not an array" } as any;
       const delta: PatchDelta = {
         path: "rooms",
         operation: "append",
         value: { id: "1", name: "Room1" },
       };
-      const result = transformWithDelta(prev, delta);
+      const result = transformWithDelta(prev, delta) as any;
       expect(Array.isArray(result.rooms)).toBe(true);
       expect(result.rooms[0].name).toBe("Room1");
     });

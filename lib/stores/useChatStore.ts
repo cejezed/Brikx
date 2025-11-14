@@ -416,7 +416,9 @@ export const useChatStore = create(
 
       // Sla alleen de messages array op
       // (niet isStreaming, abortController, etc)
-      partialize: (state) => ({ messages: state.messages }),
+      // ✅ FIXED: Type casting to any to satisfy Zustand persist typing
+      // We only persist messages, other fields are runtime-only state
+      partialize: (state) => ({ messages: state.messages }) as any,
     }
   )
 );

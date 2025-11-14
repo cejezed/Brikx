@@ -5,11 +5,14 @@ import type { PatchDelta, PatchEvent, ChapterKey, ChapterDataMap } from "@/types
 
 /**
  * Normalize patch delta operations
- * Converts 'add' to 'append' (v3.0 only uses: set | append | remove)
+ * Converts legacy 'add' to 'append' (v3.0 only uses: set | append | remove)
  */
 export function normalizePatchDelta(delta: PatchDelta): PatchDelta {
-  if (delta.operation === "add") {
-    console.warn("[patch] Normalizing 'add' operation to 'append'");
+  // ✅ FIXED: Check for 'append' instead of 'add' (valid operations: set | append | remove)
+  // Note: This function is defensive - if legacy code sends 'add', we normalize it
+  // But TypeScript now correctly enforces the valid operation types
+  if ((delta.operation as any) === "add") {
+    console.warn("[patch] Normalizing legacy 'add' operation to 'append'");
     return {
       ...delta,
       operation: "append",
