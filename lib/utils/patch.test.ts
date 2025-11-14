@@ -1,5 +1,3 @@
-/// <reference types="vitest" />
-
 // lib/utils/patch.test.ts
 // ✅ Test transformWithDelta met alle 3 operations
 
