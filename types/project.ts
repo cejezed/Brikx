@@ -41,6 +41,59 @@ export type ZonnepanelenOrientatie = "noord" | "oost" | "zuid" | "west" | "oost-
 
 
 // ============================================================================
+// PROJECT SCOPE & LEEFPROFIELEN (v3.8)
+// ============================================================================
+
+export type ProjectScope =
+  | "nieuwe_woning"
+  | "uitbouw"
+  | "dakopbouw"
+  | "dakkapel"
+  | "schuur"
+  | "garage"
+  | "tuinhuis"
+  | "renovatie"
+  | "interieur"
+  | "anders";
+
+export type AgeBracket =
+  | "geen_kinderen"
+  | "0-4"
+  | "4-8"
+  | "8-12"
+  | "12-16"
+  | "16-20"
+  | "20plus";
+
+export type FamilyProfile =
+  | "geen_kinderen"
+  | "jonge_kinderen"
+  | "basisschool_kinderen"
+  | "pubers"
+  | "mix_kinderen"
+  | "onbekend";
+
+export type WorkFromHomeProfile = "niet" | "af_en_toe" | "regelmatig";
+export type CookingProfile = "basis" | "hobbykok" | "fanatiek";
+export type HostingProfile = "zelden" | "kleine_groepen" | "grote_groepen";
+export type PetsProfile = "geen" | "hond" | "kat" | "meerdere";
+export type NoiseProfile = "gevoelig" | "neutraal" | "maakt_niet_uit";
+export type MobilityProfile = "fit" | "lichte_beperking" | "rolstoelvriendelijk";
+export type TidyProfile = "strak" | "gemiddeld" | "creatieve_chaos";
+
+// Hoog-niveau leefprofiel dat we in de prompt gebruiken
+export type LifestyleProfile = {
+  family: FamilyProfile;
+  work: WorkFromHomeProfile;
+  cooking: CookingProfile;
+  hosting: HostingProfile;
+  pets: PetsProfile;
+  noise: NoiseProfile;
+  mobility: MobilityProfile;
+  tidiness: TidyProfile;
+};
+
+// ============================================================================
 // CHAPTER 1: BASIS
 // ============================================================================
 
@@ -53,6 +106,19 @@ export type BasisData = {
   ervaring?: "starter" | "enigszins" | "ervaren";
   toelichting?: string;
   budget?: number;
+
+  // ✅ v3.8: Leefprofiel uitbreidingen
+  projectScope?: ProjectScope;
+  huishoudenType?: "alleenstaand" | "stel" | "gezin" | "samengesteld" | "anders";
+  kinderenLeeftijdsgroepen?: AgeBracket[]; // leeg of undefined = onbekend
+
+  workFromHome?: WorkFromHomeProfile;
+  cookingProfile?: CookingProfile;
+  hostingProfile?: HostingProfile;
+  petsProfile?: PetsProfile;
+  noiseProfile?: NoiseProfile;
+  mobilityProfile?: MobilityProfile;
+  tidyProfile?: TidyProfile;
 };
 
 // ============================================================================
@@ -297,10 +363,31 @@ export type PatchEvent = {
 };
 
 // ✅ NEW v3.3: Multiple patches
+// ✅ v3.6: Added action field for reset functionality
+// ✅ v3.7: Added "undo" action
 export type GeneratePatchResult = {
+  action?: "none" | "reset" | "undo";
   patches: PatchEvent[];
   followUpQuestion?: string;
   tokensUsed?: number;
+};
+
+// ✅ v3.8: RAGDoc interface - centralized for Kennisbank and ProModel
+export interface RAGDoc {
+  id?: string;
+  text: string;
+  source?: string;
+}
+
+// ============================================================================
+// PROJECT META (v3.5 - Stap 0 data)
+// ============================================================================
+
+export type ProjectMeta = {
+  projectNaam: string;
+  projectType: "nieuwbouw" | "verbouwing" | "bijgebouw" | "hybride" | "anders";
+  locatie?: string;
+  startVoorkeur?: string;
 };
 
 // ============================================================================
@@ -309,6 +396,7 @@ export type GeneratePatchResult = {
 
 export type WizardState = {
   stateVersion: number;
+  projectMeta?: ProjectMeta; // ✅ v3.5: Stap 0 data (project metadata)
   chapterAnswers: Partial<ChapterDataMap>;
   triage?: TriageData;
   currentChapter?: ChapterKey;

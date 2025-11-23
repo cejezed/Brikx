@@ -962,12 +962,13 @@ function buildSuggestionsFromDuurzaam(
     (!techniek.evVoorziening || techniek.evVoorziening === "geen")
   ) {
     // Map DuurzaamData["evLaadpunt"] naar TechniekData["evVoorziening"]
+    // ✅ v3.7 FIX: Waarden komen nu overeen met EvProvision type
     const evMapping: Record<string, TechniekData["evVoorziening"]> = {
-      voorbereiding: "voorbereid",
+      voorbereid: "voorbereid",
       laadpunt: "laadpunt",
-      bidirectioneel: "laadpunt_bidirectioneel",
+      laadpunt_bidirectioneel: "laadpunt_bidirectioneel",
     };
-    
+
     const mappedEv = evMapping[duurzaam.evLaadpunt];
     
     if (mappedEv) {

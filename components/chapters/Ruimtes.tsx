@@ -119,8 +119,8 @@ const useRuimtesStore = () => {
   const setCurrentChapter = useWizardState((s) => s.setCurrentChapter);
   const setFocusedField = useWizardState((s) => s.setFocusedField);
   const currentChapter = useWizardState((s) => s.currentChapter);
-  const projectType = useWizardState(
-    (s) => s.chapterAnswers.basis?.projectType
+const projectType = useWizardState(
+  (s) => s.chapterAnswers?.basis?.projectType
   );
 
   return {

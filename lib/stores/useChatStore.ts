@@ -29,6 +29,7 @@ import type {
   ErrorEvent,
   RagMetadataEvent,
   NavigateEvent,
+  ExpertFocusEvent, // ✅ v3.8
 } from "@/types/chat";
 import type { ChapterKey, WizardState as CoreWizardState } from "@/types/project";
 
@@ -269,8 +270,14 @@ export const useChatStore = create(
 
               case "patch": {
                 const patch = JSON.parse(dataRaw) as PatchEvent;
-                const { applyPatch } = useWizardState.getState();
+                const { applyPatch, setFocusedField } = useWizardState.getState();
                 applyPatch(patch.chapter, patch.delta);
+
+                // ✅ v3.6: Focus het ingevulde veld zodat de gebruiker ziet wat er is aangepast
+                if (patch.delta?.path) {
+                  const focusKey = `${patch.chapter}:${patch.delta.path}` as `${string}:${string}`;
+                  setFocusedField(focusKey);
+                }
                 return;
               }
 
@@ -285,9 +292,49 @@ export const useChatStore = create(
                 return;
               }
 
+              case "reset": {
+                // ✅ v3.6: Reset de wizard state wanneer de AI action="reset" stuurt
+                console.log("[Chat SSE] Reset event received - clearing wizard AND chat");
+                const { reset: resetWizard } = useWizardState.getState();
+                resetWizard();
+
+                // Ook de chat history wissen zodat de conversatie opnieuw begint
+                set({
+                  messages: [],
+                  lastMetadata: undefined,
+                  lastRag: undefined,
+                  lastNavigate: undefined,
+                });
+                return;
+              }
+
+              case "undo": {
+                // ✅ v3.7: Undo de laatste patch wanneer de AI action="undo" stuurt
+                console.log("[Chat SSE] Undo event received");
+                const { undo } = useWizardState.getState();
+                if (typeof undo === "function") {
+                  undo();
+                } else {
+                  console.warn("[Chat SSE] Undo function not available in wizard state");
+                }
+                return;
+              }
+
               case "rag_metadata": {
                 const rag = JSON.parse(dataRaw) as RagMetadataEvent;
                 set({ lastRag: rag });
+                return;
+              }
+
+              case "expert_focus": {
+                // ✅ v3.8: Chat → ExpertCorner sync
+                // Wanneer de AI een veld/topic identificeert, update de ExpertCorner focus
+                const expertFocus = JSON.parse(dataRaw) as ExpertFocusEvent;
+                console.log("[Chat SSE] Expert focus event received:", expertFocus);
+                if (expertFocus?.focusKey) {
+                  const { setFocusedField } = useWizardState.getState();
+                  setFocusedField(expertFocus.focusKey as `${string}:${string}`);
+                }
                 return;
               }
 

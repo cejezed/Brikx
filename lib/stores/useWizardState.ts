@@ -26,6 +26,12 @@ type FocusKey = `${string}:${string}`;
 // ACTIES / INTERFACE
 // ----------------------------------------------------------------------------
 
+// ✅ v3.7: Snapshot voor undo functionaliteit
+type StateSnapshot = {
+  chapterAnswers: CoreWizardState["chapterAnswers"];
+  stateVersion: number;
+};
+
 interface WizardActions {
   // Navigatie & flow
   setChapterFlow: (flow: ChapterKey[]) => void;
@@ -56,6 +62,12 @@ interface WizardActions {
   // Onderhoud
   ensureSafety: () => void;
   reset: () => void;
+
+  // ✅ v3.7: Undo laatste wijziging
+  undo: () => void;
+
+  // Internal: snapshot management (niet direct aanroepen)
+  _lastSnapshot?: StateSnapshot;
 }
 
 export type WizardStore = WizardState & WizardActions;
@@ -170,6 +182,7 @@ export const useWizardState = create<WizardStore>()(
         }),
 
       // PATCH-HANDLER ---------------------------------------------------------
+      // ✅ v3.7: Slaat snapshot op voor undo functionaliteit
       applyPatch: (chapter, delta) =>
         set((state) => {
           const prev = (state.chapterAnswers[chapter] as Record<string, any>) || {};
@@ -180,12 +193,19 @@ export const useWizardState = create<WizardStore>()(
             return state;
           }
 
+          // ✅ v3.7: Sla huidige state op als snapshot voor undo
+          const snapshot: StateSnapshot = {
+            chapterAnswers: JSON.parse(JSON.stringify(state.chapterAnswers)),
+            stateVersion: state.stateVersion,
+          };
+
           return {
             chapterAnswers: {
               ...state.chapterAnswers,
               [chapter]: next,
             },
             stateVersion: state.stateVersion + 1,
+            _lastSnapshot: snapshot,
           };
         }),
 
@@ -281,7 +301,29 @@ export const useWizardState = create<WizardStore>()(
           showExportModal: false,
           mode: "PREVIEW",
           triage: undefined,
+          _lastSnapshot: undefined,
         })),
+
+      // UNDO ----------------------------------------------------------------
+      // ✅ v3.7: Herstel de laatste snapshot (één niveau terug)
+      undo: () =>
+        set((state) => {
+          const snapshot = state._lastSnapshot;
+          if (!snapshot) {
+            console.warn("[WizardState] Geen undo-snapshot beschikbaar");
+            return state;
+          }
+
+          console.log("[WizardState] Undo uitgevoerd, terug naar versie", snapshot.stateVersion);
+          return {
+            chapterAnswers: snapshot.chapterAnswers,
+            stateVersion: snapshot.stateVersion,
+            _lastSnapshot: undefined, // Snapshot gebruikt, wissen
+          };
+        }),
+
+      // Internal snapshot (niet persistent)
+      _lastSnapshot: undefined,
     }),
     {
       name: "brikx-wizard-state",

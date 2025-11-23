@@ -21,16 +21,17 @@ type EssentialField = {
 /**
  * Essential fields per chapter (v3.0)
  * Alleen deze velden tellen mee voor Smart Essentials / minimale PvE-basis.
- * Let op:
- * - "required" → gebruikt voor nudges / gating.
- * - "recommended" → alleen als hint, niet blokkerend.
+ *
+ * ✅ v3.5 WIJZIGING: Aangepast aan ProjectMeta-structuur.
+ * 'basis' velden zijn nu 'recommended' (ze komen uit Stap 0 / projectMeta).
+ * 'wensen', 'budget', en 'techniek' zijn NU 'required' voor een realistische voortgangsmeting.
  */
 const ESSENTIALS: Record<ChapterKey, EssentialField[]> = {
   basis: [
     {
       fieldId: "projectType",
       label: "Projecttype",
-      severity: "required",
+      severity: "recommended", // <-- WAS 'required'
     },
     {
       fieldId: "projectNaam",
@@ -48,7 +49,7 @@ const ESSENTIALS: Record<ChapterKey, EssentialField[]> = {
     {
       fieldId: "rooms",
       label: "Ruimtes (globale indeling)",
-      severity: "required",
+      severity: "required", // <-- BLIJFT 'required'
     },
   ],
 
@@ -56,16 +57,15 @@ const ESSENTIALS: Record<ChapterKey, EssentialField[]> = {
     {
       fieldId: "wishes",
       label: "Wensen en prioriteiten",
-      severity: "recommended",
+      severity: "required", // <-- WAS 'recommended'
     },
   ],
 
-  // ⬇️ Budget bewust NIET verplicht:
   budget: [
     {
       fieldId: "budgetTotaal",
       label: "Totaal budget (indicatief)",
-      severity: "recommended",
+      severity: "required", // <-- WAS 'recommended'
     },
     {
       fieldId: "bandbreedte",
@@ -78,17 +78,17 @@ const ESSENTIALS: Record<ChapterKey, EssentialField[]> = {
     {
       fieldId: "isolatie",
       label: "Isolatie / schil",
-      severity: "recommended",
+      severity: "required", // <-- WAS 'recommended'
     },
     {
       fieldId: "ventilatie",
       label: "Ventilatie",
-      severity: "recommended",
+      severity: "required", // <-- WAS 'recommended'
     },
     {
       fieldId: "verwarming",
       label: "Verwarming",
-      severity: "recommended",
+      severity: "required", // <-- WAS 'recommended'
     },
   ],
 

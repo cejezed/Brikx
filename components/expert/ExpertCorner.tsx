@@ -1,203 +1,303 @@
 // /components/expert/ExpertCorner.tsx
 // ✅ v3.1 Conform (met wildcard support)
 // ✅ v3.2 WIJZIGING: WizardProgressBar vervangen door CircularProgress
-//    met "Endowed Progress" logica (minimaal 20%)
+// ✅ v3.3 WIJZIGING: Footer vervangen door Auth-bewuste SaveProgressCard-logica
+// ✅ v3.4 FIX: ExportModal en JSON-export knop verwijderd om auth-flow af te dwingen
+// ✅ v3.8 WIJZIGING: getExpertTips utility voor TECHNIEK_TIPS integratie
+// ✅ v3.9 WIJZIGING: UI Polish met TipCard, TipSkeleton, ExpertCornerHeader
 
-'use client';
+"use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { useWizardState } from '@/lib/stores/useWizardState';
-import ExportModal from '@/components/wizard/ExportModal';
-// import WizardProgressBar from '@/components/wizard/ProgressBar'; // 👈 VERVANGEN
-import { isFocusedOn } from '@/lib/wizard/focusKeyHelper'; // ✅ WILDCARD MATCH
+import React, { useState, useMemo, useEffect } from "react";
+import { useWizardState } from "@/lib/stores/useWizardState";
+import { getExpertTips, type CategorizedTip } from "@/lib/expert/getExpertTips"; // ✅ v3.9
+import { Kennisbank } from "@/lib/rag/Kennisbank";
+import type { ChapterKey, WizardState } from "@/types/project";
+import CircularProgress from "@/components/common/CircularProgress";
+import { getCompletionPercentage } from "@/lib/ai/missing";
 
-import staticRules, { type TipItem } from './rules';
-import { Kennisbank } from '@/lib/rag/Kennisbank';
-import type { ChapterKey, WizardState } from '@/types/project'; // 👈 WizardState type toegevoegd
+// ✅ v3.9: Nieuwe UI componenten
+import TipCard from "./TipCard";
+import TipSkeleton from "./TipSkeleton";
+import ExpertCornerHeader from "./ExpertCornerHeader";
 
-// 👇 HIER TOEGEVOEGD
-import CircularProgress from '@/components/common/CircularProgress'; //
-import { getCompletionPercentage } from '@/lib/ai/missing'; //
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/lib/hooks/useAuth"; // (Onze nieuwe hook)
+import Link from "next/link";
 
-export type ExpertCornerMode = 'PREVIEW' | 'PREMIUM';
+export type ExpertCornerMode = "PREVIEW" | "PREMIUM";
 
 interface ExpertCornerProps {
-  /** Optioneel; default = "PREVIEW". Gebruik "PREMIUM" voor extra RAG/AI-blokken. */
-  mode?: ExpertCornerMode;
+  /** Optioneel; default = "PREVIEW". Gebruik "PREMIUM" voor extra RAG/AI-blokken. */
+  mode?: ExpertCornerMode;
 }
 
-type RagSnippet = { text: string; [k: string]: any };
+type RagSnippet = { text: string; source?: string; [k: string]: unknown };
 
-export default function ExpertCorner({ mode: modeProp = 'PREVIEW' }: ExpertCornerProps) {
-  // ✅ v3.1: Lees 'focusedField' uit store (null = geen focus)
-  const focusedField = useWizardState((s) => s.focusedField ?? null);
+/** Extract/serialiseer voortgang (Aangepast voor v3.5) */
+function useSerializedProgress() {
+  const fullState = useWizardState((s) => s as WizardState);
 
-  // 👇 HIER TOEGEVOEGD: Voortgangslogica
-  // 1. Bereken de ECHTE voortgang (begint op 0%)
-  const rawProgress = useWizardState((state: WizardState) => {
-    return getCompletionPercentage(state); //
-  });
+  const dataToSave = {
+    projectMeta: fullState.projectMeta,
+    chapterAnswers: fullState.chapterAnswers,
+    currentChapter: fullState.currentChapter,
+    chapterFlow: fullState.chapterFlow,
+    stateVersion: fullState.stateVersion,
+  };
 
-  // 2. Pas de "Endowed Progress" truc toe
-  // Volgens de specificatie
-  const displayProgress = Math.max(20, rawProgress);
-  // EINDE TOEVOEGING
+  const payload = useMemo(
+    () => ({
+      meta: { ts: new Date().toISOString() },
+      values: dataToSave,
+    }),
+    [
+      fullState.stateVersion,
+      fullState.currentChapter,
+      fullState.chapterAnswers,
+      fullState.projectMeta,
+    ]
+  );
 
-  const [exportModalOpen, setExportModalOpen] = useState(false);
-  const [ragSnippets, setRagSnippets] = useState<RagSnippet[]>([]);
-  const [ragLoading, setRagLoading] = useState(false);
+  return payload;
+}
 
-  // Gebruik de effectieve modus (prop of default)
-  const mode: ExpertCornerMode = modeProp;
+export default function ExpertCorner({
+  mode: modeProp = "PREVIEW",
+}: ExpertCornerProps) {
+  // ✅ Bestaande ExpertCorner State
+  const focusedField = useWizardState((s) => s.focusedField ?? null);
+  // const [exportModalOpen, setExportModalOpen] = useState(false); // 👈 VERWIJDERD
+  const [ragSnippets, setRagSnippets] = useState<RagSnippet[]>([]);
+  const [ragLoading, setRagLoading] = useState(false);
 
-  // ✅ v3.1: Logica voor statische tips (met wildcard support!)
-  const staticTips: TipItem[] = useMemo(() => {
-    if (!focusedField) return [];
+  // ✅ Voortgangslogica
+  const rawProgress = useWizardState((state) =>
+    getCompletionPercentage(state as WizardState)
+  );
+  const displayProgress = Math.max(20, rawProgress);
+  const mode: ExpertCornerMode = modeProp;
 
-    const [chapter, fieldId] = focusedField.split(':');
-    if (!chapter || !fieldId) return [];
+  // 👇 Nieuwe State voor Auth & Opslaan
+  const { toast } = useToast();
+  const wizardData = useSerializedProgress();
+  const [busy, setBusy] = useState(false);
+  const { user, loading: authLoading, signOut } = useAuth();
 
-    const chapterRules = (staticRules as Record<string, TipItem[]>)[chapter];
-    if (!chapterRules) return [];
+  // 👇 Nieuwe Functie voor Opslaan
+  const saveRemote = async () => {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: wizardData.values }),
+      });
 
-    // ✅ FIXED: Gebruik isFocusedOn voor wildcard pattern matching
-    return chapterRules.filter((tip) =>
-      isFocusedOn(focusedField, chapter as ChapterKey, tip.id)
-    );
-  }, [focusedField]);
+      const resBody = await res.json();
+      if (!res.ok) throw new Error(resBody.error || "Onbekende serverfout");
 
-  // ✅ v3.1: Logica voor RAG (alleen in PREMIUM)
-  useEffect(() => {
-    if (mode !== 'PREMIUM' || !focusedField) {
-      setRagSnippets([]);
-      return;
-    }
+      toast({
+        title: "Voortgang opgeslagen",
+        description: "Uw voortgang is veilig bewaard in uw account.",
+      });
+    } catch (e: any) {
+      toast({
+        variant: "destructive",
+        title: "Opslaan mislukt",
+        description: e?.message ?? "Onbekende fout",
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
 
-    const [chapter, fieldId] = focusedField.split(':');
-    if (!chapter || !fieldId) return;
+  // ✅ v3.8: Gecombineerde tips via getExpertTips utility (statisch + TECHNIEK_TIPS)
+  const { allTips: staticTips } = useMemo(() => {
+    return getExpertTips(focusedField);
+  }, [focusedField]);
 
-    setRagLoading(true);
+  useEffect(() => {
+    if (mode !== "PREMIUM" || !focusedField) {
+      setRagSnippets([]);
+      return;
+    }
+    const [chapter, fieldId] = focusedField.split(":");
+    if (!chapter || !fieldId) return;
 
-    const query = `Geef contextuele tips voor ${fieldId} in het hoofdstuk ${chapter}`;
+    setRagLoading(true);
+    const query = `Geef contextuele tips voor ${fieldId} in het hoofdstuk ${chapter}`;
+    Kennisbank.query(query, { chapter: chapter as ChapterKey, isPremium: true })
+      .then((ragContext: any) => {
+        const docs: RagSnippet[] = Array.isArray(ragContext?.docs)
+          ? ragContext.docs
+          : [];
+        setRagSnippets(docs);
+      })
+      .catch((err: unknown) => {
+        console.error("ExpertCorner RAG failed:", err);
+        setRagSnippets([]);
+      })
+      .finally(() => {
+        setRagLoading(false);
+      });
+  }, [focusedField, mode]);
 
-    Kennisbank.query(query, { chapter: chapter as ChapterKey, isPremium: true })
-      .then((ragContext: any) => {
-        const docs: RagSnippet[] = Array.isArray(ragContext?.docs) ? ragContext.docs : [];
-        setRagSnippets(docs);
-      })
-      .catch((err: unknown) => {
-        console.error('ExpertCorner RAG failed:', err);
-        setRagSnippets([]);
-      })
-      .finally(() => {
-        setRagLoading(false);
-      });
-  }, [focusedField, mode]);
+  // ✅ v3.9: Bereken totaal aantal tips voor header
+  const totalTipCount =
+    staticTips.length +
+    ragSnippets.length +
+    (mode === "PREMIUM" && ragLoading ? 0 : 0);
 
-  const hasTips =
-    staticTips.length > 0 || (mode === 'PREMIUM' && (ragLoading || ragSnippets.length > 0));
+  const hasTips =
+    staticTips.length > 0 ||
+    (mode === "PREMIUM" && (ragLoading || ragSnippets.length > 0));
 
-  return (
-    <>
-      <aside className="flex h-full flex-col rounded-2xl border border-slate-100 bg-white shadow-sm p-4">
-        {/* Progress Bar */}
-        <div className="flex-shrink-0 mb-4">
-          {/* <WizardProgressBar /> 👈 VERVANGEN */}
-          <CircularProgress
-            value={displayProgress}
-            label="PvE Compleet"
-            subtitle="Voortgang"
-            size={80} //
-            stroke={7}
-          />
-        </div>
+  return (
+    <>
+      <aside className="flex h-full flex-col rounded-2xl border border-slate-100 bg-white shadow-sm p-4">
+        {/* Progress Bar */}
+        <div className="flex-shrink-0 mb-4">
+          <CircularProgress
+            value={displayProgress}
+            label="PvE Compleet"
+            subtitle="Voortgang"
+            size={80}
+            stroke={7}
+          />
+        </div>
 
-        {/* Header */}
-        <div className="flex-shrink-0 mb-2">
-          <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-            Expert corner
-          </div>
-          <div className="text-xs text-slate-700">
-            {focusedField
-              ? `Tips voor: ${focusedField}`
-              : 'Korte checks & tips op basis van jouw input.'}
-          </div>
-        </div>
+        {/* ✅ v3.9: Nieuwe sticky header component */}
+        <ExpertCornerHeader
+          focusedField={focusedField}
+          tipCount={totalTipCount}
+        />
 
-        {/* Scrollbare inhoud */}
-        <div className="flex-1 overflow-y-auto space-y-3 text-xs text-slate-700">
-          {!hasTips && (
-            <p className="text-slate-500 italic">
-              Klik op een veld in het midden, of stel een vraag in de chat, om hier contextuele tips
-              te zien.
-            </p>
-          )}
+        {/* Scrollbare inhoud */}
+        <div className="flex-1 overflow-y-auto space-y-3 text-xs text-slate-700 mt-3">
+          {/* Empty state */}
+          {!hasTips && !ragLoading && (
+            <p className="text-slate-500 italic">
+              Klik op een veld in het midden, of stel een vraag in de chat, om
+              hier contextuele tips te zien.
+            </p>
+          )}
 
-          {/* Render Statische Tips */}
-          {staticTips.length > 0 && (
-            <div className="space-y-2">
-              {staticTips.map((tip) => (
-                <div
-                  key={tip.id}
-                  className={`p-2 rounded-md ${
-                    tip.severity === 'warning'
-                      ? 'bg-amber-50 border border-amber-200 text-amber-800'
-                      : 'bg-slate-50'
-                  }`}
-                >
-                  {tip.text}
-                </div>
-              ))}
-            </div>
-          )}
+          {/* ✅ v3.9: Loading skeleton */}
+          {ragLoading && mode === "PREMIUM" && (
+            <TipSkeleton count={2} />
+          )}
 
-          {/* Render AI (RAG) Tips */}
-          {mode === 'PREMIUM' && (
-            <div className="space-y-2">
-              <div className="text-[10px] font-semibold uppercase text-slate-400 pt-2 border-t">
-                AI Inzichten (Premium)
-              </div>
-              {ragLoading && (
-                <p className="text-slate-500 italic">AI-inzichten ophalen...</p>
-              )}
+          {/* ✅ v3.9: Static & Techniek tips met TipCard */}
+          {staticTips.length > 0 && (
+            <div className="space-y-2">
+              {staticTips.map((tip) => (
+                <TipCard
+                  key={tip.id}
+                  id={tip.id}
+                  text={tip.text}
+                  category={tip.category}
+                  severity={tip.severity}
+                />
+              ))}
+            </div>
+          )}
 
-          _D_   {!ragLoading && ragSnippets.length === 0 && focusedField && (
-                <p className="text-slate-500 italic">
-                  Geen specifieke AI-inzichten gevonden voor dit veld.
-                </p>
-              )}
+          {/* ✅ v3.9: RAG tips met TipCard (Premium) */}
+          {mode === "PREMIUM" && ragSnippets.length > 0 && (
+            <div className="space-y-2">
+              <div className="text-[10px] font-semibold uppercase text-slate-400 pt-2 border-t">
+                AI Inzichten (Premium)
+              </div>
+              {ragSnippets.map((snippet, index) => (
+                <TipCard
+                  key={`rag_${index}`}
+                  id={`rag_${index}`}
+                  text={snippet.text}
+                  category="rag"
+                  severity="info"
+                />
+              ))}
+            </div>
+          )}
 
-              {ragSnippets.map((snippet, index) => (
-                <div
-                  key={index}
-                  className="p-2 rounded-md bg-blue-50 border border-blue-200 text-blue-800"
-                >
-                  {snippet.text}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+          {/* Empty RAG state */}
+          {mode === "PREMIUM" &&
+            !ragLoading &&
+            ragSnippets.length === 0 &&
+            focusedField &&
+            staticTips.length === 0 && (
+              <p className="text-slate-500 italic">
+                Geen specifieke AI-inzichten gevonden voor dit veld.
+              </p>
+            )}
+        </div>
 
-        {/* Footer met vaste save/export-knop */}
-        <div className="flex-shrink-0 pt-3 mt-3 border-t border-slate-100 flex items-center gap-2">
-          <div className="flex-1">
-            <div className="text-[10px] font-semibold text-slate-600">PvE opslaan of delen</div>
-            <div className="text-[9px] text-slate-400">
-              Exporteer als JSON wanneer jij er klaar voor bent.
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setExportModalOpen(true)}
-            className="px-3 py-2 text-[10px] rounded-2xl bg-slate-900 text-white hover:bg-slate-800"
-          >
-            Opslaan &amp; export
-          </button>
-        </div>
-      </aside>
+        {/* 👇 --- FOOTER: Auth-bewuste voortgang --- 👇 */}
+        <div className="flex-shrink-0 pt-3 mt-3 border-t border-slate-100">
+          {authLoading && (
+            <div className="space-y-1">
+              <div className="text-sm font-semibold text-[var(--brx-ink)]">
+                Voortgang
+              </div>
+              <p className="text-xs text-gray-400">Authenticatie checken...</p>
+            </div>
+          )}
 
-      <ExportModal open={exportModalOpen} onClose={() => setExportModalOpen(false)} />
-    </>
-  );
+          {!authLoading && user && (
+            <div className="space-y-2">
+              <div className="text-sm font-semibold text-[var(--brx-ink)]">
+                Account & Voortgang
+              </div>
+              <p className="text-xs text-gray-500 truncate">
+                U bent ingelogd als {user.email}.
+              </p>
+              <button
+                onClick={saveRemote}
+                disabled={busy}
+                className="brx-pill teal text-sm disabled:opacity-50 w-full"
+              >
+                {busy ? "Opslaan…" : "Voortgang Opslaan"}
+              </button>
+              <button
+                onClick={signOut}
+                className="text-xs text-gray-500 hover:text-gray-700 underline w-full text-center"
+              >
+                Uitloggen
+              </button>
+            </div>
+          )}
+
+          {!authLoading && !user && (
+            <div className="space-y-2">
+              <div className="text-sm font-semibold text-[var(--brx-ink)]">
+                Bewaar uw voortgang
+              </div>
+              <p className="text-xs text-gray-500">
+                Maak een account aan of log in om uw voortgang veilig op te
+                slaan.
+              </p>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/login"
+                  className="brx-pill teal text-sm text-center flex-1"
+                >
+                  Inloggen
+                </Link>
+                <Link
+                  href="/register"
+                  className="brx-pill outline text-sm text-center flex-1"
+                >
+                  Registreren
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
+      </aside>
+
+      {/* De ExportModal is hier nu ook permanent verwijderd */}
+      {/* <ExportModal open={exportModalOpen} onClose={() => setExportModalOpen(false)} /> */}
+    </>
+  );
 }

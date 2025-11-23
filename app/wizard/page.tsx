@@ -15,10 +15,10 @@ export default function WizardPage() {
         minHeight: 'calc(100vh - 60px)',
         display: 'flex',
         justifyContent: 'center',
-        padding: '2rem 0'
+        padding: '2rem 0 44px 0'
       }}>
         <div className="w-full max-w-[1552px] px-4" style={{
-          height: 'calc(100vh - 60px - 4rem)'
+          height: 'calc(100vh - 60px - 2rem - 44px)'
         }}>
           <WizardLayout />
         </div>

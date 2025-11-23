@@ -1,22 +1,29 @@
 // lib/ai/essentials.ts
-// ✅ v3.3: Essentials-classificatie per veldniveau
+// ✅ v3.6: Essentials-classificatie - GEEN hard blocks meer
+// De AI moet ALTIJD kunnen reageren, ook zonder projectType
 // ⚠️ Field IDs moet matchen met CHAPTER_SCHEMAS output
 
 import type { MissingItem } from "@/lib/ai/missing";
 
 /**
- * CRITICAL: Absolute requirements (user can't proceed without these)
- * - basis.projectType: Nodig voor triage logic
+ * CRITICAL: LEEG - we blokkeren de AI NOOIT
+ *
+ * ✅ v3.6 WIJZIGING: projectType is NIET meer critical.
+ * Reden: Een "hard block" zorgt voor geforceerde, onlogische nudges.
+ * De AI moet ALTIJD kunnen reageren op de gebruiker, ook als projectType
+ * nog niet is ingevuld. De AI kan het op een natuurlijke manier vragen
+ * wanneer het relevant is in het gesprek.
  */
-export const CRITICAL_ESSENTIALS = new Set([
-  "basis.projectType",
+export const CRITICAL_ESSENTIALS = new Set<string>([
+  // LEEG - geen hard blocks
 ]);
 
 /**
- * STRONG: Highly recommended (soft nudge if missing, but don't block)
- * - ruimtes.rooms: Need at least context of space planning
- * - budget.budgetTotaal: Essential for cost advice
- * ⚠️ Check these IDs against your CHAPTER_SCHEMAS!
+ * STRONG: Belangrijke velden voor volledige PvE
+ *
+ * ✅ v3.6 WIJZIGING: Deze velden triggeren GEEN automatische nudges meer.
+ * Ze worden alleen gebruikt voor voortgangsberekening, niet voor geforceerde vragen.
+ * De AI vraagt hier alleen naar wanneer het LOGISCH is in het gesprek.
  */
 export const STRONG_ESSENTIALS = new Set([
   "ruimtes.rooms",

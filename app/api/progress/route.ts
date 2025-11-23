@@ -1,37 +1,102 @@
 // app/api/progress/route.ts
+// ✅ GEHEEL VERVANGEN (v3.5 - Beveiligde Authenticatie)
+
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
+// Zorg dat dit type bestaat (gegenereerd door Supabase CLI `npx supabase gen types typescript > ...`)
+// import type { Database } from "@/types/supabase";
 
-const SUPABASE_URL  = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SERVICE_KEY   = process.env.SUPABASE_SERVICE_ROLE_KEY!; // server-only
+// Gebruik een specifiek type voor de database client als 'Database' niet beschikbaar is
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SupabaseClient = any;
 
-// TABEL: progress (email text PK, data jsonb, updated_at timestamptz)
-const TABLE = "progress";
+const TABLE = "user_progress"; // De NIEUWE, RLS-beveiligde tabel
 
 export async function POST(req: Request) {
   try {
-    const { email, data } = await req.json();
+    // Verfijning: Hernoem 'data' naar 'wizardDataPayload' voor duidelijkheid
+    const { data: wizardDataPayload } = await req.json();
 
-    if (!email || typeof email !== "string") {
-      return NextResponse.json({ error: "email is verplicht" }, { status: 400 });
-    }
-    // simpele validatie
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json({ error: "ongeldig e-mailadres" }, { status: 400 });
+    if (!wizardDataPayload) {
+       return NextResponse.json({ error: "Geen data opgegeven" }, { status: 400 });
     }
 
-    if (!SUPABASE_URL || !SERVICE_KEY) {
-      return NextResponse.json({ error: "Supabase niet geconfigureerd" }, { status: 500 });
+    // 1. Maak een Supabase client die de sessie van de gebruiker leest
+    const cookieStore = cookies();
+    // Verfijning: Gebruik de { cookies } shorthand
+    const supabase = createRouteHandlerClient<SupabaseClient>({ cookies });
+
+    // 2. Haal de ingelogde gebruiker op
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+    if (sessionError) throw sessionError;
+    if (!session) {
+      return NextResponse.json({ error: "Niet geautoriseerd. Log opnieuw in." }, { status: 401 });
     }
 
-    const sb = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
-    const payload = { email: email.toLowerCase(), data, updated_at: new Date().toISOString() };
+    const userId = session.user.id;
+    if (!userId) {
+       return NextResponse.json({ error: "Gebruiker niet gevonden" }, { status: 401 });
+    }
 
-    const { error } = await sb.from(TABLE).upsert(payload, { onConflict: "email" });
+    // 3. Data opslaan in de NIEUWE tabel (user_progress)
+    const payloadToUpsert = {
+      user_id: userId,
+      data: wizardDataPayload, // Gebruik de hernoemde variabele
+      updated_at: new Date().toISOString()
+    };
+
+    const { error } = await supabase
+      .from(TABLE)
+      .upsert(payloadToUpsert, { onConflict: "user_id" }); // Upsert op user_id, niet op email
+
     if (error) throw error;
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, message: "Voortgang opgeslagen" });
+
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? "server error" }, { status: 500 });
+    console.error("[/api/progress] Fout bij opslaan:", e);
+    return NextResponse.json({ error: e?.message ?? "Server error" }, { status: 500 });
+  }
+}
+
+export async function GET(req: Request) {
+  try {
+    // 1. Maak een Supabase client die de sessie van de gebruiker leest
+    const cookieStore = cookies();
+    const supabase = createRouteHandlerClient<SupabaseClient>({ cookies });
+
+    // 2. Haal de ingelogde gebruiker op
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+    if (sessionError) throw sessionError;
+    if (!session) {
+      return NextResponse.json({ error: "Niet geautoriseerd" }, { status: 401 });
+    }
+
+    // 3. Haal de opgeslagen voortgang op uit de user_progress tabel
+    const { data: progressData, error: selectError } = await supabase
+      .from(TABLE)
+      .select("data")
+      .eq("user_id", session.user.id)
+      .single();
+
+    // Supabase error code 'PGRST116' = geen rijen gevonden (404-equivalent)
+    if (selectError && selectError.code !== 'PGRST116') {
+      throw selectError;
+    }
+
+    // Als geen data gevonden, return 404
+    if (!progressData) {
+      return NextResponse.json(null, { status: 404 });
+    }
+
+    // Return de wizard data
+    return NextResponse.json(progressData.data);
+
+  } catch (e: any) {
+    console.error("[/api/progress GET] Fout bij laden:", e);
+    return NextResponse.json({ error: e?.message ?? "Server error" }, { status: 500 });
   }
 }

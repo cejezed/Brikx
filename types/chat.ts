@@ -61,13 +61,24 @@ export interface NavigateEvent {
   chapter: import("./project").ChapterKey;
 }
 
+// ✅ v3.8: Expert focus event voor Chat → ExpertCorner sync
+export interface ExpertFocusEvent {
+  focusKey: string; // format: "chapter:fieldId"
+  query?: string;   // optionele query voor RAG search
+}
+
 // ==== SSE ====
+// ✅ v3.7: Added "undo" event
+// ✅ v3.8: Added "expert_focus" event
 export type ChatSSEEventName =
   | "metadata"
   | "patch"
   | "stream"
   | "rag_metadata"
   | "navigate"
+  | "reset"
+  | "undo"
+  | "expert_focus"
   | "error"
   | "done";
 

@@ -301,22 +301,22 @@ export const CHAPTER_SCHEMAS = {
       if (!isValidBool(data.blowerdoorTestUitvoeren)) return false;
       if (!isValidEnum(data.typeGlas, ENUM.DUURZAAM_GLAS)) return false;
 
-      // IAQ
+      // IAQ - ✅ v3.8: Fixed to match camelCase in types/project.ts
       if (!isValidEnum(data.iaqAmbitie, ENUM.DUURZAAM_AMBITION)) return false;
-      if (!isValidNumber(data.co2_target_ppm)) return false;
+      if (!isValidNumber(data.co2TargetPpm)) return false;
       if (!isValidEnum(data.ventilatieklasse, ENUM.DUURZAAM_VENTKLASSE)) return false;
-      if (!isValidBool(data.iaQ_monitoring)) return false; // ✅ Consistent naming: iaQ_monitoring
+      if (!isValidBool(data.iaqMonitoring)) return false;
 
-      // Daglicht
+      // Daglicht - ✅ v3.8: Fixed to match camelCase in types/project.ts
       if (!isValidEnum(data.daglichtAmbitie, ENUM.DUURZAAM_AMBITION)) return false;
-      if (!isValidEnum(data.daglicht_metric, ENUM.DUURZAAM_DAGLICHT_METRIC)) return false;
-      if (!isValidNumber(data.daglicht_streefwaarde)) return false;
-      if (!isValidBool(data.zonwerend_glas_toepassen)) return false;
+      if (!isValidEnum(data.daglichtMetric, ENUM.DUURZAAM_DAGLICHT_METRIC)) return false;
+      if (!isValidNumber(data.daglichtStreefwaarde)) return false;
+      if (!isValidBool(data.zonwerendGlasToepassen)) return false;
 
-      // Akoestiek
+      // Akoestiek - ✅ v3.8: Fixed to match camelCase in types/project.ts
       if (!isValidEnum(data.akoestiekAmbitie, ENUM.DUURZAAM_AMBITION)) return false;
-      if (!isValidNumber(data.akoestiek_binnen_DnTw)) return false;
-      if (!isValidNumber(data.akoestiek_contact_LnTw)) return false;
+      if (!isValidNumber(data.akoestiekBinnenDnTw)) return false;
+      if (!isValidNumber(data.akoestiekContactLnTw)) return false;
 
       // Opwek & opslag
       if (!isValidEnum(data.zonnepanelen, ENUM.DUURZAAM_ZONNEPANELEN)) return false;
@@ -342,9 +342,9 @@ export const CHAPTER_SCHEMAS = {
       if (!isValidNumber(data.mpgAmbitie)) return false;
       if (!isValidString(data.mpgToelichting)) return false;
 
-      // Toekomst
+      // Toekomst - ✅ v3.8: Fixed flexibelIndeling to match types/project.ts
       if (!isValidBool(data.klimaatadaptief)) return false;
-      if (!isValidBool(data.flexibelIndelingsConcept)) return false;
+      if (!isValidBool(data.flexibelIndeling)) return false;
       if (!isValidBool(data.installatiesToekomstgericht)) return false;
 
       // Meta

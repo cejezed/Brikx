@@ -443,7 +443,7 @@ export default function Duurzaamheid() {
               <option value="">Maak een keuze</option>
               <option value="geen">Niet voorzien</option>
               <option value="overwegen">Voorbereiden</option>
-              <option value="ja">Ja, direct meenemen</option>
+              <option value="ja_korte_termijn">Ja, direct meenemen</option>
             </select>
           </div>
 
@@ -459,9 +459,9 @@ export default function Duurzaamheid() {
             >
               <option value="">Maak een keuze</option>
               <option value="geen">Geen</option>
-              <option value="voorbereiding">Voorbereiding</option>
+              <option value="voorbereid">Voorbereiding</option>
               <option value="laadpunt">Laadpunt</option>
-              <option value="bidirectioneel">Laadpunt + bidirectioneel</option>
+              <option value="laadpunt_bidirectioneel">Laadpunt + bidirectioneel</option>
             </select>
           </div>
 

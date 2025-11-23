@@ -1,7 +1,9 @@
 // /app/api/chat/route.ts
 // ✅ v3.3: Fixed imports, removed unused
+// ✅ v3.5: Added crypto for UUID generation
 
 import { NextRequest } from "next/server";
+import { randomUUID } from "node:crypto";
 import { ProModel } from "@/lib/ai/ProModel";
 import { Kennisbank } from "@/lib/rag/Kennisbank";
 import { createSSEStream, type SSEWriter } from "@/lib/sse/stream";
@@ -12,7 +14,6 @@ import {
 } from "@/lib/ai/missing";
 import {
   classifyMissing,
-  makeSoftNudgeForStrong,
 } from "@/lib/ai/essentials";
 // ✅ FIX: Import uit lib/utils/patch (niet store)
 import { transformWithDelta, normalizePatchEvent } from "@/lib/utils/patch";
@@ -231,6 +232,20 @@ async function runAITriage(
       );
       responseText = llmResult.followUpQuestion || "";
 
+      // ✅ v3.6: Check voor reset action
+      if (llmResult.action === "reset") {
+        console.log("[runAITriage] RESET action detected - sending reset event");
+        writer.writeEvent("reset", {});
+        // responseText is al gezet door de LLM
+      }
+
+      // ✅ v3.7: Check voor undo action
+      if (llmResult.action === "undo") {
+        console.log("[runAITriage] UNDO action detected - sending undo event");
+        writer.writeEvent("undo", {});
+        // responseText is al gezet door de LLM
+      }
+
       // ✅ v3.3: Multiple patches processing
       const patches = llmResult.patches ?? [];
 
@@ -238,6 +253,21 @@ async function runAITriage(
         // ✅ FIX: Use normalizePatchDelta helper
         const patch = normalizePatchEvent(rawPatch as PatchEvent);
         const targetChapter = patch.chapter;
+
+        // ✅ v3.5: Type-veilige UUID Injectie (AI genereert GEEN id meer)
+        if (
+          patch.delta.operation === "append" &&
+          (targetChapter === "ruimtes" || targetChapter === "wensen" || targetChapter === "risico") &&
+          typeof patch.delta.value === "object" &&
+          patch.delta.value !== null &&
+          !Array.isArray(patch.delta.value)
+        ) {
+          const val = patch.delta.value as { id?: string };
+          if (!val.id) {
+            val.id = randomUUID();
+            console.log(`[runAITriage] Injected new UUID for ${targetChapter}`);
+          }
+        }
 
         console.log(`[runAITriage] Processing patch for ${targetChapter}`);
 
@@ -300,19 +330,19 @@ async function runAITriage(
         const lastChapter = patchesApplied[patchesApplied.length - 1]
           .chapter;
         writer.writeEvent("navigate", { chapter: lastChapter });
-      }
 
-      // ✅ v3.3: Soft prompt for STRONG essentials
-      if (hasStrong && !responseText) {
-        const softNudge = makeSoftNudgeForStrong(strong);
-        if (softNudge) {
-          responseText = softNudge;
-          writer.writeEvent("metadata", {
-            hint: "STRONG_ESSENTIALS",
-            fields: strong.map((s) => s.fieldId),
-          });
+        // ✅ v3.8: Expert focus sync - stuur focus naar het aangepaste veld
+        const lastPatch = patchesApplied[patchesApplied.length - 1];
+        if (lastPatch.delta?.path) {
+          const focusKey = `${lastPatch.chapter}:${lastPatch.delta.path}`;
+          writer.writeEvent("expert_focus", { focusKey, query });
+          console.log(`[runAITriage] Expert focus sent: ${focusKey}`);
         }
       }
+
+      // ✅ v3.6: GEEN automatische soft nudges meer
+      // De AI bepaalt zelf wanneer het logisch is om naar ontbrekende info te vragen
+      // Dit voorkomt "domme" vragen die niet bij het gesprek passen
     } else if (intent === "ADVIES_VRAAG") {
       console.log("[runAITriage] ADVIES_VRAAG → RAG");
       const ragContext = await Kennisbank.query(query, {
@@ -325,6 +355,24 @@ async function runAITriage(
         ragContext,
         { mode, wizardState, history }
       );
+
+      // ✅ v3.8: Expert focus sync voor adviesvragen
+      // Als de RAG een topic vindt, update de ExpertCorner focus
+      if (ragContext.topicId && ragContext.topicId !== "general") {
+        const topicToChapter: Record<string, string> = {
+          natural_light: "duurzaam:daglichtAmbitie",
+          soundproofing: "duurzaam:akoestiekAmbitie",
+          thermal_comfort: "techniek:heatingAmbition",
+          budget_estimation: "budget:budgetTotaal",
+          permits_regulation: "basis:projectType",
+          materials: "duurzaam:materiaalstrategie",
+        };
+        const focusKey = topicToChapter[ragContext.topicId];
+        if (focusKey) {
+          writer.writeEvent("expert_focus", { focusKey, query });
+          console.log(`[runAITriage] Expert focus from RAG topic: ${focusKey}`);
+        }
+      }
     } else if (intent === "NAVIGATIE") {
       console.log("[runAITriage] NAVIGATIE");
       const target = resolveNavigationTarget(
