@@ -1,10 +1,11 @@
-// JUISTE VERSIE
+// JUISTE VERSIE - Server-only admin client with service role
 import { createClient } from '@supabase/supabase-js';
 
-const url = process.env.SUPABASE_URL!;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+// Use NEXT_PUBLIC_SUPABASE_URL or SUPABASE_URL for compatibility
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!url) throw new Error('Missing SUPABASE_URL');
+if (!url) throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_URL');
 if (!serviceKey) throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY (service role)');
 
 export const supabaseAdmin = createClient(url, serviceKey, {

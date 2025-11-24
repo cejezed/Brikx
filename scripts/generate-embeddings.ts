@@ -41,8 +41,9 @@ const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 // Import data files
 import { kennisbankData } from '../kennisbank_geordend2.data';
 import { kennisbankData as bouwdossierKennis } from '../kennisbank_bouwdossier.data';
+import { kennisbankVergunningen } from '../kennisbank_vergunningen.data';
 
-const allKennisData = [...kennisbankData, ...bouwdossierKennis];
+const allKennisData = [...kennisbankData, ...bouwdossierKennis, ...kennisbankVergunningen];
 
 // ===================================================================
 // CONFIGURATIE

@@ -1,5 +1,6 @@
 // /components/chapters/Wensen.tsx
 // ✅ REAL FIX: Alle callbacks gememoized met useCallback
+// ✅ v3.17: Priority color badges toegevoegd
 
 "use client";
 
@@ -9,9 +10,11 @@ import FocusTarget from "@/components/wizard/FocusTarget";
 import type { ChapterKey } from "@/types/project";
 import type { Wish, WensenData } from "@/types/project";
 import { createFocusKey } from "@/lib/wizard/focusKeyHelper";
+import { getPriorityColor } from "@/lib/pve/wishPriority";
 
 const CHAPTER: ChapterKey = "wensen";
 
+// ✅ v3.15: 'wont' toegevoegd voor anti-wensen
 const PRIORITIES: {
   value: NonNullable<Wish["priority"]>;
   label: string;
@@ -31,6 +34,11 @@ const PRIORITIES: {
     value: "optional",
     label: "Optioneel / later",
     hint: "Mag in fase 2 of als het budget het toelaat."
+  },
+  {
+    value: "wont",
+    label: "Absoluut niet (Won't-have)",
+    hint: "Dit wilt u expliciet NIET. De AI zal dit nooit voorstellen."
   }
 ];
 
@@ -229,12 +237,25 @@ export default function ChapterWensen() {
 
       {/* Wensen lijst */}
       <div className="space-y-3">
-        {wishes.map((w) => (
+        {wishes.map((w) => {
+          const colors = getPriorityColor(w.priority);
+          const priorityLabel = PRIORITIES.find((p) => p.value === w.priority)?.label ?? "Nice-to-have";
+
+          return (
           <div
             key={w.id}
-            className="rounded-xl border bg-white p-4 md:p-5 shadow-sm"
+            className="rounded-xl border bg-white p-4 md:p-5 shadow-sm relative overflow-hidden"
+            style={{ borderLeftWidth: 4, borderLeftColor: colors.border }}
           >
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* ✅ v3.17: Priority badge */}
+            <div
+              className="absolute top-0 right-0 px-2.5 py-1 text-[10px] font-medium rounded-bl-lg"
+              style={{ backgroundColor: colors.bg, color: colors.text }}
+            >
+              {priorityLabel}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 md:pt-0">
               {/* Omschrijving */}
               <FocusTarget
                 chapter={CHAPTER}
@@ -303,7 +324,9 @@ export default function ChapterWensen() {
               </div>
             </div>
           </div>
-        ))}
+        );
+        })}
+
 
         {/* Lege staat */}
         {wishes.length === 0 && (

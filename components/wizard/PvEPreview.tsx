@@ -1,9 +1,12 @@
 // components/wizard/PvEPreview.tsx
+// ✅ v3.17: BudgetRiskIndicator + Export buttons toegevoegd
 "use client";
 
 import { useMemo } from "react";
 import { useWizardState } from "@/lib/stores/useWizardState";
 import { buildPreview } from "@/lib/preview/buildPreview";
+import { printPreviewToPdf } from "@/lib/export/print";
+import BudgetRiskIndicator from "@/components/common/BudgetRiskIndicator";
 
 // Tolerante mapping: accepteer string | undefined
 function priorityLabel(p?: string) {
@@ -38,11 +41,55 @@ export default function PvEPreview() {
 
   if (!pv) return null;
 
+  const handlePrintPdf = () => {
+    printPreviewToPdf(pv);
+  };
+
+  const handleExportJson = () => {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      triage,
+      chapterAnswers: chapterAnswers ?? {},
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `brikx-pve-export-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <aside className="w-full md:w-[360px] md:sticky md:top-6 border rounded-2xl shadow-sm bg-white">
       <header className="px-4 py-3 border-b rounded-t-2xl bg-gray-50">
-        <h3 className="text-sm font-semibold">PvE Preview</h3>
-        <p className="text-xs text-gray-600">Live samenvatting van je invoer</p>
+        <div className="flex items-start justify-between mb-2">
+          <div>
+            <h3 className="text-sm font-semibold">PvE Preview</h3>
+            <p className="text-xs text-gray-600">Live samenvatting van je invoer</p>
+          </div>
+        </div>
+        {/* ✅ v3.17: Export buttons */}
+        <div className="flex gap-2 mt-2">
+          <button
+            onClick={handlePrintPdf}
+            className="flex-1 text-xs px-2.5 py-1.5 rounded-md bg-[#107d82] text-white hover:opacity-90 transition-opacity"
+            title="Print naar PDF"
+          >
+            📄 PDF
+          </button>
+          <button
+            onClick={handleExportJson}
+            className="flex-1 text-xs px-2.5 py-1.5 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+            title="Export als JSON"
+          >
+            💾 JSON
+          </button>
+        </div>
       </header>
 
       <div className="divide-y">
@@ -87,6 +134,11 @@ export default function PvEPreview() {
               ))}
             </ul>
           )}
+        </section>
+
+        {/* ✅ v3.17: Budget Risk Indicator */}
+        <section className="p-4">
+          <BudgetRiskIndicator compact />
         </section>
 
         <section className="p-4 text-sm">

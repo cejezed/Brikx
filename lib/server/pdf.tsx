@@ -1,5 +1,11 @@
 // lib/server/pdf.tsx
+// ✅ v3.14: MoSCoW priorities in Wensen sectie
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
+import {
+  formatWishPriorityLabel,
+  formatWishCategoryLabel,
+  getPriorityColor
+} from "@/lib/pve/wishPriority";
 
 const styles = StyleSheet.create({
   document: {},
@@ -12,6 +18,37 @@ const styles = StyleSheet.create({
   bullet: { marginLeft: 12, marginBottom: 3 },
   label: { fontSize: 10, fontWeight: "bold", marginTop: 6 },
   value: { fontSize: 11, marginBottom: 4 },
+  // ✅ v3.14: MoSCoW Wensen tabel styles
+  wishTableHeader: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#CBD5E1",
+    paddingVertical: 4,
+    marginBottom: 4,
+    backgroundColor: "#F8FAFC",
+  },
+  wishTableRow: {
+    flexDirection: "row",
+    paddingVertical: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+  },
+  wishColPriority: {
+    width: "24%",
+    fontSize: 9,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  wishColCategory: {
+    width: "18%",
+    fontSize: 9,
+    color: "#64748B",
+  },
+  wishColText: {
+    width: "58%",
+    fontSize: 10,
+    color: "#1E293B",
+  },
 });
 
 export type PveDocumentProps = {
@@ -102,17 +139,41 @@ export function PveDocument({
           </View>
         )}
 
-        {/* Wensen */}
+        {/* Wensen met MoSCoW prioriteiten */}
         {wensen?.wishes &&
           Array.isArray(wensen.wishes) &&
           wensen.wishes.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.h2}>Algemene Wensen</Text>
-              {wensen.wishes.map((wish: string, idx: number) => (
-                <View key={idx} style={styles.bullet}>
-                  <Text style={styles.p}>• {wish}</Text>
-                </View>
-              ))}
+              <Text style={styles.h2}>Wensen & Prioriteiten (MoSCoW)</Text>
+
+              {/* Table header */}
+              <View style={styles.wishTableHeader}>
+                <Text style={styles.wishColPriority}>Prioriteit</Text>
+                <Text style={styles.wishColCategory}>Categorie</Text>
+                <Text style={styles.wishColText}>Beschrijving</Text>
+              </View>
+
+              {/* Table rows */}
+              {wensen.wishes.map((wish: any, idx: number) => {
+                const priority = typeof wish === 'object' ? wish?.priority : undefined;
+                const category = typeof wish === 'object' ? wish?.category : undefined;
+                const text = typeof wish === 'string' ? wish : wish?.text || String(wish);
+                const colors = getPriorityColor(priority);
+
+                return (
+                  <View key={idx} style={styles.wishTableRow}>
+                    <View style={[styles.wishColPriority, { backgroundColor: colors.bg }]}>
+                      <Text style={{ color: colors.text, fontSize: 9 }}>
+                        {formatWishPriorityLabel(priority)}
+                      </Text>
+                    </View>
+                    <Text style={styles.wishColCategory}>
+                      {formatWishCategoryLabel(category)}
+                    </Text>
+                    <Text style={styles.wishColText}>{text}</Text>
+                  </View>
+                );
+              })}
             </View>
           )}
 

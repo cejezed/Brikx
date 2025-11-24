@@ -11,8 +11,8 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useWizardState } from "@/lib/stores/useWizardState";
 import { getExpertTips, type CategorizedTip } from "@/lib/expert/getExpertTips"; // ✅ v3.9
-import { Kennisbank } from "@/lib/rag/Kennisbank";
-import type { ChapterKey, WizardState } from "@/types/project";
+// ❌ REMOVED: Kennisbank import (server-only) - now using /api/expert endpoint
+import type { WizardState } from "@/types/project";
 import CircularProgress from "@/components/common/CircularProgress";
 import { getCompletionPercentage } from "@/lib/ai/missing";
 
@@ -127,11 +127,16 @@ export default function ExpertCorner({
 
     setRagLoading(true);
     const query = `Geef contextuele tips voor ${fieldId} in het hoofdstuk ${chapter}`;
-    Kennisbank.query(query, { chapter: chapter as ChapterKey, isPremium: true })
-      .then((ragContext: any) => {
-        const docs: RagSnippet[] = Array.isArray(ragContext?.docs)
-          ? ragContext.docs
-          : [];
+
+    // ✅ v3.10: Use API endpoint instead of direct Kennisbank import (server-only)
+    fetch("/api/expert", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, chapter }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        const docs: RagSnippet[] = Array.isArray(data?.docs) ? data.docs : [];
         setRagSnippets(docs);
       })
       .catch((err: unknown) => {

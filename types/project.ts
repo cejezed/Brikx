@@ -97,6 +97,37 @@ export type LifestyleProfile = {
 // CHAPTER 1: BASIS
 // ============================================================================
 
+// ✅ v3.13: DocumentStatus voor dossier checklist
+export type DocumentSourceType =
+  | "gemeente"
+  | "vorige_architect"
+  | "aannemer"
+  | "eigen_tekeningen"
+  | "onbekend";
+
+export type DocumentFormat = "pdf" | "dwg" | "papier" | "jpg" | "png";
+
+export type DocumentStatus = {
+  // Moodboard
+  moodboard: boolean | null;
+  moodboardLink?: string;
+  moodboardImages?: string[]; // URLs van geüploade afbeeldingen (premium)
+
+  // Tekeningen (verbouw)
+  hasDrawings?: boolean;
+  sourceType?: DocumentSourceType;
+  formats?: DocumentFormat[];
+  storageLocation?: string; // 'Mail van gemeente', 'Dropbox map', etc.
+
+  // Kavelpaspoort (nieuwbouw)
+  kavelpaspoort?: boolean;
+  kavelpaspoortLocatie?: string;
+
+  // Overige documenten
+  hasOtherDocs?: boolean;
+  otherDocsDescription?: string;
+};
+
 export type BasisData = {
   projectType: "nieuwbouw" | "verbouwing" | "bijgebouw" | "hybride" | "anders";
   projectNaam?: string;
@@ -119,6 +150,9 @@ export type BasisData = {
   noiseProfile?: NoiseProfile;
   mobilityProfile?: MobilityProfile;
   tidyProfile?: TidyProfile;
+
+  // ✅ v3.13: Dossier & documenten status
+  documentStatus?: DocumentStatus;
 };
 
 // ============================================================================
@@ -143,11 +177,14 @@ export type RuimtesData = {
 // CHAPTER 3: WENSEN
 // ============================================================================
 
+// ✅ v3.15: 'wont' toegevoegd voor expliciete anti-wensen (Won't-have)
+export type WishPriority = "must" | "nice" | "optional" | "wont";
+
 export type Wish = {
   id: string;
   text: string;
   category?: "comfort" | "style" | "function" | "other";
-  priority?: "must" | "nice" | "optional";
+  priority?: WishPriority;
 };
 
 export type WensenData = {
@@ -404,4 +441,20 @@ export type WizardState = {
   focusedField?: string | null;
   showExportModal?: boolean;
   mode?: "PREVIEW" | "PREMIUM";
+};
+
+// ============================================================================
+// BUDGET RISK ANALYSIS (v3.17)
+// ============================================================================
+
+export type BudgetRiskLevel = "green" | "orange" | "red";
+
+export type BudgetRiskAnalysis = {
+  riskLevel: BudgetRiskLevel;
+  mustHaveCount: number;
+  estimatedMustHaveCost: number;  // geschatte kosten must-haves
+  availableBudget: number;
+  shortfall: number;              // tekort (0 = geen tekort)
+  message: string;                // gebruiksvriendelijke uitleg
+  recommendations: string[];      // concrete aanbevelingen
 };

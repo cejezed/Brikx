@@ -1,10 +1,12 @@
 // /lib/wizard/CHAPTER_SCHEMAS.ts
-// ✅ v3.2 PRODUCTION-READY: Alle 5 pragmatische fixes doorgevoerd
+// ✅ v3.13 PRODUCTION-READY: Alle 5 pragmatische fixes doorgevoerd
 // - undefined = OK (niet invalid)
 // - Strict enum checking
 // - 100% chapter coverage
 // - Zero unnecessary imports
 // - Consistent naming
+// - ✅ v3.8: Leefprofiel velden toegevoegd
+// - ✅ v3.13: DocumentStatus velden toegevoegd
 
 import type { 
   ChapterKey, 
@@ -62,6 +64,34 @@ function isValidNumber(value: any): boolean {
   return value === undefined || typeof value === 'number';
 }
 
+/**
+ * Check if value is array of valid enum members or undefined
+ * ✅ v3.8: For arrays like kinderenLeeftijdsgroepen
+ */
+function isValidEnumArray(value: any, enumValues: readonly string[]): boolean {
+  if (value === undefined) return true;
+  if (!Array.isArray(value)) return false;
+  return value.every((v) => typeof v === 'string' && enumValues.includes(v));
+}
+
+/**
+ * Check if value is boolean, null, or undefined
+ * ✅ v3.13: For moodboard boolean that can be null
+ */
+function isValidBoolOrNull(value: any): boolean {
+  return value === undefined || value === null || typeof value === 'boolean';
+}
+
+/**
+ * Check if value is array of strings or undefined
+ * ✅ v3.13: For moodboardImages
+ */
+function isValidStringArray(value: any): boolean {
+  if (value === undefined) return true;
+  if (!Array.isArray(value)) return false;
+  return value.every((v) => typeof v === 'string');
+}
+
 // ============================================================================
 // ENUM CONSTANTS
 // ============================================================================
@@ -72,8 +102,24 @@ const ENUM = {
   BASIS_URGENCY: ['<3mnd', '3-6mnd', '6-12mnd', '>12mnd', 'onzeker'] as const,
   BASIS_ERVARING: ['starter', 'enigszins', 'ervaren'] as const,
 
+  // ✅ v3.8: Leefprofiel enums
+  BASIS_PROJECT_SCOPE: ['nieuwe_woning', 'uitbouw', 'dakopbouw', 'dakkapel', 'schuur', 'garage', 'tuinhuis', 'renovatie', 'interieur', 'anders'] as const,
+  BASIS_HUISHOUDEN_TYPE: ['alleenstaand', 'stel', 'gezin', 'samengesteld', 'anders'] as const,
+  BASIS_AGE_BRACKET: ['geen_kinderen', '0-4', '4-8', '8-12', '12-16', '16-20', '20plus'] as const,
+  BASIS_WORK_FROM_HOME: ['niet', 'af_en_toe', 'regelmatig'] as const,
+  BASIS_COOKING: ['basis', 'hobbykok', 'fanatiek'] as const,
+  BASIS_HOSTING: ['zelden', 'kleine_groepen', 'grote_groepen'] as const,
+  BASIS_PETS: ['geen', 'hond', 'kat', 'meerdere'] as const,
+  BASIS_NOISE: ['gevoelig', 'neutraal', 'maakt_niet_uit'] as const,
+  BASIS_MOBILITY: ['fit', 'lichte_beperking', 'rolstoelvriendelijk'] as const,
+  BASIS_TIDY: ['strak', 'gemiddeld', 'creatieve_chaos'] as const,
+
+  // ✅ v3.13: DocumentStatus enums
+  DOC_SOURCE_TYPE: ['gemeente', 'vorige_architect', 'aannemer', 'eigen_tekeningen', 'onbekend'] as const,
+  DOC_FORMAT: ['pdf', 'dwg', 'papier', 'jpg', 'png'] as const,
+
   WISH_CATEGORY: ['comfort', 'style', 'function', 'other'] as const,
-  WISH_PRIORITY: ['must', 'nice', 'optional'] as const,
+  WISH_PRIORITY: ['must', 'nice', 'optional', 'wont'] as const, // ✅ v3.15: 'wont' voor anti-wensen
 
   TECH_AMBITION: ['unknown', 'basis', 'comfort', 'max'] as const,
   TECH_CURRENT_STATE: ['unknown', 'bestaand_blijft', 'casco_aanpak', 'sloop_en_opnieuw'] as const,
@@ -120,12 +166,12 @@ export const CHAPTER_SCHEMAS = {
       // ✅ FIX #1: undefined chapter = "not yet filled" = VALID
       if (data === undefined) return true;
       if (typeof data !== 'object' || data === null) return false;
-      
+
       // projectType is REQUIRED when chapter is present
       if (!ENUM.BASIS_PROJECT_TYPE.includes(data.projectType)) {
         return false;
       }
-      
+
       // Optional fields
       if (!isValidString(data.projectNaam)) return false;
       if (!isValidString(data.locatie)) return false;
@@ -134,7 +180,44 @@ export const CHAPTER_SCHEMAS = {
       if (!isValidEnum(data.ervaring, ENUM.BASIS_ERVARING)) return false;
       if (!isValidString(data.toelichting)) return false;
       if (!isValidNumber(data.budget)) return false;
-      
+
+      // ✅ v3.8: Leefprofiel velden
+      if (!isValidEnum(data.projectScope, ENUM.BASIS_PROJECT_SCOPE)) return false;
+      if (!isValidEnum(data.huishoudenType, ENUM.BASIS_HUISHOUDEN_TYPE)) return false;
+      if (!isValidEnumArray(data.kinderenLeeftijdsgroepen, ENUM.BASIS_AGE_BRACKET)) return false;
+      if (!isValidEnum(data.workFromHome, ENUM.BASIS_WORK_FROM_HOME)) return false;
+      if (!isValidEnum(data.cookingProfile, ENUM.BASIS_COOKING)) return false;
+      if (!isValidEnum(data.hostingProfile, ENUM.BASIS_HOSTING)) return false;
+      if (!isValidEnum(data.petsProfile, ENUM.BASIS_PETS)) return false;
+      if (!isValidEnum(data.noiseProfile, ENUM.BASIS_NOISE)) return false;
+      if (!isValidEnum(data.mobilityProfile, ENUM.BASIS_MOBILITY)) return false;
+      if (!isValidEnum(data.tidyProfile, ENUM.BASIS_TIDY)) return false;
+
+      // ✅ v3.13: DocumentStatus validatie
+      if (data.documentStatus !== undefined) {
+        const ds = data.documentStatus;
+        if (typeof ds !== 'object' || ds === null) return false;
+
+        // Moodboard
+        if (!isValidBoolOrNull(ds.moodboard)) return false;
+        if (!isValidString(ds.moodboardLink)) return false;
+        if (!isValidStringArray(ds.moodboardImages)) return false;
+
+        // Tekeningen (verbouw)
+        if (!isValidBool(ds.hasDrawings)) return false;
+        if (!isValidEnum(ds.sourceType, ENUM.DOC_SOURCE_TYPE)) return false;
+        if (!isValidEnumArray(ds.formats, ENUM.DOC_FORMAT)) return false;
+        if (!isValidString(ds.storageLocation)) return false;
+
+        // Kavelpaspoort (nieuwbouw)
+        if (!isValidBool(ds.kavelpaspoort)) return false;
+        if (!isValidString(ds.kavelpaspoortLocatie)) return false;
+
+        // Overige documenten
+        if (!isValidBool(ds.hasOtherDocs)) return false;
+        if (!isValidString(ds.otherDocsDescription)) return false;
+      }
+
       return true;
     }
   },

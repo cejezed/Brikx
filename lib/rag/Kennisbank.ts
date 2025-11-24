@@ -41,7 +41,7 @@ export interface QueryOptions {
 // ============================================================================
 
 const EMBEDDING_MODEL = "text-embedding-3-small";
-const MATCH_THRESHOLD = 0.7; // Minimum similarity score (0-1)
+const MATCH_THRESHOLD = 0.5; // Minimum similarity score (0-1) - lowered for better recall
 
 const CHAPTER_TO_NUMBER: Record<string, number> = {
   basis: 1,
@@ -87,13 +87,15 @@ export class Kennisbank {
   }
 
   /**
-   * ✅ v3.9: Semantic search using OpenAI embeddings + pgvector
+   * ✅ v3.12: Semantic search using OpenAI embeddings + pgvector
+   * Uses match_knowledge_items which joins knowledge_vectors with knowledge_items
+   * for high-quality, structured results from the Brikx kennisbank
    */
   static async semanticQuery(
     query: string,
     options: { chapter?: string; limit?: number } = {}
   ): Promise<RagResult> {
-    const { chapter, limit = 3 } = options;
+    const { limit = 3 } = options;
 
     try {
       // 1. Generate embedding for the query
@@ -103,17 +105,47 @@ export class Kennisbank {
         return { topicId: "general", docs: [], cacheHit: false, searchType: "semantic" };
       }
 
-      // 2. Call the Supabase RPC function for vector similarity search
-      const { data: vectorMatches, error: vectorError } = await supabaseAdmin
-        .rpc("match_knowledge_vectors", {
-          query_embedding: queryEmbedding,
-          match_threshold: MATCH_THRESHOLD,
-          match_count: limit * 2, // Get extra for chapter filtering
-        });
+      // 2. Try match_knowledge_items first (our own embeddings)
+      // Falls back to match_knowledge_chunks if not available
+      let vectorMatches: any[] | null = null;
+      let useOwnEmbeddings = true;
 
-      if (vectorError) {
-        console.error("[Kennisbank] Vector search error:", vectorError);
-        throw vectorError;
+      try {
+        const { data, error } = await supabaseAdmin
+          .rpc("match_knowledge_items", {
+            query_embedding: queryEmbedding,
+            match_threshold: MATCH_THRESHOLD,
+            match_count: limit,
+          });
+
+        if (!error && data && data.length > 0) {
+          vectorMatches = data;
+          console.log(`[Kennisbank] match_knowledge_items found ${data.length} matches`);
+        } else if (error) {
+          console.log("[Kennisbank] match_knowledge_items not available, trying match_knowledge_chunks");
+          useOwnEmbeddings = false;
+        }
+      } catch {
+        console.log("[Kennisbank] match_knowledge_items failed, trying match_knowledge_chunks");
+        useOwnEmbeddings = false;
+      }
+
+      // Fallback to match_knowledge_chunks if our function doesn't exist
+      if (!vectorMatches || vectorMatches.length === 0) {
+        const { data: chunkMatches, error: chunkError } = await supabaseAdmin
+          .rpc("match_knowledge_chunks", {
+            query_embedding: queryEmbedding,
+            match_threshold: MATCH_THRESHOLD,
+            match_count: limit,
+          });
+
+        if (chunkError) {
+          console.error("[Kennisbank] Vector search error:", chunkError);
+          throw chunkError;
+        }
+
+        vectorMatches = chunkMatches;
+        useOwnEmbeddings = false;
       }
 
       if (!vectorMatches || vectorMatches.length === 0) {
@@ -121,52 +153,64 @@ export class Kennisbank {
         return { topicId: "general", docs: [], cacheHit: false, searchType: "semantic" };
       }
 
-      console.log(`[Kennisbank] Vector search found ${vectorMatches.length} matches`);
+      console.log(`[Kennisbank] Vector search found ${vectorMatches.length} matches (own embeddings: ${useOwnEmbeddings})`);
 
-      // 3. Fetch full knowledge items for matched IDs
-      const matchedIds = vectorMatches.map((m: { item_id: string }) => m.item_id);
+      // 3. Format results - different handling based on source
+      const ragDocs: RAGDoc[] = vectorMatches.map((match: any) => {
+        if (useOwnEmbeddings) {
+          // match_knowledge_items returns structured data: title, summary, content, onderwerpen
+          return {
+            id: match.id,
+            text: `**${match.title}**\n${match.summary}`,
+            source: match.onderwerpen?.[0] || "kennisbank",
+          };
+        } else {
+          // match_knowledge_chunks returns raw content that needs cleaning
+          const rawContent = match.content || "";
 
-      let itemsQuery = supabaseAdmin
-        .from("knowledge_items")
-        .select("id, chapter, title, summary, content, onderwerpen, projectsoorten")
-        .in("id", matchedIds);
+          // Clean up content - remove \r\n, page numbers, artifacts
+          let cleanContent = rawContent
+            .replace(/\r\n/g, " ")
+            .replace(/\n/g, " ")
+            .replace(/\s+/g, " ")
+            .replace(/\d+\s*$/g, "")
+            .replace(/^\d+\s+/g, "")
+            .trim();
 
-      // Filter by chapter if specified
-      if (chapter && CHAPTER_TO_NUMBER[chapter]) {
-        itemsQuery = itemsQuery.eq("chapter", CHAPTER_TO_NUMBER[chapter]);
-      }
+          // Skip partial sentences
+          if (/^[a-z]|^[.,;:]/.test(cleanContent)) {
+            const nextSentenceMatch = cleanContent.match(/[.!?]\s+([A-Z])/);
+            if (nextSentenceMatch) {
+              cleanContent = cleanContent.substring(nextSentenceMatch.index! + 2);
+            }
+          }
 
-      const { data: items, error: itemsError } = await itemsQuery;
+          // Extract first sentence as "title"
+          const firstSentenceMatch = cleanContent.match(/^[^.!?]+[.!?]/);
+          const title = firstSentenceMatch
+            ? firstSentenceMatch[0].substring(0, 100)
+            : cleanContent.substring(0, 80) + "...";
 
-      if (itemsError || !items) {
-        console.error("[Kennisbank] Error fetching knowledge items:", itemsError);
-        return { topicId: "general", docs: [], cacheHit: false, searchType: "semantic" };
-      }
+          // Use remaining content as summary
+          const remainingContent = cleanContent.substring(title.length).trim();
+          const summary = remainingContent.length > 250
+            ? remainingContent.substring(0, 247) + "..."
+            : remainingContent;
 
-      // 4. Sort items by similarity score and limit
-      const similarityMap = new Map(
-        vectorMatches.map((m: { item_id: string; similarity: number }) => [m.item_id, m.similarity])
-      );
+          return {
+            id: match.id,
+            text: `**${title}**\n${summary}`,
+            source: match.source || "kennisbank",
+          };
+        }
+      });
 
-      const sortedItems = items
-        .map((item) => ({
-          ...item,
-          similarity: similarityMap.get(item.id) ?? 0,
-        }))
-        .sort((a, b) => (b.similarity as number) - (a.similarity as number))
-        .slice(0, limit);
+      // Determine topic from first match
+      const topicId = useOwnEmbeddings
+        ? vectorMatches[0]?.onderwerpen?.[0] || "general"
+        : vectorMatches[0]?.source || "general";
 
-      // 5. Determine topic from top result
-      const topicId = sortedItems.length > 0
-        ? sortedItems[0].onderwerpen?.[0] || "general"
-        : "general";
-
-      // 6. Map to RAGDoc format
-      const ragDocs: RAGDoc[] = sortedItems.map((item) => ({
-        id: item.id,
-        text: `**${item.title}**\n${item.summary}`,
-        source: item.onderwerpen?.[0] || "kennisbank",
-      }));
+      console.log(`[Kennisbank] Semantic search returned ${ragDocs.length} docs`);
 
       return {
         topicId,

@@ -7,6 +7,7 @@ import { useWizardState } from '@/lib/stores/useWizardState';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import HumanHandoffModal from './HumanHandoffModal';
+import TypingIndicator from '@/components/common/TypingIndicator';
 
 type MsgRole = 'user' | 'assistant';
 
@@ -101,9 +102,7 @@ export default function ChatPanel() {
             ))}
 
           {isStreaming && (
-            <div className="text-xs text-slate-400 mt-1">
-              Jules is aan het typen…
-            </div>
+            <TypingIndicator name="Jules" className="mt-2" />
           )}
 
           {error && (

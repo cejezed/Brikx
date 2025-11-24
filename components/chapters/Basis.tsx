@@ -1,9 +1,9 @@
 // /components/chapters/ChapterBasis.tsx
-// ✅ v3.0 Conform: Met onFocus-handlers om de ExpertCorner te activeren
+// ✅ v3.13 Conform: Met onFocus-handlers om de ExpertCorner te activeren + DossierChecklist
 
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useWizardState } from "@/lib/stores/useWizardState";
 import { generateChapters } from "@/lib/wizard/generateChapters";
 import type { ChapterKey, BasisData, BudgetData } from "@/types/project";
@@ -11,6 +11,8 @@ import FocusTarget from "@/components/wizard/FocusTarget";
 import ChapterControls from "@/components/wizard/ChapterControls";
 // ✅ v3.0: Importeer de focus-helper
 import { createFocusKey } from "@/lib/wizard/focusKeyHelper";
+// ✅ v3.13: Dossier & Documenten checklist
+import DossierChecklist from "@/app/wizard/components/DossierChecklist";
 
 const CHAPTER: ChapterKey = "basis";
 
@@ -30,6 +32,9 @@ export default function ChapterBasis() {
 
   // ✅ STAP 1: Haal de setter voor de ExpertCorner op
   const setFocusedField = useWizardState((s) => s.setFocusedField);
+
+  // ✅ v3.13: Dossier sectie toggle state
+  const [showDossier, setShowDossier] = useState(false);
 
   // Fallbacks
   const basisData: BasisData = basisRaw ?? ({} as BasisData);
@@ -256,6 +261,42 @@ export default function ChapterBasis() {
           />
         </label>
       </FocusTarget>
+
+      {/* ✅ v3.13: DOSSIER & DOCUMENTEN CHECKLIST */}
+      {basisData?.projectType && (
+        <FocusTarget chapter={CHAPTER} fieldId="documentStatus">
+          <div className="mt-8 pt-6 border-t border-slate-200">
+            <button
+              type="button"
+              onClick={() => setShowDossier(!showDossier)}
+              className="w-full flex items-center justify-between text-left"
+            >
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">
+                  Dossier & Documenten
+                </h2>
+                <p className="text-sm text-slate-500">
+                  Welke documenten en inspiratie heeft u al verzameld?
+                </p>
+              </div>
+              <span className="text-2xl text-slate-400">
+                {showDossier ? "−" : "+"}
+              </span>
+            </button>
+
+            {showDossier && (
+              <div className="mt-4">
+                <DossierChecklist
+                  onComplete={() => {
+                    // Optioneel: scroll naar navigation of feedback
+                    console.log("[Basis] DossierChecklist completed");
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        </FocusTarget>
+      )}
 
       {/* NAVIGATION */}
       <ChapterControls

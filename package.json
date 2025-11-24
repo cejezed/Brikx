@@ -10,6 +10,7 @@
     "type-check": "tsc -p tsconfig.json --noEmit",
     "format": "prettier -w .",
 "embed": "tsx ./scripts/generate-embeddings.ts",
+    "sync-knowledge": "tsx ./scripts/sync-knowledge-items.ts",
     "check": "npm run type-check && npm run lint"
   },
   "dependencies": {

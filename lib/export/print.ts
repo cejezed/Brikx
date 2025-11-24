@@ -74,7 +74,7 @@ export function printPreviewToPdf(preview: BuildPreview) {
           </section>
 
           <section class="section">
-            <h2>3. Wensen (${preview.wensen.length})</h2>
+            <h2>3. Wensen & Prioriteiten (MoSCoW)</h2>
             ${preview.wensen.length === 0
               ? `<div class="muted">Nog geen wensen toegevoegd.</div>`
               : `<ul>${preview.wensen.map(w => `<li>${esc(w.label)}${w.priority ? ` — <span class="muted">${prio( String(w.priority) )}</span>` : ""}</li>`).join("")}</ul>`
@@ -149,10 +149,13 @@ function esc(s: string) {
     .replaceAll("'", "&#039;");
 }
 
+// ✅ v3.14/v3.15: MoSCoW priority labels (consistent met lib/pve/wishPriority.ts)
 function prio(p?: string) {
   switch (p) {
     case "must": return "Must-have";
     case "nice": return "Nice-to-have";
+    case "optional": return "Optioneel / later";
+    case "wont": return "Absoluut niet"; // ✅ v3.15
     case "future": return "Toekomst";
     case "unknown": return "Weet ik nog niet / n.v.t.";
     default: return "—";

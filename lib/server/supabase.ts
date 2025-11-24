@@ -1,10 +1,11 @@
 // lib/server/supabase.ts
 import { createClient } from '@supabase/supabase-js';
 
-const url = process.env.SUPABASE_URL!;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!; // ok server & client
+// Use NEXT_PUBLIC_ prefix so it works in both server and client contexts
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-if (!url) throw new Error('Missing SUPABASE_URL');
+if (!url) throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL');
 if (!anonKey) throw new Error('Missing NEXT_PUBLIC_SUPABASE_ANON_KEY');
 
 export const supabase = createClient(url, anonKey, {

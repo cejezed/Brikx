@@ -1,6 +1,7 @@
 // app/layout.tsx
 import "./globals.css";
 import type { Metadata } from "next";
+import RootProviders from "@/app/providers";
 
 export const metadata: Metadata = {
   title: "Brikx",
@@ -10,7 +11,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="nl">
-      <body>{children}</body>
+      <body>
+        <RootProviders>
+          {children}
+        </RootProviders>
+      </body>
     </html>
   );
 }

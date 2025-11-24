@@ -248,6 +248,7 @@ async function runAITriage(
 
       // ✅ v3.3: Multiple patches processing
       const patches = llmResult.patches ?? [];
+      console.log(`[runAITriage] Processing ${patches.length} patches from AI`);
 
       for (const rawPatch of patches) {
         // ✅ FIX: Use normalizePatchDelta helper

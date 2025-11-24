@@ -1,6 +1,10 @@
 // /lib/ai/ProModel.ts
 // ✅ v3.3 Gecorrigeerd: Lokaal type 'GeneratePatchResult' verwijderd.
 // ✅ v3.5: ProjectMeta refactor - Fix "Vastgelopen Lus" bug
+// ✅ v3.14: MoSCoW prioriteiten in context + beschermingsregels voor must-haves
+// ✅ v3.15: Won't-have (anti-wensen) met VETO rule voor AI
+// ✅ v3.16: RAG summarization - ontwerpproces centraal, twee routes gelijkwaardig
+// ✅ v3.17: Budget vs Wensen analyse - proactieve waarschuwing
 
 import type {
   WizardState,
@@ -9,10 +13,13 @@ import type {
   PatchEvent,
   GeneratePatchResult, // ✅ v3.3: Correct geïmporteerd
   BasisData,
+  BudgetData, // ✅ v3.17
+  WensenData, // ✅ v3.17
   ProjectMeta, // ✅ v3.5: Nieuwe import
   RAGDoc, // ✅ v3.8: Gecentraliseerd naar types/project.ts
 } from "@/types/project";
 import { deriveLifestyleProfile, deriveScopeProfile } from "@/lib/domain/lifestyle"; // ✅ v3.8
+import { analyzeBudgetRisk, generateBudgetWarningPrompt } from "@/lib/analysis/budgetRiskAnalysis"; // ✅ v3.17
 // v3.6: nextMissing niet meer nodig - AI volgt gebruiker, niet vaste volgorde
 
 // ... (alle bestaande types behouden: ProIntent, ProPolicy, ClassifyResult, RAGDoc, RAGContext, GenerateOptions)
@@ -129,13 +136,43 @@ function buildSystemPrompt(wizardState: WizardState): string {
   }
 
   // ✅ v3.7: Gedetailleerde lijst van bestaande wensen MET INDEX
+  // ✅ v3.14: MoSCoW prioriteiten toevoegen aan de lijst
+  // ✅ v3.15: Won't-have (anti-wensen) toegevoegd
   let existingWishesList = "";
+  let mustHaveCount = 0;
+  let niceToHaveCount = 0;
+  let optionalCount = 0;
+  let wontCount = 0; // ✅ v3.15
   if (wensen?.wishes && Array.isArray(wensen.wishes) && wensen.wishes.length > 0) {
     filledFields.push(`${wensen.wishes.length} wens(en) genoteerd`);
     existingWishesList = wensen.wishes
-      .map((w: any, idx: number) => `[${idx}] ${w.text || "onbekend"}`)
+      .map((w: any, idx: number) => {
+        const prioLabel = w.priority === "must" ? " [MUST-HAVE]"
+          : w.priority === "nice" ? " [NICE-TO-HAVE]"
+          : w.priority === "optional" ? " [OPTIONEEL]"
+          : w.priority === "wont" ? " [WON'T-HAVE / ABSOLUUT NIET]"
+          : "";
+        if (w.priority === "must") mustHaveCount++;
+        else if (w.priority === "nice") niceToHaveCount++;
+        else if (w.priority === "optional") optionalCount++;
+        else if (w.priority === "wont") wontCount++;
+        return `[${idx}] ${w.text || "onbekend"}${prioLabel}`;
+      })
       .join("\n");
   }
+
+  // ✅ v3.14/v3.15: MoSCoW samenvatting inclusief won't
+  const moscowSummary = mustHaveCount > 0 || niceToHaveCount > 0 || optionalCount > 0 || wontCount > 0
+    ? `MoSCoW prioriteiten: ${mustHaveCount} must-have, ${niceToHaveCount} nice-to-have, ${optionalCount} optioneel, ${wontCount} won't-have (anti-wensen)`
+    : "";
+
+  // ✅ v3.17: Budget vs Wensen analyse - proactieve waarschuwing
+  const budgetAnalysis = analyzeBudgetRisk(
+    budget as BudgetData | undefined,
+    wensen as WensenData | undefined,
+    basis as BasisData | undefined
+  );
+  const budgetWarning = generateBudgetWarningPrompt(budgetAnalysis);
 
   const filledFieldsSummary = filledFields.length > 0 ? filledFields.join(", ") : "Nog niets ingevuld";
 
@@ -156,6 +193,8 @@ PROJECTCONTEXT (alleen ter informatie, NIET om automatisch naar te vragen):
 - Al ingevuld: ${filledFieldsSummary}
 ${existingRoomsList ? `\nBESTAANDE RUIMTES:\n${existingRoomsList}` : ""}
 ${existingWishesList ? `\nBESTAANDE WENSEN:\n${existingWishesList}` : ""}
+${moscowSummary ? `\n${moscowSummary}` : ""}
+${budgetWarning ? `\n${budgetWarning}` : ""}
 
 LEEFPROFIEL (afgeleid uit de wizard):
 - Gezin: ${lifestyle.family}
@@ -209,8 +248,9 @@ KRITIEKE DATA SCHEMAS:
 
 2. CHAPTER "wensen": Array van Wish objecten (gebruik operation="append")
    Structuur: { wishes: Wish[] }
-   Wish object: { text: string, category?: string, ... }
+   Wish object: { text: string, category?: string, priority?: string, ... }
    - text: VERPLICHT, de wens in tekst
+   - priority: OPTIONEEL, een van: "must" (must-have), "nice" (nice-to-have), "optional" (optioneel/later), "wont" (absoluut niet/anti-wens)
    Voorbeeld patch voor "ik wil veel daglicht":
    {
      "chapter": "wensen",
@@ -219,7 +259,8 @@ KRITIEKE DATA SCHEMAS:
        "operation": "append",
        "value": {
          "text": "Veel daglicht in de woonruimtes",
-         "category": "comfort"
+         "category": "comfort",
+         "priority": "nice"
        }
      }
    }
@@ -246,43 +287,61 @@ KRITIEKE DATA SCHEMAS:
    - Voor array items: verwijder eerst het oude item (remove), voeg dan het nieuwe toe (append)
 
 BELANGRIJKE REGELS:
-1. ✅ GENEREER GEEN IDs: U mag NOOIT een "id" veld genereren. De server voegt unieke ID's toe. Laat "id" weg uit de 'value' objecten voor 'ruimtes' en 'wensen'.
+1. GENEREER GEEN IDs: U mag NOOIT een "id" veld genereren. De server voegt unieke ID's toe. Laat "id" weg uit de 'value' objecten voor 'ruimtes' en 'wensen'.
 2. Voor arrays gebruik je ALTIJD operation="append" met een VOLLEDIG object als value
 3. Voor simpele velden gebruik je operation="set" met een directe waarde
-4. BEVESTIGING: Als u 1 of meer patches genereert, MOET uw "followUpQuestion" beginnen met een korte, duidelijke bevestiging van wat u heeft gedaan.
-5. ✅ GEBRUIKER HEEFT ALTIJD PRIORITEIT: Als de gebruiker een nieuwe instructie geeft (bijvoorbeeld "budget 300k"), annuleert dit ALTIJD elke eerdere vraag van u. Verwerk de nieuwe instructie direct, ook al beantwoordt het niet uw vorige vraag.
-6. ✅ WEES EEN COACH, GEEN FORMULIER:
+4. BEVESTIGING IS VERPLICHT: Als u 1 of meer patches genereert, MOET uw "followUpQuestion" ALTIJD beginnen met een korte, duidelijke bevestiging van wat u heeft gedaan.
+   Voorbeelden van goede bevestigingen:
+   - "Ik heb 3 slaapkamers en 3 badkamers toegevoegd."
+   - "Prima, het budget is ingesteld op €400.000."
+   - "De woonkamer en leefkeuken zijn toegevoegd."
+   - "Ik heb uw wens voor veel daglicht toegevoegd."
+   NOOIT direct een vraag stellen zonder eerst te bevestigen wat u heeft gedaan!
+5. GEBRUIKER HEEFT ALTIJD PRIORITEIT: Als de gebruiker een nieuwe instructie geeft (bijvoorbeeld "budget 300k"), annuleert dit ALTIJD elke eerdere vraag van u. Verwerk de nieuwe instructie direct, ook al beantwoordt het niet uw vorige vraag.
+6. WEES EEN COACH, GEEN FORMULIER:
    - U bent een bouwcoach die HELPT, niet een formulier dat velden afvinkt.
    - Stel NOOIT technische vragen (isolatie, ventilatie, verwarming) tenzij de gebruiker er ZELF over begint of expliciet om vraagt.
    - Als de gebruiker iets invult (bv. budget), bevestig dat en vraag of ze ergens hulp bij willen. Stel GEEN automatische vervolgvraag over een totaal ander onderwerp.
    - Bij onduidelijke invoer ("ja", "help", "ok"), vraag WAT de gebruiker wil doen, niet naar een specifiek technisch veld.
-7. ✅ LOGISCHE GESPREKSFLOW:
+7. LOGISCHE GESPREKSFLOW:
    - Volg het onderwerp van de gebruiker. Als ze over budget praten, blijf bij budget-gerelateerde zaken.
    - Spring NIET naar technische details (isolatie, ventilatie) tenzij relevant voor het gesprek.
    - Bij "opnieuw beginnen" of "reset": bevestig dat de gebruiker opnieuw kan starten en vraag naar hun projectidee of wat ze willen bouwen.
-8. ✅ HELPENDE VRAGEN:
+8. HELPENDE VRAGEN:
    - Goede vervolgvragen: "Waarmee kan ik u helpen?", "Wat wilt u weten of invullen?", "Heeft u al een idee van de ruimtes die u nodig heeft?"
    - SLECHTE vervolgvragen: "Wat is uw isolatie?", "Welke ventilatie wenst u?" (te technisch, te specifiek)
-9. ✅ DUPLICAAT-DETECTIE:
-   - Bekijk de BESTAANDE RUIMTES lijst hierboven voordat u een ruimte toevoegt.
-   - Als de gebruiker een ruimte noemt die AL in de lijst staat (bijv. "garage" terwijl er al een "Garage" is), vraag dan EERST: "Ik zie dat u al een garage heeft. Wilt u nog een extra garage toevoegen?"
-   - Voeg de ruimte NIET automatisch toe als er al een vergelijkbare bestaat - vraag eerst om bevestiging.
-   - Meerdere ruimtes van hetzelfde type zijn prima (bijv. 3 slaapkamers), maar vraag altijd om bevestiging bij mogelijke duplicaten.
-   - Dit geldt ook voor WENSEN: als een vergelijkbare wens al bestaat, vraag dan of de gebruiker deze wil aanvullen of een nieuwe wil toevoegen.
-10. ✅ VERWIJDEREN EN WIJZIGEN:
+9. DUPLICAAT-DETECTIE IS VERPLICHT - CONTROLEER ALTIJD EERST:
+   - STAP 1: Kijk naar de BESTAANDE RUIMTES lijst hierboven
+   - STAP 2: Als de gebruiker een ruimte noemt die AL bestaat (bijv. "woonkamer" terwijl er al een "Woonkamer" of "Grote woonkamer" is):
+     * Stuur GEEN patches!
+     * Vraag: "Ik zie dat u al een [ruimte] heeft. Wilt u nog een extra [ruimte] toevoegen, of wilt u de bestaande aanpassen?"
+
+   UITZONDERING - Expliciete aantallen:
+   - Als de gebruiker een SPECIFIEK AANTAL noemt (bijv. "3 slaapkamers", "twee badkamers"):
+     * Voeg dat exacte aantal toe, zelfs als er al vergelijkbare ruimtes bestaan
+     * Bevestig het aantal in je antwoord: "Ik heb 3 slaapkamers toegevoegd."
+
+   VOORBEELDEN:
+   - FOUT: "Ik wil een woonkamer" + Direct patch sturen (zonder te checken of er al een bestaat)
+   - GOED: "Ik wil een woonkamer" + er is al een woonkamer + Vraag om bevestiging
+   - GOED: "Ik wil 3 slaapkamers" + Voeg 3 slaapkamers toe (expliciet aantal)
+   - GOED: "Ik wil een woonkamer" + er is nog GEEN woonkamer + Voeg toe en bevestig
+
+   Dit geldt ook voor WENSEN!
+10. VERWIJDEREN EN WIJZIGEN:
    - Gebruik uw taalbegrip om te bepalen of de gebruiker iets wil toevoegen, wijzigen, verwijderen of alleen bespreken.
    - Bij verwijderen: zoek de INDEX [0], [1], etc. van het item in de BESTAANDE lijst en gebruik operation="remove"
    - Bij wijzigen van simpele waarden (budget, locatie): gebruik operation="set" met de nieuwe waarde
    - Bevestig altijd wat u heeft verwijderd of gewijzigd, en toon daarna kort de nieuwe lijst met indices.
-11. ✅ BIJ ONDUIDELIJKHEID: VRAAG EERST
+11. BIJ ONDUIDELIJKHEID: VRAAG EERST
    - Als u niet zeker weet WELK item bedoeld wordt (bijv. meerdere slaapkamers), stuur GEEN patch maar stel eerst een verduidelijkende vraag.
    - Voer alleen patches uit als de bedoeling van de gebruiker helder is.
    - U mag zelf afleiden wat "eerste", "laatste", "die grote slaapkamer" betekent, maar bij echte twijfel: vraag eerst.
-12. ✅ HYPOTHETISCHE ZINNEN:
+12. HYPOTHETISCHE ZINNEN:
    - Zinnen als "wat als we de garage zouden verwijderen" of "misschien wil ik de keuken later weghalen" zijn hypothetische gedachten.
    - Bij hypothetische vragen: leg scenario's uit, maar stuur GEEN patches.
    - Patches alleen bij duidelijke opdrachten, niet bij overwegingen.
-13. ✅ UNDO / "TOCH NIET":
+13. UNDO / "TOCH NIET":
    - Als de gebruiker aangeeft dat hij de laatste wijziging ongedaan wil maken ("toch maar niet", "undo", "dat was fout", "draai terug"), genereer dan GEEN nieuwe patch.
    - Zeg in plaats daarvan: "Begrepen, ik maak de laatste wijziging ongedaan." en gebruik action="undo" in de output.
 
@@ -322,7 +381,46 @@ ARCHITECTONISCHE LEEF-TIPS (BELANGRIJK):
 
 - Geef GEEN tips die niet passen bij de scope. Bij twijfel: liever geen tip dan een verkeerde tip.
 
-✅ OUTPUTFORMAAT (ENKEL DIT JSON-OBJECT, GEEN EXTRA TEKST):
+MOSCOW PRIORITEITEN (BELANGRIJK):
+
+De gebruiker kan wensen prioriteren met MoSCoW-methode:
+- **MUST-HAVE** (priority="must"): Niet-onderhandelbaar. Deal-breakers. Zonder dit voelt het plan niet geslaagd.
+- **NICE-TO-HAVE** (priority="nice"): Belangrijk maar flexibel. In noodgeval inwisselbaar.
+- **OPTIONEEL** (priority="optional"): Mag in fase 2 of als het budget het toelaat.
+- **WON'T-HAVE** (priority="wont"): ABSOLUUT NIET. Anti-wensen. De gebruiker wil dit expliciet NIET. Dit is een VETO.
+
+REGELS VOOR MOSCOW:
+
+1. MUST-HAVE WENSEN ZIJN BESCHERMD:
+   - U mag NOOIT automatisch een must-have wens verwijderen, verlagen naar nice-to-have, of als optioneel voorstellen.
+   - Als budget krap is, stel dan voor om nice-to-have of optionele wensen te schrappen, NIET de must-haves.
+   - Bij conflicten tussen budget en must-haves: vraag de gebruiker expliciet wat ze willen doen.
+
+2. WON'T-HAVE VETO (v3.15):
+   - Won't-have items zijn ABSOLUTE UITSLUITINGEN. U mag NOOIT iets voorstellen dat in strijd is met een won't-have.
+   - Als de gebruiker zegt "absoluut geen open trap" (won't-have), mag u NOOIT een open trap voorstellen.
+   - Bij suggesties: controleer ALTIJD eerst de won't-have lijst en vermijd alles wat daarop staat.
+   - Won't-have items zijn NIET onderhandelbaar en kunnen NIET worden "heroverwogen" voor budget.
+   - Als de gebruiker iets zegt als "nooit", "absoluut niet", "geen enkele omstandigheid", "wil ik niet", zet priority="wont".
+
+3. BIJ BUDGET-ADVIES:
+   - Gebruik optionele wensen als "budgettaire hefboom" - deze kunnen worden uitgesteld naar fase 2.
+   - Nice-to-haves zijn de tweede laag om te heroverwegen bij budgetdruk.
+   - Must-haves blijven staan tenzij de gebruiker ZELF vraagt om ze te heroverwegen.
+   - Won't-haves zijn GEEN budgettaire hefboom - ze blijven ALTIJD uitgesloten.
+
+4. BIJ NIEUWE WENSEN:
+   - Als de gebruiker expliciet zegt "dit moet echt" of "absoluut noodzakelijk", zet priority="must".
+   - Als de gebruiker zegt "zou fijn zijn" of "als het kan", zet priority="nice".
+   - Als de gebruiker zegt "misschien later" of "niet per se nu", zet priority="optional".
+   - Als de gebruiker zegt "absoluut niet", "nooit", "wil ik niet", "geen [X]", zet priority="wont".
+   - Bij onduidelijkheid: vraag naar de prioriteit of gebruik "nice" als default.
+
+5. BIJ RISICO'S EN KOSTEN:
+   - Als u waarschuwt voor hoge kosten, wijs eerst op optionele en nice-to-have wensen die kunnen worden heroverwogen.
+   - Benoem hoeveel must-haves, nice-to-haves, optionele wensen en won't-haves er zijn als context.
+
+OUTPUTFORMAAT (ENKEL DIT JSON-OBJECT, GEEN EXTRA TEKST):
 {
   "action": "none" | "reset" | "undo",
   "patches": [
@@ -439,6 +537,14 @@ Reageer op basis van wat de gebruiker zegt. Genereer patches indien van toepassi
 
       messages.push({ role: "user", content: userPrompt });
 
+      // ✅ Create AbortController with timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.warn("[ProModel] OpenAI API timeout after 25s - aborting request");
+        controller.abort();
+      }, 25000); // 25 second timeout
+
+      console.log("[ProModel] Calling OpenAI API for generatePatch...");
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -451,7 +557,11 @@ Reageer op basis van wat de gebruiker zegt. Genereer patches indien van toepassi
           temperature: 0.0,
           response_format: { type: "json_object" },
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
+      console.log("[ProModel] OpenAI API response received successfully");
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -492,10 +602,16 @@ Reageer op basis van wat de gebruiker zegt. Genereer patches indien van toepassi
       return parsed;
     } catch (err) {
       console.error("[ProModel] generatePatch error:", err);
+
+      // ✅ Better error message for timeout
+      const isTimeout = err instanceof Error && err.name === "AbortError";
+      const errorMessage = isTimeout
+        ? "De AI-assistent reageert niet op tijd. Probeer het opnieuw met een kortere vraag, of wacht even en probeer het dan nogmaals."
+        : "Dat heb ik niet helemaal goed kunnen plaatsen. Kunt u in één zin aangeven welke wijziging u precies bedoelt?";
+
       return {
         patches: [], // ✅ Leeg array in plaats van null
-        followUpQuestion:
-          "Dat heb ik niet helemaal goed kunnen plaatsen. Kunt u in één zin aangeven welke wijziging u precies bedoelt?",
+        followUpQuestion: errorMessage,
       };
     }
   }
@@ -531,8 +647,9 @@ Reageer op basis van wat de gebruiker zegt. Genereer patches indien van toepassi
     const history = opts.history ?? [];
 
     // RAG-context gebruiken indien aanwezig
+    // ✅ v3.11: summarizeRAG is nu async voor LLM-powered responses
     if (ragCtx && ragCtx.docs && ragCtx.docs.length > 0) {
-      return summarizeRAG(ragCtx, query, mode);
+      return await summarizeRAG(ragCtx, query, mode);
     }
 
     // Fallback: gebruik LLM met history
@@ -735,19 +852,119 @@ function isValidPatchEvent(patch: PatchEvent): boolean {
   return true;
 }
 
-function summarizeRAG(
+/**
+ * ✅ v3.11: LLM-powered RAG summarization
+ * ✅ v3.16: Ontwerpproces centraal - twee routes duidelijk presenteren
+ * Uses GPT to evaluate relevance and create a coherent response
+ */
+async function summarizeRAG(
   ctx: RAGContext,
-  _query: string,
+  query: string,
   mode: "PREVIEW" | "PREMIUM"
-): string {
+): Promise<string> {
   if (!ctx.docs || ctx.docs.length === 0) {
     return "Ik heb geen directe kennisbankinformatie gevonden die hier goed op aansluit. Kunt u uw vraag iets specifieker formuleren, zodat ik u gerichter kan helpen?";
   }
 
-  const maxDocs = mode === "PREMIUM" ? 4 : 2;
+  const maxDocs = mode === "PREMIUM" ? 4 : 3;
   const picked = ctx.docs.slice(0, maxDocs);
 
-  const bullets = picked
+  // Format RAG docs for LLM context
+  const ragContext = picked
+    .map((d, i) => `[Bron ${i + 1}]: ${d.text}`)
+    .join("\n\n");
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: mode === "PREMIUM" ? "gpt-4o" : "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: `U bent Jules, de bouwcoach van Brikx. U helpt particulieren met hun bouwproject.
+
+UW KERNROL: ONTWERPPROCES BEGELEIDER
+U bent geen technisch naslagwerk - u bent een coach die mensen helpt de juiste EERSTE STAP te zetten in hun ontwerpproces. De meeste mensen die vragen stellen zijn nog in de oriëntatiefase.
+
+BIJ CONSTRUCTIEVE VRAGEN (dragende muren, doorbraken, open keuken):
+
+ALTIJD presenteren als TWEE GELIJKWAARDIGE ROUTES:
+
+**Route A: Start met een architect/ontwerper**
+→ Als u nog niet 100% zeker bent van de exacte oplossing
+→ Voordeel: Een goede ontwerper kan soms een slimmere oplossing vinden waarbij de muur NIET doorbroken hoeft te worden
+→ Kosten: €500-2.000 voor een schetsontwerp
+→ Daarna: Constructeur alleen als het ontwerp dat vereist
+
+**Route B: Start met een constructeur**
+→ Als u al 100% zeker weet dat u PRECIES deze muur wilt doorbreken
+→ Voordeel: Direct duidelijkheid over haalbaarheid en kosten
+→ Kosten: €300-800 voor berekening
+
+VERGUNNINGSKOSTEN (apart benoemen):
+- Omgevingsvergunning leges: 2-4% van bouwkosten
+- Typisch €500-2.000 voor een verbouwing
+
+BELANGRIJK - VRAAG ALTIJD:
+Eindig ALTIJD met een vraag die helpt bepalen welke route past:
+- "Bent u al zeker van deze specifieke oplossing, of staat u nog open voor alternatieven?"
+- "Is dit een definitief plan, of bent u nog aan het verkennen?"
+
+STIJL:
+- Spreek met "u"
+- Kort en bondig (max 200 woorden)
+- Presenteer beide routes als gelijkwaardig, niet "constructeur eerst"
+- Geen verwijzingen naar kennisbank of bronnen`,
+          },
+          {
+            role: "user",
+            content: `VRAAG VAN GEBRUIKER: ${query}
+
+ACHTERGROND INFORMATIE:
+${ragContext}
+
+GEEF EEN ANTWOORD DAT:
+1. De twee routes (architect-eerst vs constructeur-eerst) BEIDE benoemt als opties
+2. Concrete kostenindicaties geeft voor beide routes
+3. Vergunningskosten apart benoemt
+4. EINDIGT met een vraag over de zekerheid van hun wens (oriëntatie vs definitief plan)`,
+          },
+        ],
+        temperature: 0.5,
+        max_tokens: 500,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error(`[summarizeRAG] LLM error: ${response.status}`);
+      // Fallback to simple template
+      return fallbackSummarizeRAG(picked);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content?.trim();
+
+    if (!content) {
+      return fallbackSummarizeRAG(picked);
+    }
+
+    return content;
+  } catch (error) {
+    console.error("[summarizeRAG] Error:", error);
+    return fallbackSummarizeRAG(picked);
+  }
+}
+
+/**
+ * Fallback template-based summarization (no LLM)
+ */
+function fallbackSummarizeRAG(docs: Array<{ text: string }>): string {
+  const bullets = docs
     .map((d) => `- ${d.text}`)
     .join("\n");
 
@@ -756,6 +973,6 @@ Op basis van de Brikx-kennisbank zie ik de volgende punten die relevant kunnen z
 
 ${bullets}
 
-Als u wilt, kan ik deze aandachtspunten direct vertalen naar concrete keuzes in uw Programma van Eisen, bijvoorbeeld in de hoofdstukken techniek, duurzaamheid of risico.
+Als u wilt, kan ik deze aandachtspunten direct vertalen naar concrete keuzes in uw Programma van Eisen.
   `.trim();
 }
