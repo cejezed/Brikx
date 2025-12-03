@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Image from 'next/image'
 import ChecklistModal from '@/components/ChecklistModal'
+import { useWizardState } from '@/lib/stores/useWizardState'
 
 export default function HeroWithForm() {
   // State voor het 'Wat wil je doen?' formulier
@@ -14,15 +14,36 @@ export default function HeroWithForm() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [requestedChecklist, setRequestedChecklist] = useState<string | null>(null)
 
+  // Check if user has existing basisData
+  const { chapterAnswers } = useWizardState()
+
   // Functie voor het 'Wat wil je doen?' formulier
   const handleSubmit = () => {
-    const params = new URLSearchParams({ type: projectType })
-    if (noLocation) {
-      params.set('hasLocation', 'false')
+    // Check if user already has basisData with essential fields
+    const basisData = chapterAnswers.basis
+
+    // Debug log
+    console.log('BasisData check:', {
+      basisData,
+      hasProjectType: !!basisData?.projectType,
+      hasProjectNaam: !!basisData?.projectNaam
+    })
+
+    const hasExistingProject =
+      basisData &&
+      basisData.projectType &&
+      basisData.projectNaam &&
+      basisData.projectNaam.trim().length > 0
+
+    if (hasExistingProject) {
+      console.log('Redirecting to wizard (returning user)')
+      // Returning user -> go directly to wizard
+      window.location.href = '/wizard'
     } else {
-      params.set('postcode', location.trim())
+      console.log('Redirecting to assessment (new user)')
+      // New user -> go to intake assessment
+      window.location.href = '/welcome/assessment'
     }
-    window.location.href = `/wizard?${params.toString()}`
   }
 
   // Aangepaste functies voor de herbruikbare modal
@@ -103,9 +124,12 @@ export default function HeroWithForm() {
               <h1 className="text-[64px] leading-[1.15] mb-3 font-bold">Stop de bouwstress. Start met zekerheid.</h1>
               <p className="text-2xl leading-relaxed mb-6 opacity-95">Of je nu gaat verbouwen of nieuwbouwen: begin met een professioneel Programma van Eisen en voorkom dure fouten.</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 max-w-[520px]">
-                <a href="wizard" className="w-full inline-flex items-center justify-center bg-[#43D38D] hover:bg-[#3bc47d] text-white px-8 py-4 rounded-[50px] no-underline text-xl font-semibold transition-all duration-300 hover:shadow-[0_12px_28px_rgba(67,211,141,0.5)] hover:-translate-y-1">
+                <button
+                  onClick={handleSubmit}
+                  className="w-full inline-flex items-center justify-center bg-[#43D38D] hover:bg-[#3bc47d] text-white px-8 py-4 rounded-[50px] no-underline text-xl font-semibold transition-all duration-300 hover:shadow-[0_12px_28px_rgba(67,211,141,0.5)] hover:-translate-y-1 border-0 cursor-pointer"
+                >
                   Start Gratis →
-                </a>
+                </button>
                 <button
                   type="button"
                   onClick={() => handleOpenModal('Algemene Bouw Checklist')}

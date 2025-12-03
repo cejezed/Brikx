@@ -2,6 +2,8 @@
 
 import { useState, useEffect, ReactNode } from 'react'
 import { ImgHTMLAttributes, AnchorHTMLAttributes } from 'react'
+import { useIsPremium } from '@/lib/stores/useAccountStore' // v3.x: Fase 5
+import { useWizardState } from '@/lib/stores/useWizardState'
 
 // Placeholder voor next/image
 const Image = (props: ImgHTMLAttributes<HTMLImageElement>) => <img {...props} />
@@ -16,6 +18,23 @@ export default function Header({ className = '' }: { className?: string }) {
   const [open, setOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
   const onNavClick = () => setOpen(false)
+  const isPremium = useIsPremium() // v3.x: Fase 5
+  const { chapterAnswers } = useWizardState()
+
+  const handleStartClick = () => {
+    const basisData = chapterAnswers.basis
+    const hasExistingProject =
+      basisData &&
+      basisData.projectType &&
+      basisData.projectNaam &&
+      basisData.projectNaam.trim().length > 0
+
+    if (hasExistingProject) {
+      window.location.href = '/wizard'
+    } else {
+      window.location.href = '/welcome/assessment'
+    }
+  }
 
   // Detecteer scrolling voor bottom rounding
   useEffect(() => {
@@ -60,6 +79,22 @@ export default function Header({ className = '' }: { className?: string }) {
               </span>
             </Link>
 
+            {/* v3.x: Fase 5 - Premium Badge */}
+            <div className="flex-1 flex justify-end md:justify-start md:ml-6">
+              {isPremium ? (
+                <div className="flex items-center gap-1.5 bg-gradient-to-r from-amber-400 to-amber-500 px-3 py-1 rounded-full shadow-sm">
+                  <svg className="w-3.5 h-3.5 text-amber-900" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                  <span className="text-xs font-semibold text-amber-900 leading-none">Premium</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 bg-stone-100/10 px-3 py-1 rounded-full">
+                  <span className="text-xs font-medium text-stone-300 leading-none">Free</span>
+                </div>
+              )}
+            </div>
+
             {/* Desktop navigatie */}
             <nav className="hidden md:flex gap-6 items-center">
               <a
@@ -92,12 +127,12 @@ export default function Header({ className = '' }: { className?: string }) {
               >
                 Login
               </Link>
-              <Link
-                href="/wizard"
-                className="bg-[#4db8ba] hover:bg-[#3da7a9] text-white px-5 py-2 rounded-[22px] text-base font-medium transition-colors"
+              <button
+                onClick={handleStartClick}
+                className="bg-[#4db8ba] hover:bg-[#3da7a9] text-white px-5 py-2 rounded-[22px] text-base font-medium transition-colors cursor-pointer border-0"
               >
                 Start Gratis PvE
-              </Link>
+              </button>
             </nav>
 
             {/* Hamburger (mobiel) */}
