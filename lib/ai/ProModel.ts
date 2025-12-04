@@ -18,12 +18,22 @@ import type {
   ProjectMeta, // ✅ v3.5: Nieuwe import
   RAGDoc, // ✅ v3.8: Gecentraliseerd naar types/project.ts
 } from "@/types/project";
+// @protected RISK_F02_LIFESTYLE_RISK
+// Lifestyle risk analysis integration - imports lifestyle profile derivation functions.
+// DO NOT REMOVE these imports without updating config/features.registry.json.
 import { deriveLifestyleProfile, deriveScopeProfile } from "@/lib/domain/lifestyle"; // ✅ v3.8
+
+// @protected RISK_F01_BUDGET_RISK
+// Budget risk analysis integration - imports budget risk calculation functions.
+// DO NOT REMOVE these imports without updating config/features.registry.json.
 import { analyzeBudgetRisk, generateBudgetWarningPrompt } from "@/lib/analysis/budgetRiskAnalysis"; // ✅ v3.17
 // v3.6: nextMissing niet meer nodig - AI volgt gebruiker, niet vaste volgorde
 
 // ... (alle bestaande types behouden: ProIntent, ProPolicy, ClassifyResult, RAGDoc, RAGContext, GenerateOptions)
 
+// @protected CHAT_F05_INTENT_CLASSIFICATION
+// These intent types are critical for routing user queries to the correct handling logic.
+// DO NOT REMOVE or change without updating config/features.registry.json and check-features.sh.
 export type ProIntent =
   | "VULLEN_DATA"
   | "ADVIES_VRAAG"
@@ -107,6 +117,9 @@ function deriveContext(wizardState: WizardState): {
   return { projectName, projectType, activeChapter };
 }
 
+// @protected CHAT_F07_PROMPT_SYSTEM
+// This function builds the core system prompt for AI chat interactions with the wizard.
+// DO NOT REMOVE or significantly alter without updating config/features.registry.json and check-features.sh.
 function buildSystemPrompt(wizardState: WizardState): string {
   const { projectName, projectType, activeChapter } = deriveContext(wizardState);
 
@@ -116,6 +129,9 @@ function buildSystemPrompt(wizardState: WizardState): string {
   const budget = wizardState.chapterAnswers?.budget;
   const wensen = wizardState.chapterAnswers?.wensen;
 
+  // @protected RISK_F02_LIFESTYLE_RISK
+  // Derive lifestyle and scope profiles for risk analysis and contextual AI responses.
+  // DO NOT REMOVE this integration without updating config/features.registry.json.
   // ✅ v3.8: Lifestyle en scope profielen afleiden
   const lifestyle = deriveLifestyleProfile(basis);
   const scopeProfile = deriveScopeProfile(basis?.projectScope);
@@ -166,6 +182,9 @@ function buildSystemPrompt(wizardState: WizardState): string {
     ? `MoSCoW prioriteiten: ${mustHaveCount} must-have, ${niceToHaveCount} nice-to-have, ${optionalCount} optioneel, ${wontCount} won't-have (anti-wensen)`
     : "";
 
+  // @protected RISK_F01_BUDGET_RISK
+  // Analyze budget vs must-have wishes to provide proactive risk warnings in AI responses.
+  // DO NOT REMOVE this analysis without updating config/features.registry.json.
   // ✅ v3.17: Budget vs Wensen analyse - proactieve waarschuwing
   const budgetAnalysis = analyzeBudgetRisk(
     budget as BudgetData | undefined,
@@ -458,6 +477,9 @@ RICHTLIJNEN:
 // ============================================================================
 
 export class ProModel {
+  // @protected CHAT_F05_INTENT_CLASSIFICATION
+  // This classify method implements the core intent classification logic.
+  // DO NOT REMOVE or change intent detection logic without updating config/features.registry.json.
   // 1) Intent-classificatie (ONGEWIJZIGD)
   static async classify(
     query: string,
@@ -513,6 +535,9 @@ export class ProModel {
     };
   }
 
+  // @protected CHAT_F08_CONTEXT_MANAGER
+  // This generatePatch method manages chat context by building messages array with history.
+  // DO NOT REMOVE history integration logic without updating config/features.registry.json.
   // 2) ✅ v3.3: Patches genereren (GEWIJZIGD: Array in plaats van single)
   static async generatePatch(
     query: string,
@@ -526,7 +551,9 @@ export class ProModel {
 
 Reageer op basis van wat de gebruiker zegt. Genereer patches indien van toepassing, of geef een passende followUpQuestion.`;
 
-      // Build messages array dynamically
+      // @protected CHAT_F08_CONTEXT_MANAGER
+      // Build messages array dynamically with history for context management.
+      // DO NOT REMOVE this history integration - it's critical for conversation continuity.
       const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
         { role: "system", content: systemPrompt },
       ];
@@ -592,6 +619,9 @@ Reageer op basis van wat de gebruiker zegt. Genereer patches indien van toepassi
         });
       }
 
+      // @protected CHAT_F01_SMART_FOLLOWUP
+      // This block enforces that every AI response includes a follow-up question after patches.
+      // DO NOT REMOVE - this is critical for maintaining conversational flow.
       if (!parsed.followUpQuestion) {
         parsed.followUpQuestion =
           parsed.patches?.length === 0
@@ -806,6 +836,9 @@ Schrijf in helder Nederlands, in de u-vorm. Wees concreet en vermijd loze market
 // Interne helpers (ONGEWIJZIGD, behalve safeParse)
 // ============================================================================
 
+// @protected CHAT_F09_STRUCTURED_OUTPUT
+// This function parses and validates structured LLM output using JSON schema enforcement.
+// DO NOT REMOVE or weaken validation logic without updating config/features.registry.json.
 // ✅ CHANGED: Parse patches array in plaats van single patch
 // ✅ v3.6: Added action field parsing for reset functionality
 // ✅ v3.7: Added undo action support

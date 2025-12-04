@@ -1,0 +1,46 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Feature protection: Check if critical features are still present
+echo "🔍 Checking for critical features..."
+
+FEATURES_OK=true
+
+# Check route.ts for followUpQuestion
+if git diff --cached --name-only | grep -q "app/api/chat/route.ts"; then
+  if ! git diff --cached app/api/chat/route.ts | grep -q "followUpQuestion"; then
+    if ! git show HEAD:app/api/chat/route.ts | grep -q "followUpQuestion"; then
+      echo "❌ BLOCKED: route.ts missing 'followUpQuestion' - critical feature removed!"
+      FEATURES_OK=false
+    fi
+  fi
+fi
+
+# Check ProModel.ts for followUpQuestion
+if git diff --cached --name-only | grep -q "lib/ai/ProModel.ts"; then
+  if ! git diff --cached lib/ai/ProModel.ts | grep -q "followUpQuestion"; then
+    if ! git show HEAD:lib/ai/ProModel.ts | grep -q "followUpQuestion"; then
+      echo "❌ BLOCKED: ProModel.ts missing 'followUpQuestion' - critical feature removed!"
+      FEATURES_OK=false
+    fi
+  fi
+fi
+
+# Check toolHelp.ts for follow-up questions in fixed responses
+if git diff --cached --name-only | grep -q "lib/ai/toolHelp.ts"; then
+  if ! git diff --cached lib/ai/toolHelp.ts | grep -q "Waarmee kan ik u helpen"; then
+    if ! git show HEAD:lib/ai/toolHelp.ts | grep -q "Waarmee kan ik u helpen"; then
+      echo "❌ BLOCKED: toolHelp.ts missing follow-up questions - critical feature removed!"
+      FEATURES_OK=false
+    fi
+  fi
+fi
+
+if [ "$FEATURES_OK" = false ]; then
+  echo ""
+  echo "💡 TIP: Run 'git diff --cached' to see what changed"
+  echo "💡 If this is intentional, use 'git commit --no-verify'"
+  exit 1
+fi
+
+echo "✅ All critical features present"

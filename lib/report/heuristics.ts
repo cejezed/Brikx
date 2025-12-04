@@ -176,3 +176,77 @@ export function computeOverallRisk(
   // Anders → laag
   return "laag";
 }
+
+/**
+ * v3.x: Premium integratie – Budget warning heuristic
+ *
+ * Berekent een veilige budget warning op basis van project eigenschappen.
+ *
+ * BELANGRIJK: Deze functie gebruikt ALLEEN heuristieken, NOOIT AI-gegenereerde bedragen.
+ * Alle waarschuwingen zijn veilig en generiek, zonder specifieke kostenclaims.
+ *
+ * Logica:
+ * - Groot project (>180m²) + laag budget (<200k) → waarschuwing
+ * - Veel must-have wensen (>8) + gemiddeld budget → waarschuwing
+ * - Hoge tech ambities (max) + laag budget → waarschuwing
+ * - Nieuwbouw + budget <250k → waarschuwing
+ * - Anders → geen waarschuwing
+ *
+ * @param chapters - Alle chapter data uit wizard
+ * @returns Budget warning tekst of null
+ */
+export function computeBudgetWarning(
+  chapters: Partial<ChapterDataMap>
+): string | null {
+  const budget = chapters.budget?.budgetTotaal;
+  const basis = chapters.basis;
+  const wensen = chapters.wensen;
+  const techniek = chapters.techniek;
+
+  // Geen budget ingevuld → geen warning
+  if (!budget) return null;
+
+  // Heuristiek 1: Groot project met krap budget
+  const totalM2 = chapters.ruimtes?.rooms?.reduce((sum, room) => {
+    const m2 = typeof room.m2 === "number" ? room.m2 : 0;
+    return sum + m2;
+  }, 0) || 0;
+
+  if (totalM2 > 180 && budget < 200000) {
+    return "Let op: Voor een project van deze omvang (>180m²) is het budget aan de krappe kant. Overweeg extra buffer voor onvoorziene kosten.";
+  }
+
+  // Heuristiek 2: Veel must-have wensen met gemiddeld budget
+  const mustHaveCount =
+    wensen?.wishes?.filter((w) => w.priority === "must").length ?? 0;
+
+  if (mustHaveCount > 8 && budget < 300000) {
+    return "Let op: Je hebt veel must-have wensen. Overweeg prioritering of extra budget om alle wensen te realiseren.";
+  }
+
+  // Heuristiek 3: Hoge tech ambities met krap budget
+  const hasHighTechAmbition =
+    techniek?.pvAmbition === "max" ||
+    techniek?.heatingAmbition === "max" ||
+    techniek?.ventilationAmbition === "max";
+
+  if (hasHighTechAmbition && budget < 250000) {
+    return "Let op: Maximale technische ambities vereisen vaak significant budget. Overweeg fasering of budgetuitbreiding.";
+  }
+
+  // Heuristiek 4: Nieuwbouw met krap budget
+  if (basis?.projectType === "nieuwbouw" && budget < 250000) {
+    return "Let op: Nieuwbouw projecten hebben vaak hogere kosten dan initieel verwacht. Zorg voor voldoende buffer.";
+  }
+
+  // Heuristiek 5: Budget onder bandbreedte minimum
+  if (chapters.budget?.bandbreedte) {
+    const [min] = chapters.budget.bandbreedte;
+    if (typeof min === "number" && budget < min) {
+      return "Let op: Je budget ligt onder de aanbevolen minimale bandbreedte. Dit kan leiden tot keuzes die afbreuk doen aan je ambities.";
+    }
+  }
+
+  // Geen waarschuwing nodig
+  return null;
+}

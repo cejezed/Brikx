@@ -177,6 +177,9 @@ export type RuimtesData = {
 // CHAPTER 3: WENSEN
 // ============================================================================
 
+// @protected WIZARD_F03_MOSCOW_PRIORITIES
+// WishPriority defines MoSCoW prioritization for wishes (must-have, nice-to-have, optional, won't-have).
+// DO NOT REMOVE or change priority values without updating config/features.registry.json and check-features.sh.
 // ✅ v3.15: 'wont' toegevoegd voor expliciete anti-wensen (Won't-have)
 export type WishPriority = "must" | "nice" | "optional" | "wont";
 
@@ -195,6 +198,9 @@ export type WensenData = {
 // CHAPTER 4: BUDGET
 // ============================================================================
 
+// @protected WIZARD_F04_BUDGET_TRACKING
+// BudgetData defines the budget data structure with total, range, own contribution, and contingency.
+// DO NOT REMOVE or modify fields without updating config/features.registry.json and check-features.sh.
 export type BudgetData = {
   budgetTotaal?: number;
   bandbreedte?: [number | null, number | null];
@@ -371,6 +377,10 @@ export type RisicoData = {
 // UNIFIED MAP & KEYS
 // ============================================================================
 
+// @protected WIZARD_F01_CHAPTER_FLOW
+// @protected DATA_F03_TYPE_SAFETY
+// ChapterDataMap defines the exact 7-chapter structure of the wizard and provides type-safety.
+// DO NOT REMOVE or modify chapter keys without updating config/features.registry.json and check-features.sh.
 export type ChapterDataMap = {
   basis: BasisData;
   ruimtes: RuimtesData;
@@ -381,6 +391,9 @@ export type ChapterDataMap = {
   risico: RisicoData;
 };
 
+// @protected DATA_F03_TYPE_SAFETY
+// These utility types provide type-safe chapter access throughout the application.
+// DO NOT REMOVE - they are critical for compile-time type checking.
 export type ChapterKey = keyof ChapterDataMap;
 export type ChapterData<K extends ChapterKey> = ChapterDataMap[K];
 
@@ -388,12 +401,18 @@ export type ChapterData<K extends ChapterKey> = ChapterDataMap[K];
 // PATCH OPERATIONS (v3.3)
 // ============================================================================
 
+// @protected WIZARD_F02_PATCH_SYSTEM
+// PatchDelta and PatchEvent define the core patch event system for type-safe wizard mutations.
+// DO NOT REMOVE or change operation types without updating config/features.registry.json and check-features.sh.
 export type PatchDelta = {
   path: string;
   operation: "set" | "append" | "remove";
   value?: any;
 };
 
+// @protected WIZARD_F02_PATCH_SYSTEM
+// PatchEvent ties patches to specific chapters for structured state mutations.
+// DO NOT REMOVE - this is the foundation of the wizard's data mutation system.
 export type PatchEvent = {
   chapter: ChapterKey;
   delta: PatchDelta;
@@ -431,6 +450,9 @@ export type ProjectMeta = {
 // WIZARD STATE
 // ============================================================================
 
+// @protected WIZARD_F05_WIZARD_STATE
+// WizardState is the central Zustand store state containing all chapter data and wizard flow.
+// DO NOT REMOVE or change core fields (chapterAnswers, currentChapter, chapterFlow) without updating config/features.registry.json.
 export type WizardState = {
   stateVersion: number;
   projectMeta?: ProjectMeta; // ✅ v3.5: Stap 0 data (project metadata)

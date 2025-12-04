@@ -43,6 +43,18 @@ export interface QueryOptions {
 const EMBEDDING_MODEL = "text-embedding-3-small";
 const MATCH_THRESHOLD = 0.5; // Minimum similarity score (0-1) - lowered for better recall
 
+// ✅ v3.10: RAG Guard Layer (CHAT_F04) - voorkomt slechte RAG matches
+const RAG_MIN_CONFIDENCE = 0.7; // Minimum confidence voor results (hoger dan MATCH_THRESHOLD voor extra filter)
+const RAG_KEYWORD_BLACKLIST = [
+  "wizard",
+  "chat",
+  "tool",
+  "gebruik",
+  "werkt",
+  "hoe gebruik",
+  "help",
+]; // Meta-vragen die geen kennis nodig hebben
+
 const CHAPTER_TO_NUMBER: Record<string, number> = {
   basis: 1,
   ruimtes: 2,
@@ -61,12 +73,20 @@ export class Kennisbank {
   /**
    * Query the knowledge base for relevant documents
    * ✅ v3.9: Hybrid approach - semantic search first, keyword fallback
+   * ✅ v3.10: RAG Guard Layer - filters meta-questions & low-confidence results
    */
   static async query(
     query: string,
     options: QueryOptions = {}
   ): Promise<RagResult> {
     const { chapter, limit = 3, useSemanticSearch = true } = options;
+
+    // ✅ v3.10: RAG Guard - Keyword blacklist check
+    const lowerQuery = query.toLowerCase();
+    if (RAG_KEYWORD_BLACKLIST.some((kw) => lowerQuery.includes(kw))) {
+      console.log(`[Kennisbank] Query blocked by keyword blacklist: "${query}"`);
+      return { topicId: "general", docs: [], cacheHit: false, searchType: "keyword" };
+    }
 
     // Try semantic search first (if enabled and API key available)
     if (useSemanticSearch && process.env.OPENAI_API_KEY) {
@@ -111,10 +131,11 @@ export class Kennisbank {
       let useOwnEmbeddings = true;
 
       try {
+        // ✅ v3.10: Use RAG_MIN_CONFIDENCE for higher quality threshold
         const { data, error } = await supabaseAdmin
           .rpc("match_knowledge_items", {
             query_embedding: queryEmbedding,
-            match_threshold: MATCH_THRESHOLD,
+            match_threshold: RAG_MIN_CONFIDENCE, // 0.7 instead of 0.5 for quality
             match_count: limit,
           });
 
@@ -135,7 +156,7 @@ export class Kennisbank {
         const { data: chunkMatches, error: chunkError } = await supabaseAdmin
           .rpc("match_knowledge_chunks", {
             query_embedding: queryEmbedding,
-            match_threshold: MATCH_THRESHOLD,
+            match_threshold: RAG_MIN_CONFIDENCE, // ✅ v3.10: Also use higher threshold for fallback
             match_count: limit,
           });
 

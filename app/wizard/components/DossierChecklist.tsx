@@ -15,6 +15,8 @@ import {
   isValidImageFile,
   formatFileSize,
 } from "@/lib/client/compressImage";
+import { useIsPremium } from "@/lib/stores/useAccountStore"; // v3.x: Premium integratie
+import { PremiumModal } from "@/components/premium"; // v3.x: Premium integratie
 
 // ============================================================================
 // Types & Constants
@@ -61,10 +63,10 @@ export default function DossierChecklist({
 }: DossierChecklistProps) {
   // Store access
   const basisData = useWizardState((s) => s.chapterAnswers?.basis as BasisData | undefined);
-  const mode = useWizardState((s) => s.mode);
   const updateChapterData = useWizardState((s) => s.updateChapterData);
 
-  const isPremium = mode === "PREMIUM";
+  // v3.x: Premium integratie
+  const isPremium = useIsPremium();
   const projectType = basisData?.projectType;
 
   // Bepaal welke vragen relevant zijn
@@ -76,6 +78,7 @@ export default function DossierChecklist({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [premiumModalOpen, setPremiumModalOpen] = useState(false); // v3.x: Premium integratie
 
   // Form state
   const [localStatus, setLocalStatus] = useState<Partial<DocumentStatus>>({
@@ -192,8 +195,10 @@ export default function DossierChecklist({
     saveToStore({ moodboard: hasMoodboard });
 
     if (hasMoodboard) {
-      // Vraag naar link of upload
-      setStep(isPremium ? "moodboard_upload" : "moodboard_link");
+      // v3.x: Premium integratie - Toon altijd moodboard_upload stap
+      // Free users krijgen link veld + disabled upload met tooltip
+      // Premium users krijgen link veld + enabled upload
+      setStep("moodboard_upload");
     } else {
       // Ga naar volgende sectie
       goToNextSection();
@@ -337,31 +342,36 @@ export default function DossierChecklist({
   );
 
   const MAX_IMAGES = 10;
-  const canUploadMore = uploadedImages.length < MAX_IMAGES;
+  const canUploadMore = uploadedImages.length < MAX_IMAGES && isPremium; // v3.x: Premium check
 
   const renderMoodboardUploadStep = () => (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-lg font-semibold text-gray-900">
-          Upload uw moodboard afbeeldingen
+          {isPremium ? "Upload uw moodboard afbeeldingen" : "Deel uw moodboard"}
         </h3>
-        {/* Image counter */}
-        <span className={`text-sm font-medium px-2 py-1 rounded ${
-          uploadedImages.length >= MAX_IMAGES
-            ? "bg-amber-100 text-amber-800"
-            : "bg-gray-100 text-gray-600"
-        }`}>
-          {uploadedImages.length}/{MAX_IMAGES}
-        </span>
+        {/* Image counter - alleen voor Premium */}
+        {isPremium && (
+          <span className={`text-sm font-medium px-2 py-1 rounded ${
+            uploadedImages.length >= MAX_IMAGES
+              ? "bg-amber-100 text-amber-800"
+              : "bg-gray-100 text-gray-600"
+          }`}>
+            {uploadedImages.length}/{MAX_IMAGES}
+          </span>
+        )}
       </div>
       <p className="text-sm text-gray-600 mb-4">
-        Upload tot {MAX_IMAGES} afbeeldingen die uw stijl en wensen weergeven.
+        {isPremium
+          ? `Upload tot ${MAX_IMAGES} afbeeldingen die uw stijl en wensen weergeven.`
+          : "Deel een link naar uw moodboard of inspiratie."
+        }
       </p>
 
-      {/* Link optie */}
+      {/* Link optie - voor ALLE users */}
       <div className="mb-4">
         <label className="text-sm font-medium text-gray-700">
-          Of deel een link:
+          {isPremium ? "Of deel een link:" : "Link naar moodboard:"}
         </label>
         <input
           type="url"
@@ -372,40 +382,62 @@ export default function DossierChecklist({
         />
       </div>
 
-      {/* Upload zone - disabled when max reached */}
-      <div
-        onClick={() => canUploadMore && fileInputRef.current?.click()}
-        className={`border-2 border-dashed rounded-lg p-6 text-center transition ${
-          canUploadMore
-            ? "border-gray-300 cursor-pointer hover:border-[#40C0C0]"
-            : "border-gray-200 bg-gray-50 cursor-not-allowed"
-        }`}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          multiple
-          onChange={handleFileSelect}
-          className="hidden"
-          disabled={!canUploadMore}
-        />
-        {isUploading ? (
-          <p className="text-gray-600">Uploaden...</p>
-        ) : !canUploadMore ? (
-          <p className="text-amber-700">
-            Maximum aantal afbeeldingen bereikt ({MAX_IMAGES})
-          </p>
-        ) : (
-          <>
-            <p className="text-gray-600 mb-1">
-              Klik of sleep afbeeldingen hierheen
-            </p>
-            <p className="text-xs text-gray-400">
-              JPG, PNG of WebP (max 2MB per afbeelding)
-            </p>
-          </>
+      {/* v3.x: Upload zone - Premium gating met tooltip */}
+      <div className="relative">
+        {/* Tooltip voor free users */}
+        {!isPremium && (
+          <div className="absolute inset-0 flex items-center justify-center z-10 bg-white/80 backdrop-blur-[1px] rounded-lg border-2 border-dashed border-gray-300">
+            <div className="text-center px-6 py-4">
+              <div className="inline-flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                Afbeeldingen uploaden is een Premium-functie
+              </div>
+              <button
+                onClick={() => setPremiumModalOpen(true)}
+                className="text-sm text-blue-600 hover:text-blue-700 underline font-medium"
+              >
+                Meer info over Premium
+              </button>
+            </div>
+          </div>
         )}
+
+        <div
+          onClick={() => canUploadMore && fileInputRef.current?.click()}
+          className={`border-2 border-dashed rounded-lg p-6 text-center transition ${
+            canUploadMore
+              ? "border-gray-300 cursor-pointer hover:border-[#40C0C0]"
+              : "border-gray-200 bg-gray-50 cursor-not-allowed"
+          } ${!isPremium ? "opacity-50" : ""}`}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            onChange={handleFileSelect}
+            className="hidden"
+            disabled={!canUploadMore}
+          />
+          {isUploading ? (
+            <p className="text-gray-600">Uploaden...</p>
+          ) : uploadedImages.length >= MAX_IMAGES ? (
+            <p className="text-amber-700">
+              Maximum aantal afbeeldingen bereikt ({MAX_IMAGES})
+            </p>
+          ) : (
+            <>
+              <p className="text-gray-600 mb-1">
+                Klik of sleep afbeeldingen hierheen
+              </p>
+              <p className="text-xs text-gray-400">
+                JPG, PNG of WebP (max 2MB per afbeelding)
+              </p>
+            </>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -430,6 +462,28 @@ export default function DossierChecklist({
               </button>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* v3.x: Fase 5 - Success state: green check wanneer content aanwezig */}
+      {(uploadedImages.length > 0 || (localStatus.moodboardLink && localStatus.moodboardLink.trim() !== '')) && (
+        <div className="mt-4 flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+          <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-green-900">
+              {uploadedImages.length > 0 && localStatus.moodboardLink?.trim()
+                ? `${uploadedImages.length} afbeelding${uploadedImages.length > 1 ? 'en' : ''} geüpload en link toegevoegd`
+                : uploadedImages.length > 0
+                ? `${uploadedImages.length} afbeelding${uploadedImages.length > 1 ? 'en' : ''} geüpload`
+                : 'Link toegevoegd'
+              }
+            </p>
+            <p className="text-xs text-green-700">
+              Uw moodboard wordt meegenomen in het PvE rapport
+            </p>
+          </div>
         </div>
       )}
 
@@ -690,6 +744,17 @@ export default function DossierChecklist({
 
       {/* Current step content */}
       {renderCurrentStep()}
+
+      {/* v3.x: Premium modal voor moodboard upload upsell */}
+      <PremiumModal
+        isOpen={premiumModalOpen}
+        onClose={() => setPremiumModalOpen(false)}
+        onUpgrade={() => {
+          setPremiumModalOpen(false);
+          // TODO: Navigate to upgrade page
+        }}
+        feature="moodboard"
+      />
     </div>
   );
 }

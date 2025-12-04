@@ -1,0 +1,319 @@
+{
+  "$schema": "./features.schema.json",
+  "version": "v3.3.0",
+  "lastUpdated": "2025-11-26",
+  "description": "Feature registry voor Brikx Wizard - definieert alle kritieke features die beschermd moeten worden",
+
+  "features": {
+    "WIZARD_F01_CHAPTER_FLOW": {
+      "name": "7-Chapter Wizard Flow",
+      "domain": "Wizard Core",
+      "status": "stable",
+      "files": ["types/project.ts"],
+      "checkPattern": "ChapterDataMap",
+      "description": "Wizard heeft exact 7 chapters: basis, ruimtes, wensen, budget, techniek, duurzaam, risico"
+    },
+
+    "WIZARD_F02_PATCH_SYSTEM": {
+      "name": "Patch Event System",
+      "domain": "Wizard Core",
+      "status": "stable",
+      "files": ["types/project.ts", "lib/utils/patch.ts"],
+      "checkPattern": "PatchEvent|PatchDelta",
+      "description": "Type-safe patch systeem met set/append/remove operations"
+    },
+
+    "WIZARD_F03_MOSCOW_PRIORITIES": {
+      "name": "MoSCoW Prioriteiten",
+      "domain": "Wizard Data",
+      "status": "stable",
+      "files": ["lib/ai/ProModel.ts", "types/project.ts"],
+      "checkPattern": "priority.*must.*nice.*optional.*wont",
+      "description": "Wensen hebben must-have/nice-to-have/optional/won't-have prioritering"
+    },
+
+    "WIZARD_F04_BUDGET_TRACKING": {
+      "name": "Budget Data Structure",
+      "domain": "Wizard Data",
+      "status": "stable",
+      "files": ["types/project.ts"],
+      "checkPattern": "BudgetData",
+      "description": "Budget chapter met totaalbudget, bandbreedte, eigen inbreng, contingency"
+    },
+
+    "WIZARD_F05_WIZARD_STATE": {
+      "name": "Central WizardState",
+      "domain": "Wizard Core",
+      "status": "stable",
+      "files": ["types/project.ts", "lib/stores/useWizardState.ts"],
+      "checkPattern": "WizardState|chapterAnswers",
+      "description": "Zustand store met chapterAnswers, currentChapter, chapterFlow, mode"
+    },
+
+    "CHAT_F01_SMART_FOLLOWUP": {
+      "name": "Smart Follow-up Questions",
+      "domain": "Chat AI",
+      "status": "stable",
+      "files": ["app/api/chat/route.ts", "lib/ai/ProModel.ts"],
+      "checkPattern": "followUpQuestion",
+      "description": "AI genereert altijd een bevestiging + vervolgvraag na patches"
+    },
+
+    "CHAT_F02_META_TOOLING": {
+      "name": "META_TOOLING Pre-layer",
+      "domain": "Chat Routing",
+      "status": "stable",
+      "files": ["app/api/chat/route.ts", "lib/ai/metaDetection.ts", "lib/ai/toolHelp.ts"],
+      "checkPattern": "detectMetaTooling|META_TOOLING",
+      "description": "Tool-help vragen worden via fixed responses afgehandeld, niet via RAG"
+    },
+
+    "CHAT_F03_ONBOARDING": {
+      "name": "Chat Onboarding",
+      "domain": "Chat UX",
+      "status": "stable",
+      "files": ["app/api/chat/route.ts", "components/chat/ChatPanel.tsx", "app/wizard/components/ChatOnboarding.tsx"],
+      "checkPattern": "showOnboarding|ChatOnboarding|getOnboardingMessage",
+      "description": "Eerste bericht toont welkomstcard met progress, chapter info, quick replies"
+    },
+
+    "CHAT_F04_RAG_GUARD": {
+      "name": "RAG Guard Layer",
+      "domain": "Chat AI",
+      "status": "stable",
+      "files": ["lib/rag/Kennisbank.ts"],
+      "checkPattern": "RAG_MIN_CONFIDENCE|RAG_KEYWORD_BLACKLIST",
+      "description": "Kennisbank queries hebben confidence threshold (0.7) en keyword blacklist voor meta-vragen"
+    },
+
+    "CHAT_F05_INTENT_CLASSIFICATION": {
+      "name": "Intent Classification",
+      "domain": "Chat AI",
+      "status": "stable",
+      "files": ["lib/ai/ProModel.ts", "app/api/chat/route.ts"],
+      "checkPattern": "VULLEN_DATA|ADVIES_VRAAG|NAVIGATIE|SMALLTALK",
+      "description": "Query's worden geclassificeerd in intents voor routing"
+    },
+
+    "CHAT_F06_SSE_STREAMING": {
+      "name": "SSE Streaming Protocol",
+      "domain": "Chat Infrastructure",
+      "status": "stable",
+      "files": ["app/api/chat/route.ts", "lib/sse/stream.ts"],
+      "checkPattern": "writeEvent.*metadata|writeEvent.*stream|writeEvent.*done",
+      "description": "Server-Sent Events protocol met metadata/stream/suggestions/done events"
+    },
+
+    "CHAT_F07_PROMODEL_PATCHES": {
+      "name": "ProModel Patch Generation",
+      "domain": "Chat AI",
+      "status": "stable",
+      "files": ["lib/ai/ProModel.ts"],
+      "checkPattern": "generatePatch.*GeneratePatchResult",
+      "description": "AI genereert patches array + followUpQuestion via ProModel"
+    },
+
+    "CHAT_F08_CONFIRMATION_REQUIREMENT": {
+      "name": "Confirmation Requirement",
+      "domain": "Chat AI",
+      "status": "stable",
+      "files": ["lib/ai/ProModel.ts"],
+      "checkPattern": "BEVESTIGING IS VERPLICHT",
+      "description": "System prompt vereist dat AI bevestigt wat er gedaan is"
+    },
+
+    "CHAT_F09_U_UW_FORMAL_TONE": {
+      "name": "Formal U/Uw Tone",
+      "domain": "Chat UX",
+      "status": "stable",
+      "files": ["lib/ai/toolHelp.ts", "lib/ai/ProModel.ts"],
+      "checkPattern": "spreek.*aan met.*u|u kunt|uw project",
+      "description": "Alle AI responses gebruiken formele u/uw vorm, niet je/jij"
+    },
+
+    "CHAT_F10_QUICK_REPLIES": {
+      "name": "Chapter Quick Replies",
+      "domain": "Chat UX",
+      "status": "stable",
+      "files": ["lib/ai/toolHelp.ts"],
+      "checkPattern": "QUICK_REPLIES.*ChapterKey",
+      "description": "Elk chapter heeft 4 suggestie-buttons met typische vragen"
+    },
+
+    "PVE_F01_PRIORITIES_VISIBLE": {
+      "name": "MoSCoW in PvE",
+      "domain": "PvE Report",
+      "status": "stable",
+      "files": ["lib/report/pveView.ts"],
+      "checkPattern": "priority|must-have|nice-to-have",
+      "description": "PvE-rapport toont MoSCoW prioriteiten bij wensen"
+    },
+
+    "PVE_F02_CHAPTER_STRUCTURE": {
+      "name": "PvE Chapter Structure",
+      "domain": "PvE Report",
+      "status": "stable",
+      "files": ["lib/report/pveView.ts"],
+      "checkPattern": "Basis|Ruimtes|Wensen|Budget|Techniek|Duurzaam|Risico",
+      "description": "PvE volgt 7-chapter structuur van wizard"
+    },
+
+    "PVE_F03_EXPORT_MODAL": {
+      "name": "Export Modal",
+      "domain": "PvE Export",
+      "status": "stable",
+      "files": ["components/wizard/ExportModal.tsx"],
+      "checkPattern": "ExportModal",
+      "description": "Modal voor PvE-export met PDF/print opties"
+    },
+
+    "PREMIUM_F01_MODE_GATING": {
+      "name": "Premium Mode Gating",
+      "domain": "Premium",
+      "status": "stable",
+      "files": ["components/premium/PremiumGate.tsx", "lib/stores/useWizardState.ts"],
+      "checkPattern": "mode.*PREMIUM|PremiumGate",
+      "description": "Premium features zijn gated achter mode check"
+    },
+
+    "PREMIUM_F02_PREMIUM_INSIGHTS": {
+      "name": "Premium Detail Components",
+      "domain": "Premium",
+      "status": "stable",
+      "files": ["components/premium/PremiumBudgetDetails.tsx", "components/premium/PremiumMoSCoWDetails.tsx"],
+      "checkPattern": "PremiumBudgetDetails|PremiumMoSCoWDetails|PremiumRiskDetails",
+      "description": "Premium chapters tonen extra analyses en inzichten"
+    },
+
+    "PREMIUM_F03_PREMIUM_BADGES": {
+      "name": "Premium UI Indicators",
+      "domain": "Premium",
+      "status": "stable",
+      "files": ["components/premium/PremiumHint.tsx"],
+      "checkPattern": "PremiumHint|⭐|Premium-mode",
+      "description": "UI toont premium badges/hints waar relevant"
+    },
+
+    "RISK_F01_BUDGET_VS_WENSEN": {
+      "name": "Budget vs Wensen Analysis",
+      "domain": "Risk Analysis",
+      "status": "stable",
+      "files": ["lib/ai/ProModel.ts", "lib/analysis/budgetRiskAnalysis.ts"],
+      "checkPattern": "analyzeBudgetRisk|generateBudgetWarningPrompt",
+      "description": "AI waarschuwt als wensen niet passen bij budget"
+    },
+
+    "RISK_F02_LIFESTYLE_PROFILING": {
+      "name": "Lifestyle Profile",
+      "domain": "Risk Analysis",
+      "status": "stable",
+      "files": ["lib/ai/ProModel.ts", "lib/domain/lifestyle.ts"],
+      "checkPattern": "deriveLifestyleProfile|LifestyleProfile",
+      "description": "AI gebruikt leefprofiel (gezin, werk, koken, etc.) voor context"
+    },
+
+    "RISK_F03_SCOPE_PROFILING": {
+      "name": "Scope Profile",
+      "domain": "Risk Analysis",
+      "status": "stable",
+      "files": ["lib/ai/ProModel.ts", "lib/domain/lifestyle.ts"],
+      "checkPattern": "deriveScopeProfile|isMainResidence|isAuxiliaryBuilding",
+      "description": "AI past tips aan op projectscope (hoofdwoning vs bijgebouw)"
+    },
+
+    "DATA_F01_CHAPTER_VALIDATION": {
+      "name": "Chapter Schema Validation",
+      "domain": "Data Integrity",
+      "status": "stable",
+      "files": ["lib/wizard/CHAPTER_SCHEMAS.ts", "app/api/chat/route.ts"],
+      "checkPattern": "validateChapter|CHAPTER_SCHEMAS",
+      "description": "Patches worden gevalideerd tegen chapter schemas voordat ze applied worden"
+    },
+
+    "DATA_F02_UUID_INJECTION": {
+      "name": "UUID Injection",
+      "domain": "Data Integrity",
+      "status": "stable",
+      "files": ["app/api/chat/route.ts"],
+      "checkPattern": "randomUUID|Injected new UUID",
+      "description": "Server injecteert UUID's voor array items (ruimtes/wensen)"
+    },
+
+    "DATA_F03_STATE_VERSIONING": {
+      "name": "State Versioning",
+      "domain": "Data Integrity",
+      "status": "stable",
+      "files": ["types/project.ts", "app/api/chat/route.ts"],
+      "checkPattern": "stateVersion",
+      "description": "WizardState heeft versienummer dat incrementeert bij elke patch"
+    },
+
+    "EXPERT_F01_CORE_COMPONENT": {
+      "name": "ExpertCorner Component",
+      "domain": "Expert Corner",
+      "status": "stable",
+      "files": ["components/expert/ExpertCorner.tsx", "components/wizard/WizardLayout.tsx"],
+      "checkPattern": "ExpertCorner.*mode|expertMode",
+      "description": "ExpertCorner toont context-afhankelijke tips met PREVIEW/PREMIUM mode gating"
+    },
+
+    "EXPERT_F02_TECHNIEK_TIPS": {
+      "name": "TECHNIEK_TIPS Data",
+      "domain": "Expert Corner",
+      "status": "stable",
+      "files": ["lib/expert/techniektips.ts", "lib/expert/getExpertTips.ts"],
+      "checkPattern": "TECHNIEK_TIPS|getTechniekTipsForField",
+      "description": "Domain-specifieke technische tips voor Techniek chapter velden"
+    },
+
+    "EXPERT_F03_GET_EXPERT_TIPS": {
+      "name": "getExpertTips Utility",
+      "domain": "Expert Corner",
+      "status": "stable",
+      "files": ["lib/expert/getExpertTips.ts"],
+      "checkPattern": "getExpertTips|fieldMapping",
+      "description": "Combineert statische regels en TECHNIEK_TIPS met bidirectionele field mapping"
+    },
+
+    "EXPERT_F04_EXPERT_API": {
+      "name": "Expert API Endpoint",
+      "domain": "Expert Corner",
+      "status": "stable",
+      "files": ["app/api/expert/route.ts"],
+      "checkPattern": "POST.*expert|ExpertResponse",
+      "description": "API endpoint voor multi-source tip aggregatie (static/techniek/RAG/lifestyle)"
+    },
+
+    "EXPERT_F05_LIFESTYLE_HINTS": {
+      "name": "Lifestyle Hints Integration",
+      "domain": "Expert Corner",
+      "status": "stable",
+      "files": ["app/api/expert/route.ts", "components/expert/ExpertCorner.tsx"],
+      "checkPattern": "generateLifestyleHints|lifestyleHints",
+      "description": "Persoonlijke tips gebaseerd op lifestyle profiling (gezin/werk/koken)"
+    },
+
+    "EXPERT_F06_TIP_COMPONENTS": {
+      "name": "Tip UI Components",
+      "domain": "Expert Corner",
+      "status": "stable",
+      "files": ["components/expert/TipCard.tsx", "components/expert/TipCategoryBadge.tsx"],
+      "checkPattern": "TipCard|TipCategoryBadge|TipCategory",
+      "description": "Visual components voor tip rendering met categorie badges en severity styling"
+    }
+  },
+
+  "featureGroups": {
+    "WIZARD_CORE": ["WIZARD_F01_CHAPTER_FLOW", "WIZARD_F02_PATCH_SYSTEM", "WIZARD_F05_WIZARD_STATE"],
+    "WIZARD_DATA": ["WIZARD_F03_MOSCOW_PRIORITIES", "WIZARD_F04_BUDGET_TRACKING"],
+    "CHAT_AI": ["CHAT_F01_SMART_FOLLOWUP", "CHAT_F04_RAG_GUARD", "CHAT_F05_INTENT_CLASSIFICATION", "CHAT_F07_PROMODEL_PATCHES", "CHAT_F08_CONFIRMATION_REQUIREMENT"],
+    "CHAT_ROUTING": ["CHAT_F02_META_TOOLING", "CHAT_F03_ONBOARDING"],
+    "CHAT_UX": ["CHAT_F09_U_UW_FORMAL_TONE", "CHAT_F10_QUICK_REPLIES"],
+    "CHAT_INFRASTRUCTURE": ["CHAT_F06_SSE_STREAMING"],
+    "PVE": ["PVE_F01_PRIORITIES_VISIBLE", "PVE_F02_CHAPTER_STRUCTURE", "PVE_F03_EXPORT_MODAL"],
+    "PREMIUM": ["PREMIUM_F01_MODE_GATING", "PREMIUM_F02_PREMIUM_INSIGHTS", "PREMIUM_F03_PREMIUM_BADGES"],
+    "RISK": ["RISK_F01_BUDGET_VS_WENSEN", "RISK_F02_LIFESTYLE_PROFILING", "RISK_F03_SCOPE_PROFILING"],
+    "DATA_INTEGRITY": ["DATA_F01_CHAPTER_VALIDATION", "DATA_F02_UUID_INJECTION", "DATA_F03_STATE_VERSIONING"],
+    "EXPERT_CORNER": ["EXPERT_F01_CORE_COMPONENT", "EXPERT_F02_TECHNIEK_TIPS", "EXPERT_F03_GET_EXPERT_TIPS", "EXPERT_F04_EXPERT_API", "EXPERT_F05_LIFESTYLE_HINTS", "EXPERT_F06_TIP_COMPONENTS"]
+  }
+}

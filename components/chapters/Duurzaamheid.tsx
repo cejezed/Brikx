@@ -13,6 +13,7 @@ import type {
   ZonnepanelenOrientatie,
 } from "@/types/project";
 import { createFocusKey } from "@/lib/wizard/focusKeyHelper";
+import { PremiumHint } from "@/components/premium"; // v3.x: Premium integratie
 
 const CHAPTER: ChapterKey = "duurzaam";
 
@@ -63,6 +64,13 @@ export default function Duurzaamheid() {
           we lichten toe wat dit betekent voor comfort, energiegebruik en onderhoud.
         </p>
       </header>
+
+      {/* v3.x: Premium hint - Optie B plaatsing */}
+      <PremiumHint
+        feature="sustainability"
+        title="Premium: Duurzaamheid+"
+        description="CO2-impact, circulariteit, isolatiewaarden en zomercomfort"
+      />
 
       {/* 🔋 Energie & concept */}
       <section className="space-y-4">

@@ -33,6 +33,9 @@ const VERY_EXPENSIVE_KEYWORDS = [
   "zwembad", "kelder", "lift", "nul-op-de-meter", "passiefhuis",
 ];
 
+// @protected RISK_F01_BUDGET_RISK
+// analyzeBudgetRisk calculates budget risk based on must-have wishes vs available budget.
+// DO NOT REMOVE or change risk level logic without updating config/features.registry.json and check-features.sh.
 /**
  * Analyseer de verhouding tussen budget en must-have wensen
  * @param budget - Budget data uit het budget-hoofdstuk
@@ -143,6 +146,9 @@ export function analyzeBudgetRisk(
   };
 }
 
+// @protected RISK_F03_AUTO_ANALYSIS
+// generateBudgetWarningPrompt creates AI-triggered warnings for budget risks.
+// DO NOT REMOVE - this integrates risk analysis into the AI chat system prompt.
 /**
  * Genereer een AI-trigger bericht voor Jules wanneer risico oranje/rood is
  * Dit wordt toegevoegd aan de system prompt zodat Jules proactief kan waarschuwen

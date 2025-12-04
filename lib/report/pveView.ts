@@ -13,6 +13,7 @@ import {
   computeComplexity,
   computeBudgetFit,
   computeOverallRisk,
+  computeBudgetWarning,
 } from "./heuristics";
 
 /**
@@ -43,9 +44,13 @@ export type PvEView = {
     complexiteitsScore: "Laag" | "Gemiddeld" | "Hoog";
     budgetFit: string;
     overallRisk: "laag" | "medium" | "hoog";
+    budgetWarning: string | null; // v3.x: Premium - veilige budget waarschuwing
   };
 };
 
+// @protected PVE_F01_CORE_VIEW
+// buildPvEView creates the PvE (Program of Requirements) view model from wizard state.
+// DO NOT REMOVE or change the structure without updating config/features.registry.json and check-features.sh.
 /**
  * Bouwt een PvEView van de huidige wizard state.
  *
@@ -83,6 +88,7 @@ export function buildPvEView(state: WizardState): PvEView {
       complexiteitsScore: computeComplexity(chapters),
       budgetFit: computeBudgetFit(chapters.budget),
       overallRisk: computeOverallRisk(chapters.risico),
+      budgetWarning: computeBudgetWarning(chapters), // v3.x: Premium - veilige budget warning
     },
   };
 }

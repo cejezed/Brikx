@@ -19,6 +19,7 @@ import type {
   NetworkBackbone,
 } from "@/types/project"; // ✅ Gebruikt v3.2 types
 import { createFocusKey } from "@/lib/wizard/focusKeyHelper";
+import { PremiumHint } from "@/components/premium"; // v3.x: Premium integratie
 
 const CHAPTER: ChapterKey = "techniek";
 
@@ -159,6 +160,13 @@ export default function Techniek() {
           vastleggen.
         </p>
       </header>
+
+      {/* v3.x: Premium hint - Optie B plaatsing */}
+      <PremiumHint
+        feature="tech"
+        title="Premium: Uitgebreide Techniek"
+        description="Ventilatiestrategie, akoestiek, verlichting en materiaalkeuze"
+      />
 
       {/* Suggesties obv Duurzaamheid */}
       {suggestions.length > 0 && (

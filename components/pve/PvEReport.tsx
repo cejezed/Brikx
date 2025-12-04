@@ -37,6 +37,16 @@ import {
   capitalize,
 } from "@/lib/report/formatters";
 import { useWizardState } from "@/lib/stores/useWizardState";
+import { useIsPremium } from "@/lib/stores/useAccountStore";
+import {
+  PremiumGate,
+  PremiumBudgetDetails,
+  PremiumTechDetails,
+  PremiumSustainabilityDetails,
+  PremiumRiskDetails, // v3.x: Fase 5
+  PremiumMoSCoWDetails, // v3.x: Fase 5
+  PremiumRoomInsights, // v3.x: Fase 5
+} from "@/components/premium";
 
 // =========================================================================
 // 1. HULPCOMPONENTEN
@@ -246,7 +256,10 @@ const CardProjectbasis: React.FC<{ data?: BasisData }> = ({ data }) => {
   );
 };
 
-const CardRuimtes: React.FC<{ data?: RuimtesData }> = ({ data }) => {
+const CardRuimtes: React.FC<{
+  data?: RuimtesData;
+  basisData?: BasisData; // v3.x: Fase 5 - Voor lifestyle profiel
+}> = ({ data, basisData }) => {
   if (!data?.rooms || data.rooms.length === 0) {
     return (
       <Card title="Ruimtes & functies" icon={<Users className="w-6 h-6" />}>
@@ -255,32 +268,64 @@ const CardRuimtes: React.FC<{ data?: RuimtesData }> = ({ data }) => {
     );
   }
 
+  // v3.x: Fase 5 - Build lifestyle profile voor Premium insights
+  const lifestyleProfile = basisData ? {
+    family:
+      (basisData as any).kinderenLeeftijdsgroepen?.includes("0-4") ? ("jonge_kinderen" as const) :
+      (basisData as any).kinderenLeeftijdsgroepen?.includes("4-8") || (basisData as any).kinderenLeeftijdsgroepen?.includes("8-12") ? ("basisschool_kinderen" as const) :
+      (basisData as any).kinderenLeeftijdsgroepen?.includes("12-16") || (basisData as any).kinderenLeeftijdsgroepen?.includes("16-20") ? ("pubers" as const) :
+      (basisData as any).huishoudenType === "gezin" ? ("mix_kinderen" as const) :
+      ("geen_kinderen" as const),
+    work: (basisData as any).workFromHome || ("niet" as const),
+    cooking: (basisData as any).cookingProfile || ("basis" as const),
+    hosting: (basisData as any).hostingProfile || ("zelden" as const),
+    pets: (basisData as any).petsProfile || ("geen" as const),
+    noise: (basisData as any).noiseProfile || ("neutraal" as const),
+    mobility: (basisData as any).mobilityProfile || ("fit" as const),
+    tidiness: (basisData as any).tidyProfile || ("gemiddeld" as const),
+  } : undefined;
+
   return (
     <Card title="Ruimtes & functies" icon={<Users className="w-6 h-6" />}>
-      <table className="min-w-full divide-y divide-stone-200">
-        <thead>
-          <tr className="text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-            <th className="py-2">Ruimte</th>
-            <th className="py-2">Type</th>
-            <th className="py-2">M² (Globaal)</th>
-            <th className="py-2 hidden md:table-cell">Wensen</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-stone-200">
-          {data.rooms.map((r: Room) => (
-            <tr key={r.id} className="text-sm">
-              <td className="py-2 font-medium text-stone-900">{r.name}</td>
-              <td className="py-2">{capitalize(r.type)}</td>
-              <td className="py-2">{formatM2(r.m2)}</td>
-              <td className="py-2 hidden md:table-cell italic text-stone-600">
-                {r.wensen && r.wensen.length > 0
-                  ? r.wensen.join(", ")
-                  : "Geen specifieke wensen"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="space-y-4">
+        {data.rooms.map((room: Room) => (
+          <div
+            key={room.id}
+            className="bg-stone-50 border border-stone-200 rounded-lg p-4"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
+              <div>
+                <p className="text-xs text-stone-500 uppercase tracking-wide">Ruimte</p>
+                <p className="text-sm font-semibold text-stone-900">{room.name}</p>
+              </div>
+              <div>
+                <p className="text-xs text-stone-500 uppercase tracking-wide">Type</p>
+                <p className="text-sm text-stone-900">{capitalize(room.type)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-stone-500 uppercase tracking-wide">Oppervlakte</p>
+                <p className="text-sm text-stone-900">{formatM2(room.m2)}</p>
+              </div>
+            </div>
+
+            {room.wensen && room.wensen.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-stone-200">
+                <p className="text-xs text-stone-500 uppercase tracking-wide mb-1">Wensen</p>
+                <p className="text-sm italic text-stone-600">
+                  {room.wensen.join(", ")}
+                </p>
+              </div>
+            )}
+
+            {/* v3.x: Fase 5 - Premium Room Insights (per ruimte inline, Option A) */}
+            <PremiumRoomInsights
+              room={room}
+              lifestyleProfile={lifestyleProfile}
+            />
+          </div>
+        ))}
+      </div>
+
       <div className="pt-4 border-t mt-4 text-sm">
         <p className="font-semibold text-stone-900">
           Totaal aantal ruimtes: {data.rooms.length}
@@ -291,6 +336,8 @@ const CardRuimtes: React.FC<{ data?: RuimtesData }> = ({ data }) => {
 };
 
 const CardWensen: React.FC<{ data?: WensenData }> = ({ data }) => {
+  const isPremium = useIsPremium(); // v3.x: Fase 5
+
   if (!data?.wishes || data.wishes.length === 0) {
     return (
       <Card
@@ -305,7 +352,7 @@ const CardWensen: React.FC<{ data?: WensenData }> = ({ data }) => {
   const mustHaves = data.wishes.filter((w: Wish) => w.priority === "must");
   const niceToHaves = data.wishes.filter((w: Wish) => w.priority === "nice");
   const optional = data.wishes.filter((w: Wish) => w.priority === "optional");
-  const wont = data.wishes.filter((w: Wish) => w.priority === "wont");
+  const wont = data.wishes.filter((w: Wish) => w.priority === ("wont" as any));
 
   const WishList: React.FC<{
     items: Wish[];
@@ -364,11 +411,30 @@ const CardWensen: React.FC<{ data?: WensenData }> = ({ data }) => {
           />
         </div>
       )}
+
+      {/* v3.x: Fase 5 - Premium MoSCoW Details met blur preview voor free users */}
+      <PremiumGate blurPreview feature="tech">
+        <PremiumMoSCoWDetails data={data} />
+      </PremiumGate>
+
+      {/* Free users: subtle hint */}
+      {!isPremium && (
+        <div className="mt-6 pt-6 border-t border-stone-200">
+          <p className="text-xs text-stone-500 italic">
+            💎 Premium gebruikers zien hier MoSCoW distributie-analyse en prioriteringstips
+          </p>
+        </div>
+      )}
     </Card>
   );
 };
 
-const CardBudget: React.FC<{ data?: BudgetData }> = ({ data }) => {
+const CardBudget: React.FC<{ data?: BudgetData; budgetWarning?: string | null }> = ({
+  data,
+  budgetWarning
+}) => {
+  const isPremium = useIsPremium();
+
   if (!data?.budgetTotaal) {
     return (
       <Card title="Budget & bandbreedte" icon={<DollarSign className="w-6 h-6" />}>
@@ -440,11 +506,27 @@ const CardBudget: React.FC<{ data?: BudgetData }> = ({ data }) => {
           <p className="text-stone-600 italic">{notes}</p>
         </div>
       )}
+
+      {/* v3.x: Premium - Budget Details met blur preview voor free users */}
+      <PremiumGate blurPreview feature="pve">
+        <PremiumBudgetDetails budgetWarning={budgetWarning} />
+      </PremiumGate>
+
+      {/* Free users: subtle hint */}
+      {!isPremium && (
+        <div className="mt-6 pt-6 border-t border-stone-200">
+          <p className="text-xs text-stone-500 italic">
+            💎 Premium gebruikers zien hier budgetstructuur, verborgen kosten en faseringssuggesties
+          </p>
+        </div>
+      )}
     </Card>
   );
 };
 
 const CardTechniek: React.FC<{ data?: TechniekData }> = ({ data }) => {
+  const isPremium = useIsPremium();
+
   if (!data) {
     return (
       <Card title="Techniek & installaties" icon={<Zap className="w-6 h-6" />}>
@@ -510,11 +592,27 @@ const CardTechniek: React.FC<{ data?: TechniekData }> = ({ data }) => {
           <p className="text-stone-600 italic">{data.notes}</p>
         </div>
       )}
+
+      {/* v3.x: Premium - Tech Details met blur preview voor free users */}
+      <PremiumGate blurPreview feature="tech">
+        <PremiumTechDetails data={data} />
+      </PremiumGate>
+
+      {/* Free users: subtle hint */}
+      {!isPremium && (
+        <div className="mt-6 pt-6 border-t border-stone-200">
+          <p className="text-xs text-stone-500 italic">
+            💎 Premium gebruikers zien hier ventilatiestrategie, akoestiek, verlichting en materiaalkeuze
+          </p>
+        </div>
+      )}
     </Card>
   );
 };
 
 const CardDuurzaamheid: React.FC<{ data?: DuurzaamData }> = ({ data }) => {
+  const isPremium = useIsPremium();
+
   if (!data) {
     return (
       <Card title="Duurzaamheid & energie" icon={<Sun className="w-6 h-6" />}>
@@ -573,6 +671,20 @@ const CardDuurzaamheid: React.FC<{ data?: DuurzaamData }> = ({ data }) => {
           <p className="text-stone-600 italic">{data.opmerkingen}</p>
         </div>
       )}
+
+      {/* v3.x: Premium - Sustainability Details met blur preview voor free users */}
+      <PremiumGate blurPreview feature="sustainability">
+        <PremiumSustainabilityDetails data={data} />
+      </PremiumGate>
+
+      {/* Free users: subtle hint */}
+      {!isPremium && (
+        <div className="mt-6 pt-6 border-t border-stone-200">
+          <p className="text-xs text-stone-500 italic">
+            💎 Premium gebruikers zien hier CO2-impact, circulariteit, isolatiewaarden en zomercomfort
+          </p>
+        </div>
+      )}
     </Card>
   );
 };
@@ -581,6 +693,8 @@ const CardRisicos: React.FC<{
   data?: RisicoData;
   overallRisk: RiskSeverity;
 }> = ({ data, overallRisk }) => {
+  const isPremium = useIsPremium(); // v3.x: Fase 5
+
   if (!data?.risks || data.risks.length === 0) {
     return (
       <Card
@@ -634,6 +748,20 @@ const CardRisicos: React.FC<{
           ))}
         </tbody>
       </table>
+
+      {/* v3.x: Fase 5 - Premium Risk Details met blur preview voor free users */}
+      <PremiumGate blurPreview feature="tech">
+        <PremiumRiskDetails data={data} />
+      </PremiumGate>
+
+      {/* Free users: subtle hint */}
+      {!isPremium && (
+        <div className="mt-6 pt-6 border-t border-stone-200">
+          <p className="text-xs text-stone-500 italic">
+            💎 Premium gebruikers zien hier uitgebreide risico-analyse per domein en veelgemaakte fouten
+          </p>
+        </div>
+      )}
     </Card>
   );
 };
@@ -710,12 +838,12 @@ export default function PvEReport() {
         <div className="grid grid-cols-1 gap-10">
           <CardProjectbasis data={pveView.basis} />
 
-          <CardRuimtes data={pveView.ruimtes} />
+          <CardRuimtes data={pveView.ruimtes} basisData={pveView.basis} />
 
           <CardWensen data={pveView.wensen} />
 
           <div className="grid md:grid-cols-2 gap-10">
-            <CardBudget data={pveView.budget} />
+            <CardBudget data={pveView.budget} budgetWarning={pveView.meta.budgetWarning} />
             <CardTechniek data={pveView.techniek} />
           </div>
 

@@ -40,11 +40,20 @@ body {
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Focus & controls */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Focus & controls - Subtiele styling */
 input, select, textarea, button { outline: none; }
 :where(input, select, textarea, button):focus {
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--brx-accent), white 25%);
-  border-color: var(--brx-accent);
+  box-shadow: 0 0 0 2px rgba(77, 184, 186, 0.2);
+  border-color: rgba(77, 184, 186, 0.5);
+  outline: none;
+}
+:where(input, select, textarea, button):focus-visible {
+  box-shadow: 0 0 0 2px rgba(77, 184, 186, 0.25);
+  border-color: rgba(77, 184, 186, 0.6);
+  outline: none;
 }
 
 /* ---------------------------
@@ -84,7 +93,7 @@ input[type="text"], input[type="number"], input[type="email"], textarea, select{
   border-radius:10px; border:1px solid #d1d5db; background:#fff; padding:.5rem .75rem;
 }
 input:focus, textarea:focus, select:focus{
-  outline:none; border-color: var(--brx-accent); box-shadow: 0 0 0 3px rgba(77,184,186,.25);
+  outline:none; border-color: rgba(77, 184, 186, 0.6); box-shadow: 0 0 0 2px rgba(77,184,186,.2);
 }
 
 /* Tabs (bladen/pills) */

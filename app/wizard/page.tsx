@@ -2,29 +2,24 @@
 "use client";
 
 import React from "react";
-import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import WizardLayout from "@/components/wizard/WizardLayout";
+import WizardMobileMenu from "@/components/wizard/WizardMobileMenu";
 
 export default function WizardPage() {
   return (
     <>
-      <Header />
+      <WizardMobileMenu />
 
-      <main className="bg-white" style={{
-        minHeight: 'calc(100vh - 60px)',
-        display: 'flex',
-        justifyContent: 'center',
-        padding: '2rem 0 44px 0'
-      }}>
-        <div className="w-full max-w-[1552px] px-4" style={{
-          height: 'calc(100vh - 60px - 2rem - 44px)'
-        }}>
+      <main className="bg-white flex justify-center min-h-[calc(100vh-60px)] p-0 xl:py-8 xl:pb-[44px]">
+        <div className="w-full max-w-[1552px] px-0 xl:px-4 h-[calc(100vh-60px)] xl:h-[calc(100vh-60px-2rem-44px)]">
           <WizardLayout />
         </div>
       </main>
 
-      <Footer />
+      <div className="hidden xl:block">
+        <Footer />
+      </div>
     </>
   );
 }

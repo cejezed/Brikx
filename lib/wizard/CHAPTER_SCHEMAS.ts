@@ -96,6 +96,9 @@ function isValidStringArray(value: any): boolean {
 // ENUM CONSTANTS
 // ============================================================================
 
+// @protected DATA_F01_ZENSCHEMAS
+// ENUM contains all validation schema constants for wizard chapters.
+// DO NOT REMOVE or change enum values without updating config/features.registry.json and check-features.sh.
 const ENUM = {
   BASIS_PROJECT_TYPE: ['nieuwbouw', 'verbouwing', 'bijgebouw', 'hybride', 'anders'] as const,
   BASIS_PROJECT_SIZE: ['<75m2', '75-150m2', '150-250m2', '>250m2'] as const,
@@ -469,9 +472,12 @@ export const CHAPTER_SCHEMAS = {
   }
 } as const;
 
+// @protected DATA_F02_VALIDATION
+// validateChapter performs runtime validation of wizard chapter data against schemas.
+// DO NOT REMOVE or weaken validation logic without updating config/features.registry.json and check-features.sh.
 /**
  * Main validator function
- * 
+ *
  * ✅ Returns:
  * - `true` if valid (including undefined = "not filled yet")
  * - `false` + console warning if invalid

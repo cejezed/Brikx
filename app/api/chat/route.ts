@@ -1,6 +1,7 @@
 // /app/api/chat/route.ts
 // ✅ v3.3: Fixed imports, removed unused
 // ✅ v3.5: Added crypto for UUID generation
+// ✅ v3.x: META_TOOLING pre-layer voor tool-help en onboarding
 
 import { NextRequest } from "next/server";
 import { randomUUID } from "node:crypto";
@@ -18,6 +19,9 @@ import {
 // ✅ FIX: Import uit lib/utils/patch (niet store)
 import { transformWithDelta, normalizePatchEvent } from "@/lib/utils/patch";
 import { validateChapter } from "@/lib/wizard/CHAPTER_SCHEMAS";
+// ✅ v3.x: META_TOOLING helpers
+import { getToolHelp, getOnboardingMessage } from "@/lib/ai/toolHelp";
+import { detectMetaTooling } from "@/lib/ai/metaDetection";
 
 import type { ChatRequest } from "@/types/chat";
 import type {
@@ -130,6 +134,101 @@ async function runAITriage(
   const chapterFlow = getChapterFlow(wizardState);
 
   try {
+    // ┌─────────────────────────────────────────────────────────
+    // │ PRE-LAYER: META_TOOLING & ONBOARDING (v3.x)
+    // └─────────────────────────────────────────────────────────
+
+    // @protected CHAT_F02_META_TOOLING
+    // This detectMetaTooling check MUST remain as the first routing layer.
+    // DO NOT REMOVE: prevents tool-help questions from hitting RAG/LLM unnecessarily.
+    // Check 1: META_TOOLING (tool help vragen)
+    if (detectMetaTooling(query)) {
+      console.log("[runAITriage] META_TOOLING detected → fixed response");
+
+      // @protected CHAT_F10_QUICK_REPLIES
+      // getToolHelp provides fixed responses with quick reply suggestions per chapter.
+      // DO NOT REMOVE: this is the call-site for chapter-specific quick replies.
+      const helpResponse = getToolHelp(query, {
+        currentChapter: activeChapter || "basis",
+      });
+
+      await logEvent("triage.meta_tooling", {
+        requestId,
+        query,
+        activeChapter,
+      });
+
+      writer.writeEvent("metadata", {
+        intent: "META_TOOLING",
+        confidence: 0.95,
+        policy: "APPLY_OPTIMISTIC",
+        stateVersion: wizardState.stateVersion ?? 0,
+        activeChapter,
+      });
+
+      writer.writeEvent("stream", { text: helpResponse.answer });
+
+      // Quick replies als suggesties
+      if (helpResponse.quickReplies && helpResponse.quickReplies.length > 0) {
+        writer.writeEvent("suggestions", {
+          suggestions: helpResponse.quickReplies,
+        });
+      }
+
+      writer.writeEvent("done", {
+        logId: requestId,
+        tokensUsed: 0,
+        latencyMs: Date.now() - startTime,
+      });
+
+      return; // STOP - geen verdere processing
+    }
+
+    // @protected CHAT_F03_ONBOARDING
+    // This onboarding detection (first message check) MUST remain as the second routing layer.
+    // DO NOT REMOVE: ensures first user message gets welcome card with progress/quick replies.
+    // Check 2: ONBOARDING (eerste bericht)
+    const userMessages = history?.filter((m) => m.role === "user") ?? [];
+    if (userMessages.length === 0) {
+      console.log("[runAITriage] ONBOARDING detected → welcome message");
+
+      // @protected CHAT_F03_ONBOARDING
+      // getOnboardingMessage provides the welcome card response.
+      // DO NOT REMOVE: this is the call-site that wires onboarding into the chat flow.
+      const onboardingResponse = getOnboardingMessage(
+        activeChapter || "basis"
+      );
+
+      await logEvent("triage.onboarding", {
+        requestId,
+        activeChapter,
+      });
+
+      writer.writeEvent("metadata", {
+        intent: "ONBOARDING",
+        confidence: 1.0,
+        policy: "APPLY_OPTIMISTIC",
+        stateVersion: wizardState.stateVersion ?? 0,
+        activeChapter,
+      });
+
+      writer.writeEvent("stream", { text: onboardingResponse.answer });
+
+      if (onboardingResponse.quickReplies && onboardingResponse.quickReplies.length > 0) {
+        writer.writeEvent("suggestions", {
+          suggestions: onboardingResponse.quickReplies,
+        });
+      }
+
+      writer.writeEvent("done", {
+        logId: requestId,
+        tokensUsed: 0,
+        latencyMs: Date.now() - startTime,
+      });
+
+      return; // STOP - geen verdere processing
+    }
+
     // ┌─────────────────────────────────────────────────────────
     // │ STEP 1: GRADUATED ESSENTIALS GATE (v3.3)
     // └─────────────────────────────────────────────────────────

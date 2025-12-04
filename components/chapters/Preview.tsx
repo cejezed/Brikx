@@ -12,8 +12,8 @@ export default function Preview() {
     ruimtes: true,
     wensen: false,
     budget: true,
-    techniek: true,
-    duurzaam: true,
+    techniek: false,
+    duurzaam: false,
     risico: false,
   });
 
@@ -29,29 +29,32 @@ export default function Preview() {
     const roomCount = chapterAnswers.ruimtes?.rooms?.length ?? 0;
     const wishCount = chapterAnswers.wensen?.wishes?.length ?? 0;
     const riskCount = chapterAnswers.risico?.risks?.length ?? 0;
-    return { roomCount, wishCount, riskCount };
+    const completedChapters = Object.keys(chapterAnswers).length;
+    return { roomCount, wishCount, riskCount, completedChapters };
   }, [chapterAnswers]);
 
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white">
+    <div className="max-w-4xl mx-auto">
+      <h1 className="text-2xl font-semibold text-gray-900 mb-6">Overzicht Programma van Eisen</h1>
+
       {/* Header Stats */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
-        <div className="bg-blue-50 p-4 rounded-lg">
-          <p className="text-sm text-slate-600">Ruimtes</p>
-          <p className="text-2xl font-bold text-blue-600">{stats.roomCount}</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div className="bg-white border border-slate-200 p-4 rounded-lg">
+          <p className="text-xs text-slate-500 mb-1">Ruimtes</p>
+          <p className="text-2xl font-semibold text-slate-900">{stats.roomCount}</p>
         </div>
-        <div className="bg-green-50 p-4 rounded-lg">
-          <p className="text-sm text-slate-600">Wensen</p>
-          <p className="text-2xl font-bold text-green-600">{stats.wishCount}</p>
+        <div className="bg-white border border-slate-200 p-4 rounded-lg">
+          <p className="text-xs text-slate-500 mb-1">Wensen</p>
+          <p className="text-2xl font-semibold text-slate-900">{stats.wishCount}</p>
         </div>
-        <div className="bg-orange-50 p-4 rounded-lg">
-          <p className="text-sm text-slate-600">Risico's</p>
-          <p className="text-2xl font-bold text-orange-600">{stats.riskCount}</p>
+        <div className="bg-white border border-slate-200 p-4 rounded-lg">
+          <p className="text-xs text-slate-500 mb-1">Risico's</p>
+          <p className="text-2xl font-semibold text-slate-900">{stats.riskCount}</p>
         </div>
-        <div className="bg-purple-50 p-4 rounded-lg">
-          <p className="text-sm text-slate-600">Status</p>
-          <p className="text-2xl font-bold text-purple-600">
-            {Math.round((Object.keys(chapterAnswers).length / 7) * 100)}%
+        <div className="bg-white border border-slate-200 p-4 rounded-lg">
+          <p className="text-xs text-slate-500 mb-1">Voortgang</p>
+          <p className="text-2xl font-semibold text-slate-900">
+            {Math.round((stats.completedChapters / 7) * 100)}%
           </p>
         </div>
       </div>
@@ -59,7 +62,7 @@ export default function Preview() {
       {/* BASIS */}
       {chapterAnswers.basis && (
         <CollapsibleSection
-          title="📋 Basisgegevens"
+          title="Basisgegevens"
           section="basis"
           isOpen={expandedSections.basis}
           onToggle={toggleSection}
@@ -84,14 +87,14 @@ export default function Preview() {
       {/* RUIMTES */}
       {chapterAnswers.ruimtes && chapterAnswers.ruimtes.rooms?.length > 0 && (
         <CollapsibleSection
-          title="🏠 Ruimtes"
+          title="Ruimtes"
           section="ruimtes"
           isOpen={expandedSections.ruimtes}
           onToggle={toggleSection}
         >
           <div className="space-y-4">
             {chapterAnswers.ruimtes.rooms.map((room, idx) => (
-              <div key={room.id || idx} className="border-l-4 border-blue-500 pl-4 py-2">
+              <div key={room.id || idx} className="border-l-4 border-slate-300 pl-4 py-2">
                 <h4 className="font-semibold text-slate-900">{room.name || `Ruimte ${idx + 1}`}</h4>
                 <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
                   <DataItem label="Type" value={room.type} />
@@ -116,7 +119,7 @@ export default function Preview() {
       {/* WENSEN */}
       {chapterAnswers.wensen && chapterAnswers.wensen.wishes?.length > 0 && (
         <CollapsibleSection
-          title="💡 Wensen & Prioriteiten"
+          title="Wensen & Prioriteiten"
           section="wensen"
           isOpen={expandedSections.wensen}
           onToggle={toggleSection}
@@ -124,7 +127,7 @@ export default function Preview() {
           <ul className="space-y-2">
             {chapterAnswers.wensen.wishes.map((wish, idx) => (
               <li key={wish.id || idx} className="flex items-start gap-3 text-sm">
-                <span className="text-lg">✓</span>
+                <span className="text-slate-400">•</span>
                 <div>
                   <p className="text-slate-900">{wish.text}</p>
                   <p className="text-xs text-slate-500">
@@ -141,7 +144,7 @@ export default function Preview() {
       {/* BUDGET */}
       {chapterAnswers.budget && (
         <CollapsibleSection
-          title="💰 Budget"
+          title="Budget"
           section="budget"
           isOpen={expandedSections.budget}
           onToggle={toggleSection}
@@ -176,19 +179,19 @@ export default function Preview() {
         </CollapsibleSection>
       )}
 
-      {/* TECHNIEK - ✅ CORRECTED to match actual TechniekData type */}
+      {/* TECHNIEK */}
       {chapterAnswers.techniek && (
         <CollapsibleSection
-          title="🔧 Technieke Eisen"
+          title="Technieke Eisen"
           section="techniek"
           isOpen={expandedSections.techniek}
           onToggle={toggleSection}
         >
           <div className="space-y-6">
-            
+
             {/* Ambities */}
             <div>
-              <h4 className="font-semibold text-sm mb-3">⚡ Ambities</h4>
+              <h4 className="font-semibold text-sm mb-3 text-slate-700">Ambities</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                 <DataItem label="Ventilatie Ambitie" value={chapterAnswers.techniek.ventilationAmbition} />
                 <DataItem label="Verwarming Ambitie" value={chapterAnswers.techniek.heatingAmbition} />
@@ -199,7 +202,7 @@ export default function Preview() {
 
             {/* Huistype & Status */}
             <div>
-              <h4 className="font-semibold text-sm mb-3">🏗️ Huistype & Status</h4>
+              <h4 className="font-semibold text-sm mb-3 text-slate-700">Huistype & Status</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                 <DataItem label="Huistype (huidige staat)" value={chapterAnswers.techniek.currentState} />
                 <DataItem label="Bouwmethode" value={chapterAnswers.techniek.buildMethod} />
@@ -209,7 +212,7 @@ export default function Preview() {
 
             {/* Verwarming & Ventilatie */}
             <div>
-              <h4 className="font-semibold text-sm mb-3">🌡️ Verwarming & Ventilatie</h4>
+              <h4 className="font-semibold text-sm mb-3 text-slate-700">Verwarming & Ventilatie</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                 <DataItem label="Verwarmingssysteem" value={chapterAnswers.techniek.verwarming} />
                 <DataItem label="Afgiftesysteem" value={chapterAnswers.techniek.afgiftesysteem} />
@@ -220,14 +223,14 @@ export default function Preview() {
             {/* Koeling */}
             {chapterAnswers.techniek.koeling && (
               <div>
-                <h4 className="font-semibold text-sm mb-3">❄️ Koeling</h4>
+                <h4 className="font-semibold text-sm mb-3 text-slate-700">Koeling</h4>
                 <DataItem label="Koelingssysteem" value={chapterAnswers.techniek.koeling} />
               </div>
             )}
 
             {/* PV & Elektromobiliteit */}
             <div>
-              <h4 className="font-semibold text-sm mb-3">☀️ Zonnepanelen & EV</h4>
+              <h4 className="font-semibold text-sm mb-3 text-slate-700">Zonnepanelen & EV</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                 <DataItem label="PV Configuratie" value={chapterAnswers.techniek.pvConfiguratie} />
                 <DataItem label="EV Voorziening" value={chapterAnswers.techniek.evVoorziening} />
@@ -238,7 +241,7 @@ export default function Preview() {
             {/* Opmerkingen */}
             {chapterAnswers.techniek.notes && (
               <div>
-                <h4 className="font-semibold text-sm mb-2">📝 Opmerkingen</h4>
+                <h4 className="font-semibold text-sm mb-2 text-slate-700">Opmerkingen</h4>
                 <p className="text-sm text-slate-700 bg-slate-50 p-3 rounded">
                   {chapterAnswers.techniek.notes}
                 </p>
@@ -249,10 +252,10 @@ export default function Preview() {
         </CollapsibleSection>
       )}
 
-      {/* DUURZAAM - ✅ CORRECTED to match actual DuurzaamData type */}
+      {/* DUURZAAM */}
       {chapterAnswers.duurzaam && (
         <CollapsibleSection
-          title="🌱 Duurzaamheid"
+          title="Duurzaamheid"
           section="duurzaam"
           isOpen={expandedSections.duurzaam}
           onToggle={toggleSection}
@@ -261,7 +264,7 @@ export default function Preview() {
 
             {/* Energieprestatie */}
             <div>
-              <h4 className="font-semibold text-sm mb-3">⚡ Energieprestatie</h4>
+              <h4 className="font-semibold text-sm mb-3 text-slate-700">Energieprestatie</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                 <DataItem label="Energielabel Doel" value={chapterAnswers.duurzaam.energieLabel} />
                 <DataItem label="EPC/BENG Doel" value={chapterAnswers.duurzaam.epcOfBengDoel} />
@@ -274,7 +277,7 @@ export default function Preview() {
 
             {/* Isolatie & Glas */}
             <div>
-              <h4 className="font-semibold text-sm mb-3">🏠 Isolatie & Glas</h4>
+              <h4 className="font-semibold text-sm mb-3 text-slate-700">Isolatie & Glas</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                 <DataItem label="n50 (Luchtdichtheid)" value={chapterAnswers.duurzaam.n50} />
                 <DataItem label="Rc Gevel" value={chapterAnswers.duurzaam.rcGevel} />
@@ -287,7 +290,7 @@ export default function Preview() {
 
             {/* Zonnepanelen */}
             <div>
-              <h4 className="font-semibold text-sm mb-3">☀️ Zonnepanelen</h4>
+              <h4 className="font-semibold text-sm mb-3 text-slate-700">Zonnepanelen</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                 <DataItem label="PV Configuratie" value={chapterAnswers.duurzaam.zonnepanelen} />
                 <DataItem label="Oppervlak (m²)" value={chapterAnswers.duurzaam.zonnepanelenOppervlak} />
@@ -297,7 +300,7 @@ export default function Preview() {
 
             {/* Elektriciteit & Mobiliteit */}
             <div>
-              <h4 className="font-semibold text-sm mb-3">🔌 Elektriciteit & Mobiliteit</h4>
+              <h4 className="font-semibold text-sm mb-3 text-slate-700">Elektriciteit & Mobiliteit</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                 <DataItem label="Thuisbatterij" value={chapterAnswers.duurzaam.thuisbatterij} />
                 <DataItem label="EV Laadpunt" value={chapterAnswers.duurzaam.evLaadpunt} />
@@ -307,7 +310,7 @@ export default function Preview() {
 
             {/* Warmte & Water */}
             <div>
-              <h4 className="font-semibold text-sm mb-3">💧 Warmte & Water</h4>
+              <h4 className="font-semibold text-sm mb-3 text-slate-700">Warmte & Water</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                 <DataItem label="Stadswarmte Beschikbaar" value={chapterAnswers.duurzaam.stadswarmteBeschikbaar} />
                 <DataItem label="Stadswarmte Geinteresseerd" value={chapterAnswers.duurzaam.stadswarmteGeinteresseerd} />
@@ -318,7 +321,7 @@ export default function Preview() {
 
             {/* Groen & Klimaatadaptatie */}
             <div>
-              <h4 className="font-semibold text-sm mb-3">🌿 Groen & Klimaatadaptatie</h4>
+              <h4 className="font-semibold text-sm mb-3 text-slate-700">Groen & Klimaatadaptatie</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                 <DataItem label="Grondak Oppervlak (m²)" value={chapterAnswers.duurzaam.groendakOppervlak} />
                 <DataItem label="Water Retentie Tuin" value={chapterAnswers.duurzaam.waterRetentieTuin} />
@@ -330,7 +333,7 @@ export default function Preview() {
 
             {/* Materiaalen & Circulair */}
             <div>
-              <h4 className="font-semibold text-sm mb-3">♻️ Materiaalen & Circulair</h4>
+              <h4 className="font-semibold text-sm mb-3 text-slate-700">Materiaalen & Circulair</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                 <DataItem label="Materiaalen Strategie" value={chapterAnswers.duurzaam.materiaalstrategie} />
                 <DataItem label="Demontabel Construeren" value={chapterAnswers.duurzaam.demontabelConstrueren} />
@@ -339,7 +342,7 @@ export default function Preview() {
 
             {/* MPG & Prioriteit */}
             <div>
-              <h4 className="font-semibold text-sm mb-3">📊 Milieuprestatie & Prioriteit</h4>
+              <h4 className="font-semibold text-sm mb-3 text-slate-700">Milieuprestatie & Prioriteit</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                 <DataItem label="MPG Ambitie" value={chapterAnswers.duurzaam.mpgAmbitie} />
                 <DataItem label="Prioriteit" value={chapterAnswers.duurzaam.prioriteit} />
@@ -352,7 +355,7 @@ export default function Preview() {
             {/* Opmerkingen */}
             {chapterAnswers.duurzaam.opmerkingen && (
               <div>
-                <h4 className="font-semibold text-sm mb-2">📝 Opmerkingen</h4>
+                <h4 className="font-semibold text-sm mb-2 text-slate-700">Opmerkingen</h4>
                 <p className="text-sm text-slate-700 bg-slate-50 p-3 rounded">
                   {chapterAnswers.duurzaam.opmerkingen}
                 </p>
@@ -366,14 +369,14 @@ export default function Preview() {
       {/* RISICO */}
       {chapterAnswers.risico && chapterAnswers.risico.risks?.length > 0 && (
         <CollapsibleSection
-          title="⚠️ Risico's"
+          title="Risico's"
           section="risico"
           isOpen={expandedSections.risico}
           onToggle={toggleSection}
         >
           <div className="space-y-3">
             {chapterAnswers.risico.risks.map((risk, idx) => (
-              <div key={risk.id || idx} className="border-l-4 border-red-500 pl-4 py-2">
+              <div key={risk.id || idx} className="border-l-4 border-slate-300 pl-4 py-2">
                 <h4 className="font-semibold text-slate-900">{risk.description}</h4>
                 <div className="mt-1 text-sm text-slate-600">
                   <p>Type: <span className="font-medium">{risk.type}</span></p>
@@ -383,8 +386,8 @@ export default function Preview() {
               </div>
             ))}
             {chapterAnswers.risico.overallRisk && (
-              <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
-                <p className="text-sm font-medium text-yellow-800">
+              <div className="mt-4 p-3 bg-slate-100 rounded-lg border border-slate-200">
+                <p className="text-sm font-medium text-slate-700">
                   Overall Risico: <span>{chapterAnswers.risico.overallRisk}</span>
                 </p>
               </div>
