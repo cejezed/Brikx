@@ -131,17 +131,29 @@ input:focus, textarea:focus, select:focus{
 [data-focused="true"] .premium-badge { background:#fde68a; color:#7c5b00; } /* voorbeeld badge */
 [data-spotlight-scope] > *[data-focused="true"] ~ *:not([data-focused="true"]){ opacity: .5; }
 
-/* Remove black focus outline from form elements inside spotlight */
-.bkx-spotlight input:focus,
-.bkx-spotlight textarea:focus,
-.bkx-spotlight select:focus,
-.bkx-spotlight button:focus,
-[data-focused="true"] input:focus,
-[data-focused="true"] textarea:focus,
-[data-focused="true"] select:focus,
-[data-focused="true"] button:focus {
-  outline: none;
-  box-shadow: none;
+/* Remove ALL focus outlines - the green spotlight is enough */
+.bkx-spotlight *:focus,
+.bkx-spotlight *:focus-visible,
+[data-focused="true"] *:focus,
+[data-focused="true"] *:focus-visible,
+.bkx-spotlight:focus,
+.bkx-spotlight:focus-visible,
+[data-focused="true"]:focus,
+[data-focused="true"]:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: inherit !important;
+}
+
+/* Prevent layout shift when spotlight appears */
+.bkx-spotlight,
+[data-focused="true"] {
+  scroll-margin: 0 !important;
+}
+
+/* Disable smooth scroll behavior to prevent jumps */
+[data-spotlight-scope] {
+  scroll-behavior: auto !important;
 }
 
 /* ---------------------------
