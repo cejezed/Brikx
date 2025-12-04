@@ -18,7 +18,7 @@ export function useExpertInsights() {
   };
 
   return useQuery<InsightResponse>({
-    queryKey: ['expert-insights', currentChapter, focusedField],
+    queryKey: ['expert-insights', currentChapter], // Removed focusedField to prevent refetch on every field click
     queryFn: async () => {
       const res = await fetch('/api/insights', {
         method: 'POST',
