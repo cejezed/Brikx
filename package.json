@@ -9,9 +9,11 @@
     "lint": "next lint",
     "type-check": "tsc -p tsconfig.json --noEmit",
     "format": "prettier -w .",
-"embed": "tsx ./scripts/generate-embeddings.ts",
+    "embed": "tsx ./scripts/generate-embeddings.ts",
     "sync-knowledge": "tsx ./scripts/sync-knowledge-items.ts",
-    "check": "npm run type-check && npm run lint"
+    "check": "npm run type-check && npm run lint",
+    "check:features": "bash ./scripts/check-features.sh",
+    "brikx:doctor": "node ./scripts/brikx-doctor.js"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
@@ -19,6 +21,7 @@
     "@react-pdf/renderer": "^4.3.1",
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/supabase-js": "^2.81.1",
+    "@tanstack/react-query": "^5.90.12",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.3",
     "framer-motion": "^12.23.24",
@@ -47,8 +50,8 @@
     "prisma": "^6.19.0",
     "tailwindcss": "^4.1.13",
     "ts-node": "^10.9.2",
-    "tsx": "^4.19.0",
     "tsconfig-paths": "^4.2.0",
+    "tsx": "^4.19.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.8"
   }
