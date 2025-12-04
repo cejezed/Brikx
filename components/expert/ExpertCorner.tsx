@@ -13,13 +13,18 @@ import { useWizardState } from "@/lib/stores/useWizardState";
 import { getExpertTips, type CategorizedTip } from "@/lib/expert/getExpertTips"; // ✅ v3.9
 // ❌ REMOVED: Kennisbank import (server-only) - now using /api/expert endpoint
 import type { WizardState } from "@/types/project";
-import CircularProgress from "@/components/common/CircularProgress";
-import { getCompletionPercentage } from "@/lib/ai/missing";
+import { buildPreview } from "@/lib/preview/buildPreview";
+import { printPreviewToPdf } from "@/lib/export/print";
 
 // ✅ v3.9: Nieuwe UI componenten
 import TipCard from "./TipCard";
 import TipSkeleton from "./TipSkeleton";
 import ExpertCornerHeader from "./ExpertCornerHeader";
+// ✅ v3.11: Customer Examples Insights
+import { InsightSection } from "./InsightSection";
+import { InsightCard } from "./InsightCard";
+import { useExpertInsights } from "@/lib/hooks/useExpertInsights";
+import type { Insight } from "@/lib/insights/types";
 
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/lib/hooks/useAuth"; // (Onze nieuwe hook)
@@ -67,15 +72,14 @@ export default function ExpertCorner({
 }: ExpertCornerProps) {
   // ✅ Bestaande ExpertCorner State
   const focusedField = useWizardState((s) => s.focusedField ?? null);
+  const basisData = useWizardState((s) => s.chapterAnswers?.basis); // ✅ v3.10: Voor lifestyle hints
+  const triage = useWizardState((s) => s.triage);
+  const chapterAnswers = useWizardState((s) => s.chapterAnswers);
   // const [exportModalOpen, setExportModalOpen] = useState(false); // 👈 VERWIJDERD
   const [ragSnippets, setRagSnippets] = useState<RagSnippet[]>([]);
+  const [lifestyleHints, setLifestyleHints] = useState<string[]>([]); // ✅ v3.10: Lifestyle hints state
   const [ragLoading, setRagLoading] = useState(false);
 
-  // ✅ Voortgangslogica
-  const rawProgress = useWizardState((state) =>
-    getCompletionPercentage(state as WizardState)
-  );
-  const displayProgress = Math.max(20, rawProgress);
   const mode: ExpertCornerMode = modeProp;
 
   // 👇 Nieuwe State voor Auth & Opslaan
@@ -112,14 +116,57 @@ export default function ExpertCorner({
     }
   };
 
+  // ✅ PDF Export functie
+  const handleExportPdf = () => {
+    if (!triage) {
+      toast({
+        variant: "destructive",
+        title: "Kan niet exporteren",
+        description: "Vul minimaal het Basis hoofdstuk in om te kunnen exporteren.",
+      });
+      return;
+    }
+
+    try {
+      const pv = buildPreview({
+        triage: {
+          projectType: triage.projectType ? [triage.projectType as any] : [],
+          projectSize: triage.projectSize as any,
+          urgency: triage.urgency as any,
+        },
+        chapterAnswers: chapterAnswers ?? {},
+      });
+      printPreviewToPdf(pv);
+      toast({
+        title: "PDF wordt gegenereerd",
+        description: "Uw PvE-rapport wordt voorbereid voor download.",
+      });
+    } catch (e: any) {
+      toast({
+        variant: "destructive",
+        title: "Export mislukt",
+        description: e?.message ?? "Onbekende fout bij PDF generatie",
+      });
+    }
+  };
+
   // ✅ v3.8: Gecombineerde tips via getExpertTips utility (statisch + TECHNIEK_TIPS)
   const { allTips: staticTips } = useMemo(() => {
     return getExpertTips(focusedField);
   }, [focusedField]);
 
+  // ✅ v3.11: Customer Examples Insights (Fase 1 + 2 + 3)
+  const { data: insightsData, isLoading: insightsLoading } = useExpertInsights();
+  const insights = insightsData?.insights || [];
+  const designTips = insights.filter((insight) => insight.type === 'DESIGN_TIP');
+  const similarChoices = insights.filter((insight) => insight.type === 'SIMILAR_CHOICE');
+  const budgetWarnings = insights.filter((insight) => insight.type === 'BUDGET_WARNING');
+  const roomBestPractices = insights.filter((insight) => insight.type === 'ROOM_BEST_PRACTICE');
+
   useEffect(() => {
     if (mode !== "PREMIUM" || !focusedField) {
       setRagSnippets([]);
+      setLifestyleHints([]); // ✅ v3.10: Leegmaken bij niet-premium
       return;
     }
     const [chapter, fieldId] = focusedField.split(":");
@@ -128,50 +175,52 @@ export default function ExpertCorner({
     setRagLoading(true);
     const query = `Geef contextuele tips voor ${fieldId} in het hoofdstuk ${chapter}`;
 
-    // ✅ v3.10: Use API endpoint instead of direct Kennisbank import (server-only)
+    // ✅ v3.10: Use API endpoint with basisData for lifestyle hints
     fetch("/api/expert", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, chapter }),
+      body: JSON.stringify({
+        query,
+        chapter,
+        focusKey: focusedField,
+        basisData, // ✅ v3.10: Stuur basisData mee voor lifestyle profiling
+      }),
     })
       .then((res) => res.json())
       .then((data) => {
-        const docs: RagSnippet[] = Array.isArray(data?.docs) ? data.docs : [];
+        const docs: RagSnippet[] = Array.isArray(data?.ragDocs) ? data.ragDocs : [];
         setRagSnippets(docs);
+
+        // ✅ v3.10: Lifestyle hints verwerken
+        const hints: string[] = Array.isArray(data?.lifestyleHints) ? data.lifestyleHints : [];
+        setLifestyleHints(hints);
       })
       .catch((err: unknown) => {
-        console.error("ExpertCorner RAG failed:", err);
+        console.error("ExpertCorner API failed:", err);
         setRagSnippets([]);
+        setLifestyleHints([]);
       })
       .finally(() => {
         setRagLoading(false);
       });
-  }, [focusedField, mode]);
+  }, [focusedField, mode, basisData]);
 
-  // ✅ v3.9: Bereken totaal aantal tips voor header
+  // ✅ v3.9: Bereken totaal aantal tips voor header (v3.11: + insights)
   const totalTipCount =
     staticTips.length +
     ragSnippets.length +
+    lifestyleHints.length +
+    insights.length +
     (mode === "PREMIUM" && ragLoading ? 0 : 0);
 
   const hasTips =
     staticTips.length > 0 ||
+    lifestyleHints.length > 0 ||
     (mode === "PREMIUM" && (ragLoading || ragSnippets.length > 0));
 
   return (
     <>
       <aside className="flex h-full flex-col rounded-2xl border border-slate-100 bg-white shadow-sm p-4">
-        {/* Progress Bar */}
-        <div className="flex-shrink-0 mb-4">
-          <CircularProgress
-            value={displayProgress}
-            label="PvE Compleet"
-            subtitle="Voortgang"
-            size={80}
-            stroke={7}
-          />
-        </div>
-
         {/* ✅ v3.9: Nieuwe sticky header component */}
         <ExpertCornerHeader
           focusedField={focusedField}
@@ -193,6 +242,47 @@ export default function ExpertCorner({
             <TipSkeleton count={2} />
           )}
 
+          {/* ✅ Fase 2: Co-occurrence "Anderen kozen ook" insights */}
+          {similarChoices.length > 0 && (
+            <InsightSection title="Anderen kozen ook" severity="info">
+              {similarChoices.map((insight: Insight) => (
+                <InsightCard key={insight.id} insight={insight} />
+              ))}
+            </InsightSection>
+          )}
+
+          {/* ✅ Fase 1: Customer Examples Design Tips */}
+          {designTips.length > 0 && (
+            <InsightSection title="Ontwerp Tips">
+              {designTips.map((insight: Insight) => (
+                <InsightCard key={insight.id} insight={insight} />
+              ))}
+            </InsightSection>
+          )}
+
+          {/* ✅ Fase 3: Budget & Risk Warnings */}
+          {budgetWarnings.length > 0 && (
+            <InsightSection title="Budget & risico" severity="warning">
+              {budgetWarnings.map((insight: Insight) => (
+                <InsightCard key={insight.id} insight={insight} />
+              ))}
+            </InsightSection>
+          )}
+
+          {/* ✅ Fase 3: Room Best Practices */}
+          {roomBestPractices.length > 0 && (
+            <InsightSection title="Best practices per ruimte">
+              {roomBestPractices.map((insight: Insight) => (
+                <InsightCard key={insight.id} insight={insight} />
+              ))}
+            </InsightSection>
+          )}
+
+          {/* Insights loading state */}
+          {insightsLoading && (
+            <TipSkeleton count={2} />
+          )}
+
           {/* ✅ v3.9: Static & Techniek tips met TipCard */}
           {staticTips.length > 0 && (
             <div className="space-y-2">
@@ -203,6 +293,24 @@ export default function ExpertCorner({
                   text={tip.text}
                   category={tip.category}
                   severity={tip.severity}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* ✅ v3.10: Lifestyle hints (Premium) */}
+          {mode === "PREMIUM" && lifestyleHints.length > 0 && (
+            <div className="space-y-2">
+              <div className="text-[10px] font-semibold uppercase text-slate-400 pt-2 border-t">
+                Persoonlijk Advies
+              </div>
+              {lifestyleHints.map((hint, index) => (
+                <TipCard
+                  key={`lifestyle_${index}`}
+                  id={`lifestyle_${index}`}
+                  text={hint}
+                  category="leefstijl"
+                  severity="info"
                 />
               ))}
             </div>
@@ -258,9 +366,15 @@ export default function ExpertCorner({
                 U bent ingelogd als {user.email}.
               </p>
               <button
+                onClick={handleExportPdf}
+                className="brx-pill teal text-sm w-full"
+              >
+                📄 Exporteer PvE naar PDF
+              </button>
+              <button
                 onClick={saveRemote}
                 disabled={busy}
-                className="brx-pill teal text-sm disabled:opacity-50 w-full"
+                className="brx-pill outline text-sm disabled:opacity-50 w-full"
               >
                 {busy ? "Opslaan…" : "Voortgang Opslaan"}
               </button>
@@ -280,7 +394,7 @@ export default function ExpertCorner({
               </div>
               <p className="text-xs text-gray-500">
                 Maak een account aan of log in om uw voortgang veilig op te
-                slaan.
+                slaan en te exporteren.
               </p>
               <div className="flex items-center gap-2">
                 <Link
