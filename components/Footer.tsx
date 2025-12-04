@@ -1,10 +1,12 @@
 /* components/Footer.tsx */
 import React from "react";
+import packageJson from "../package.json";
 
 type FooterProps = { className?: string };
 
 export default function Footer({ className = "" }: FooterProps) {
   const year = new Date().getFullYear();
+  const version = packageJson.version;
 
   return (
     // Buitenste wrapper: WIT (geeft links/rechts witte marges)
@@ -77,8 +79,18 @@ export default function Footer({ className = "" }: FooterProps) {
 
             {/* Bottom bar */}
             <div className="py-6 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between text-sm text-white/80">
-              <p>© {year} Brikx. Alle rechten voorbehouden.</p>📍 Loenen aan de Vecht, Nederland <a href="mailto:info@brikxai.nl" className="hover:text-white transition">📧 info@brikxai.nl</a>
-              <p>SSL-beveiligd ✓</p>
+              <div className="flex flex-wrap items-center gap-3">
+                <p>© {year} Brikx. Alle rechten voorbehouden.</p>
+                <span className="hidden sm:inline">•</span>
+                <p>📍 Loenen aan de Vecht, Nederland</p>
+                <span className="hidden sm:inline">•</span>
+                <a href="mailto:info@brikxai.nl" className="hover:text-white transition">📧 info@brikxai.nl</a>
+              </div>
+              <div className="flex items-center gap-3">
+                <p>SSL-beveiligd ✓</p>
+                <span className="hidden sm:inline">•</span>
+                <span className="text-xs bg-white/10 px-2 py-1 rounded">v{version}</span>
+              </div>
             </div>
           </div>
 
