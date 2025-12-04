@@ -14,7 +14,7 @@ export function useExpertInsights() {
   const context: InsightContext = {
     currentChapter: (currentChapter as ChapterKey) || 'basis',
     focusedField: focusedField ?? null,
-    chapterAnswers: chapterAnswers || {},
+    chapterAnswers: chapterAnswers,
   };
 
   return useQuery<InsightResponse>({

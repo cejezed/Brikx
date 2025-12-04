@@ -55,7 +55,7 @@ export interface Insight {
 export interface InsightContext {
   currentChapter: ChapterKey;
   focusedField?: string | null;
-  chapterAnswers: ChapterDataMap;
+  chapterAnswers?: Partial<ChapterDataMap>;
   userQuery?: string;
   roomType?: string;
 }
