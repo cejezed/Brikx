@@ -20,10 +20,14 @@ type RoomPreset = {
   type?: string;
 };
 
-const safeId = (): string =>
-  (typeof globalThis !== "undefined" &&
-    (globalThis.crypto as Crypto | undefined)?.randomUUID?.()) ||
-  `room_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+// Generate unique ID that works reliably on all browsers including mobile
+let idCounter = 0;
+const safeId = (): string => {
+  const timestamp = Date.now().toString(36);
+  const randomPart = Math.random().toString(36).substring(2, 9);
+  const counter = (++idCounter).toString(36);
+  return `room_${timestamp}_${randomPart}_${counter}`;
+};
 
 const BASE_PRESETS: RoomPreset[] = [
   { name: "Woonkamer / leefruimte", group: "Begane grond", type: "living" },
