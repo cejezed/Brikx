@@ -1,9 +1,6 @@
 /* Tailwind v4 – één import is genoeg */
 @import "tailwindcss";
 
-/* Import Inter font (must be at top level) */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
 /* ===========================
    Brikx Theme (Tailwind v4)
    =========================== */
@@ -194,9 +191,9 @@ input:focus, textarea:focus, select:focus{
    Glassmorfisme & /temp styling
    =========================== */
 
-/* Update body font to Inter (imported at top) */
+/* Update body font to Inter (loaded via next/font) */
 body {
-  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
 }
 
 /* Glassmorfisme Utilities - Light Mode */
