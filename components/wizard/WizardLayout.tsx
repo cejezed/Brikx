@@ -93,7 +93,22 @@ export default function WizardLayout() {
   );
 
   return (
-    <div className="h-full flex flex-col xl:grid xl:grid-cols-[minmax(260px,0.9fr)_minmax(420px,1.4fr)_minmax(260px,0.7fr)] gap-0 xl:gap-4 relative">
+    <div className="h-full flex flex-col xl:grid xl:grid-cols-[minmax(260px,0.9fr)_minmax(420px,1.4fr)_minmax(260px,0.7fr)] gap-0 xl:gap-4 relative overflow-hidden">
+      {/* Background decorations - Desktop only */}
+      <div className="hidden xl:block absolute inset-0 pointer-events-none overflow-hidden -z-10">
+        {/* Teal blob - top left */}
+        <div className="absolute -top-24 -left-24 w-96 h-96 bg-gradient-to-br from-brikx-400/20 to-emerald-400/20 rounded-full blur-3xl animate-blob" />
+
+        {/* Emerald blob - bottom right */}
+        <div className="absolute -bottom-32 -right-32 w-[32rem] h-[32rem] bg-gradient-to-tl from-emerald-300/15 to-brikx-300/15 rounded-full blur-3xl animate-blob animation-delay-2000" />
+
+        {/* Blue accent blob - middle */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[28rem] h-[28rem] bg-gradient-to-br from-blue-200/10 to-brikx-200/10 rounded-full blur-3xl animate-blob animation-delay-4000" />
+
+        {/* Subtle noise overlay */}
+        <div className="absolute inset-0 opacity-[0.015] mix-blend-overlay" style={{backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' /%3E%3C/svg%3E\")"}} />
+      </div>
+
       {/* @protected CHAT_F03_ONBOARDING */}
       {/* ChatPanel MUST be present in the layout - it contains the primary chat interface. */}
       {/* DO NOT REMOVE: this is the call-site for CHAT_F03_ONBOARDING and related chat features. */}
