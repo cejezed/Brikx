@@ -14,9 +14,9 @@ export interface TipCardProps {
 }
 
 const severityStyles: Record<string, string> = {
-  info: "bg-white/60 backdrop-blur-md border-white/50",
-  warning: "bg-amber-50/60 backdrop-blur-md border-amber-200/50",
-  danger: "bg-red-50/60 backdrop-blur-md border-red-200/50",
+  info: "bg-white/30 border-slate-200/40",
+  warning: "bg-amber-50/40 border-amber-300/50",
+  danger: "bg-red-50/40 border-red-300/50",
 };
 
 export default function TipCard({ id, text, category, severity = "info" }: TipCardProps) {
@@ -24,7 +24,7 @@ export default function TipCard({ id, text, category, severity = "info" }: TipCa
 
   return (
     <div
-      className={`rounded-xl border-2 p-3 shadow-sm transition-all duration-200 hover:shadow-md hover:scale-[1.01] ${borderStyle}`}
+      className={`rounded-lg border p-3 transition-all duration-200 hover:bg-white/50 ${borderStyle}`}
     >
       <div className="flex items-start gap-2">
         <TipCategoryBadge category={category} />

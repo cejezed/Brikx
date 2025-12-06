@@ -10,15 +10,15 @@ interface InsightCardProps {
 
 export function InsightCard({ insight, compact = false }: InsightCardProps) {
   const severityStyles = {
-    info: 'bg-blue-50/60 backdrop-blur-md border-blue-200/50 text-blue-900',
-    tip: 'bg-emerald-50/60 backdrop-blur-md border-emerald-200/50 text-emerald-900',
-    warning: 'bg-orange-50/60 backdrop-blur-md border-orange-200/50 text-orange-900',
-    critical: 'bg-red-50/60 backdrop-blur-md border-red-200/50 text-red-900',
+    info: 'bg-blue-50/40 border-blue-200/50 text-blue-900',
+    tip: 'bg-emerald-50/40 border-emerald-200/50 text-emerald-900',
+    warning: 'bg-orange-50/40 border-orange-200/50 text-orange-900',
+    critical: 'bg-red-50/40 border-red-200/50 text-red-900',
   };
 
   return (
     <div className={`
-      rounded-xl border-2 text-xs shadow-sm transition-all duration-200 hover:shadow-md
+      rounded-lg border text-xs transition-all duration-200 hover:bg-white/20
       ${severityStyles[insight.severity]}
       ${compact ? 'p-2' : 'p-3'}
     `}>
