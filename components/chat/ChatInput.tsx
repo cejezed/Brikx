@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useRef, useEffect } from 'react';
+import { Send, X } from 'lucide-react';
 
 interface ChatInputProps {
   value: string;
@@ -37,10 +38,10 @@ export default function ChatInput({
   }, [disabled]);
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="relative flex items-center gap-2">
       <input
         ref={inputRef}
-        className="flex-1 rounded-2xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+        className="flex-1 rounded-2xl border border-slate-200 bg-white/60 backdrop-blur-sm px-4 py-3 pr-12 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brikx-500/20 focus:border-brikx-400 shadow-sm transition-all duration-200"
         placeholder="Stel je vraag aan Jules over je (ver)bouwplannen…"
         value={value}
         disabled={disabled}
@@ -52,18 +53,20 @@ export default function ChatInput({
         <button
           type="button"
           onClick={onAbort}
-          className="px-3 py-2 text-xs rounded-2xl border border-slate-300"
+          className="absolute right-2 p-2 rounded-xl bg-red-500 hover:bg-red-600 text-white transition-colors duration-200 shadow-lg"
+          aria-label="Stop genereren"
         >
-          Stop
+          <X size={18} />
         </button>
       ) : (
         <button
           type="button"
           onClick={onSend}
           disabled={disabled || !value.trim()}
-          className="px-3 py-2 text-xs rounded-2xl bg-slate-900 text-white disabled:opacity-40"
+          className="absolute right-2 p-2 rounded-xl bg-gradient-to-tr from-brikx-500 to-emerald-400 hover:from-brikx-600 hover:to-emerald-500 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-brikx-500/25 hover:shadow-xl hover:shadow-brikx-500/30"
+          aria-label="Verstuur bericht"
         >
-          Stuur
+          <Send size={18} />
         </button>
       )}
     </div>

@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useChatStore } from '@/lib/stores/useChatStore';
 import { useWizardState } from '@/lib/stores/useWizardState';
+import { Bot } from 'lucide-react';
 
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
@@ -62,61 +63,42 @@ export default function ChatPanel() {
 
   return (
     <>
-      <div className="flex flex-col border rounded-2xl overflow-hidden bg-white" style={{ height: '100%', maxHeight: '100%' }}>
-        {/* Header */}
-        <div className="flex-shrink-0 px-4 py-3 border-b bg-gradient-to-br from-blue-50 to-indigo-50">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                <svg
-                  className="w-5 h-5 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <h3 className="font-semibold text-sm text-gray-900">
-                  Hoi! Ik ben Jules
-                </h3>
-                <p className="text-xs text-gray-600">Uw digitale bouwcoach</p>
-              </div>
+      <div className="flex flex-col h-full relative overflow-hidden glass-light-strong rounded-2xl glass-shadow-lg">
+
+        {/* Enhanced Header - JulesChat Style */}
+        <div className="px-6 py-6 flex items-center gap-4 bg-gradient-to-b from-white/80 to-transparent border-b border-white/50">
+          <div className="relative group cursor-pointer">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brikx-500 to-emerald-400 flex items-center justify-center text-white shadow-xl shadow-emerald-500/20 group-hover:scale-105 transition-transform duration-500">
+              <Bot size={24} />
             </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => handleSend('Hoe werkt deze wizard?')}
-                className="px-3 py-1.5 text-xs rounded-full bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-1"
-              >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>Help</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowHandoff(true)}
-                className="px-3 py-1.5 text-xs rounded-full border border-slate-300 hover:bg-slate-100"
-              >
-                Menselijke architect
-              </button>
+            <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center border-2 bg-white border-white">
+              <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+            </div>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="font-black text-lg tracking-tight leading-none mb-1 text-slate-800 truncate">
+              Jules
+            </h2>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-brikx-600">AI Architect</span>
+              <span className="w-1 h-1 rounded-full bg-slate-400"></span>
+              <span className="text-xs text-slate-500">Online</span>
             </div>
           </div>
         </div>
 
-        {/* Messages */}
+        {/* Messages Area - With custom scrollbar */}
         <div
           ref={messagesContainerRef}
-          style={{ flex: 1, minHeight: 0, overflow: 'auto' }}
-          className="px-4 py-3 space-y-2 text-sm"
+          className="flex-1 overflow-y-auto px-4 lg:px-6 pt-2 pb-4 space-y-6 custom-scrollbar relative scroll-smooth"
         >
+          {/* Today label */}
+          <div className="text-center py-2">
+            <span className="px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase backdrop-blur-md bg-slate-900/5 text-slate-500">
+              Vandaag
+            </span>
+          </div>
+
           {messages
             .filter((m) => m.role !== 'system')
             .map((m) => (
@@ -131,18 +113,20 @@ export default function ChatPanel() {
             ))}
 
           {isStreaming && (
-            <TypingIndicator name="Jules" className="mt-2" />
+            <div className="flex flex-col items-start animate-in fade-in">
+              <TypingIndicator name="Jules" className="mt-2" />
+            </div>
           )}
 
           {error && (
-            <div className="rounded-md bg-red-50 p-3 text-xs text-red-700">
+            <div className="rounded-2xl bg-red-50 border border-red-100 p-3 text-xs text-red-700">
               <strong>Fout:</strong> {error}
             </div>
           )}
         </div>
 
-        {/* Input */}
-        <div className="flex-shrink-0 border-t px-3 py-2 bg-white">
+        {/* Input Area - Jules Style (within container, not floating absolute) */}
+        <div className="flex-shrink-0 p-4 lg:p-6 bg-gradient-to-t from-slate-100 via-slate-50/80 to-transparent">
           <ChatInput
             value={input}
             onChange={setInput}
@@ -150,9 +134,11 @@ export default function ChatPanel() {
             onAbort={isStreaming ? handleAbort : undefined}
             disabled={isStreaming}
           />
-          <p className="mt-1 text-[10px] text-slate-400">
-            Antwoorden kunnen direct je hoofdstukken invullen of je naar de juiste stap sturen.
-          </p>
+          <div className="text-center mt-2">
+            <p className="text-[10px] font-medium text-slate-500">
+              Jules denkt mee met je ontwerp & budget.
+            </p>
+          </div>
         </div>
       </div>
 
