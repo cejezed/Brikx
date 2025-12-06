@@ -81,102 +81,113 @@ export default function ChapterBasis() {
   };
 
   return (
-    <section className="space-y-6 max-w-3xl">
+    <section className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
       <FocusTarget chapter={CHAPTER} fieldId="__header">
-        <header className="space-y-1">
-          <h1 className="text-xl font-semibold text-slate-900">Start uw project</h1>
-          <p className="text-sm text-slate-600">
-            Vertel ons de basisgegevens. De wizard past zich automatisch aan op
-            basis van uw keuzes.
+        <header>
+          <h1 className="text-3xl lg:text-4xl font-black tracking-tight mb-3 text-slate-900">
+            De Basis.
+          </h1>
+          <p className="text-lg leading-relaxed max-w-2xl text-slate-500">
+            Laten we de fundering leggen. Vertel ons de basisgegevens zodat de wizard zich aanpast aan uw project.
           </p>
         </header>
       </FocusTarget>
 
+      <div className="space-y-10">
+
       {/* PROJECT TYPE */}
       <FocusTarget chapter={CHAPTER} fieldId="projectType">
-        <label className="block text-sm font-medium text-slate-800">
-          Wat voor project wilt u uitwerken?
-        </label>
-        <select
-          className="w-full rounded-md border px-3 py-2 text-sm"
-          value={basisData?.projectType ?? ""}
-          // ✅ STAP 3: Voeg onFocus toe
-          onFocus={() => handleFocus("projectType")}
-          onChange={(e) =>
-            update("projectType", e.target.value as BasisData["projectType"])
-          }
-        >
-          <option value="">Kies een optie…</option>
-          <option value="nieuwbouw">Nieuwbouw woning</option>
-          <option value="verbouwing">Verbouwing / renovatie</option>
-          <option value="bijgebouw">Bijgebouw / uitbreiding</option>
-          <option value="hybride">Hybride / combinatie</option>
-          <option value="anders">Anders / weet ik nog niet precies</option>
-        </select>
-        <p className="text-xs text-slate-500 mt-1">
-          Uw keuze bepaalt welke hoofdstukken hierboven verschijnen.
-        </p>
+        <div className="space-y-3">
+          <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            Wat voor project wilt u uitwerken?
+          </label>
+          <select
+            className="glass-select w-full"
+            value={basisData?.projectType ?? ""}
+            onFocus={() => handleFocus("projectType")}
+            onChange={(e) =>
+              update("projectType", e.target.value as BasisData["projectType"])
+            }
+          >
+            <option value="">Kies een optie…</option>
+            <option value="nieuwbouw">Nieuwbouw woning</option>
+            <option value="verbouwing">Verbouwing / renovatie</option>
+            <option value="bijgebouw">Bijgebouw / uitbreiding</option>
+            <option value="hybride">Hybride / combinatie</option>
+            <option value="anders">Anders / weet ik nog niet precies</option>
+          </select>
+          <p className="text-xs text-slate-500">
+            Uw keuze bepaalt welke hoofdstukken verschijnen.
+          </p>
+        </div>
       </FocusTarget>
 
-      {/* PROJECT NAME */}
-      <FocusTarget chapter={CHAPTER} fieldId="projectNaam">
-        <label className="block">
-          <span className="block text-sm font-medium mb-1">
-            Projectnaam (optioneel)
-          </span>
-          <input
-            className="w-full border rounded px-3 py-2 text-sm"
-            value={basisData?.projectNaam ?? ""}
-            // ✅ STAP 3: Voeg onFocus toe
-            onFocus={() => handleFocus("projectNaam")}
-            onChange={(e) => update("projectNaam", e.target.value)}
-            placeholder="Bijv. Renovatie woning Van Dijk"
-          />
-        </label>
-      </FocusTarget>
+      {/* PROJECT NAME & LOCATION - Side by side */}
+      <div className="grid md:grid-cols-2 gap-8">
+        <FocusTarget chapter={CHAPTER} fieldId="projectNaam">
+          <div className="space-y-3">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Projectnaam
+            </label>
+            <input
+              className="glass-input w-full"
+              value={basisData?.projectNaam ?? ""}
+              onFocus={() => handleFocus("projectNaam")}
+              onChange={(e) => update("projectNaam", e.target.value)}
+              placeholder="Bijv. Uitbouw Serre"
+            />
+          </div>
+        </FocusTarget>
 
-      {/* LOCATION */}
-      <FocusTarget chapter={CHAPTER} fieldId="locatie">
-        <label className="block">
-          <span className="block text-sm font-medium mb-1">
-            Locatie / adres (optioneel)
-          </span>
-          <input
-            className="w-full border rounded px-3 py-2 text-sm"
-            value={basisData?.locatie ?? ""}
-            // ✅ STAP 3: Voeg onFocus toe
-            onFocus={() => handleFocus("locatie")}
-            onChange={(e) => update("locatie", e.target.value)}
-            placeholder="Straat + plaats"
-          />
-        </label>
-      </FocusTarget>
+        <FocusTarget chapter={CHAPTER} fieldId="locatie">
+          <div className="space-y-3">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Locatie
+            </label>
+            <input
+              className="glass-input w-full"
+              value={basisData?.locatie ?? ""}
+              onFocus={() => handleFocus("locatie")}
+              onChange={(e) => update("locatie", e.target.value)}
+              placeholder="Postcode + Huisnr."
+            />
+          </div>
+        </FocusTarget>
+      </div>
 
       {/* BUDGET */}
       <FocusTarget chapter={CHAPTER} fieldId="budget">
-        <label className="block">
-          <span className="block text-sm font-medium mb-1">
-            Richtbudget (globaal)
-          </span>
-          <div className="flex gap-2 items-center">
-            <span className="text-sm text-slate-500">€</span>
+        <div className="space-y-3">
+          <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            Budget Indicatie
+          </label>
+          <div className="relative rounded-2xl p-2 border-2 focus-within:ring-4 transition-all backdrop-blur-sm bg-white/40 border-white/50 focus-within:border-brikx-400 focus-within:ring-brikx-400/20 shadow-sm">
             <input
+              type="text"
               inputMode="numeric"
-              pattern="[0-9]*"
-              className="w-full rounded-md border px-3 py-2 text-sm"
-              // ⬇️ leest nu uit budget.budgetTotaal (zelfde bron als Budget-hoofdstuk)
-              value={budgetData?.budgetTotaal ?? ""}
-              // ✅ STAP 3: Voeg onFocus toe
-              onFocus={() => handleFocus("budget")}
-              onChange={(e) => updateBudget(e.target.value)}
-              placeholder="bijv. 250000"
+              value={budgetData?.budgetTotaal ? `€ ${Number(budgetData.budgetTotaal).toLocaleString('nl-NL')}` : ""}
+              onFocus={(e) => {
+                handleFocus("budget");
+                if (budgetData?.budgetTotaal) {
+                  e.target.value = String(budgetData.budgetTotaal);
+                }
+              }}
+              onBlur={(e) => {
+                if (e.target.value) {
+                  const num = Number(e.target.value.replace(/\D/g, ''));
+                  e.target.value = `€ ${num.toLocaleString('nl-NL')}`;
+                }
+              }}
+              onChange={(e) => updateBudget(e.target.value.replace(/\D/g, ''))}
+              placeholder="€ 0"
+              className="w-full text-4xl font-black tracking-tight bg-transparent px-6 py-4 focus:outline-none placeholder:text-slate-400 text-slate-900"
             />
           </div>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500">
             Dit wordt de basis voor het <strong>Budget</strong>-hoofdstuk.
           </p>
-        </label>
+        </div>
       </FocusTarget>
 
       {/* PROJECT SIZE */}
@@ -297,6 +308,8 @@ export default function ChapterBasis() {
           </div>
         </FocusTarget>
       )}
+
+      </div>
 
       {/* NAVIGATION */}
       <ChapterControls
