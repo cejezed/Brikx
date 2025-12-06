@@ -220,7 +220,7 @@ export default function ExpertCorner({
 
   return (
     <>
-      <aside className="flex h-full flex-col rounded-2xl border border-slate-100 bg-white shadow-sm p-4">
+      <aside className="flex h-full flex-col rounded-2xl glass-light-strong glass-shadow-lg p-4">
         {/* ✅ v3.9: Nieuwe sticky header component */}
         <ExpertCornerHeader
           focusedField={focusedField}
@@ -228,7 +228,7 @@ export default function ExpertCorner({
         />
 
         {/* Scrollbare inhoud */}
-        <div className="flex-1 overflow-y-auto space-y-3 text-xs text-slate-700 mt-3">
+        <div className="flex-1 overflow-y-auto space-y-3 text-xs text-slate-700 mt-3 custom-scrollbar">
           {/* Empty state */}
           {!hasTips && !ragLoading && (
             <p className="text-slate-500 italic">
