@@ -1,10 +1,17 @@
 // app/api/generate-pdf/route.ts
 import { renderToBuffer } from "@react-pdf/renderer";
 import { PveDocument, type PveDocumentProps } from "@/lib/server/pdf";
+import { requireAuth } from "@/lib/server/auth";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  // SECURITY: Require authentication
+  const authResult = await requireAuth();
+  if ('error' in authResult) {
+    return authResult.error;
+  }
+
   try {
     const body = await req.json().catch(() => ({} as any));
 

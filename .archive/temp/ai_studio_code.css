@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 1. Importeer Inter Font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* 2. Custom Utility Classes */
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* De architecturale grid achtergrond */
+  .bg-dot-grid {
+    background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
+    background-size: 24px 24px;
+  }
+}
+
+/* 3. Basis instellingen */
+body {
+  font-family: 'Inter', sans-serif;
+  /* Zorgt voor de basis achtergrond kleur */
+  @apply bg-slate-50 text-slate-900 antialiased selection:bg-brikx-200 selection:text-brikx-900;
+}

@@ -8,6 +8,19 @@
   /* Basiskleuren / radii / schaduw */
   --color-brikx-dark: #0d3d4d;
   --color-brikx-accent: #4db8ba;
+
+  /* Teal color palette (from /temp) */
+  --color-brikx-50: #f0fdfa;
+  --color-brikx-100: #ccfbf1;
+  --color-brikx-200: #99f6e4;
+  --color-brikx-300: #5eead4;
+  --color-brikx-400: #2dd4bf;
+  --color-brikx-500: #14b8a6; /* Primary Teal */
+  --color-brikx-600: #0d9488;
+  --color-brikx-700: #0f766e;
+  --color-brikx-800: #115e59;
+  --color-brikx-900: #134e4a;
+
   --radius-xl: 1rem;
   --radius-2xl: 1.5rem;
   --shadow-card: 0 6px 18px rgba(0,0,0,0.06);
@@ -171,4 +184,127 @@ input:focus, textarea:focus, select:focus{
 .page-gradient {
   background: var(--brx-bg);
   background-image: linear-gradient(180deg, var(--brx-bg), rgba(246,248,249,0));
+}
+
+/* ===========================
+   NEW UI FOUNDATION (Fase 1)
+   Glassmorfisme & /temp styling
+   =========================== */
+
+/* Import Inter font (optimized) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+/* Update body font to Inter */
+body {
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+/* Glassmorfisme Utilities - Light Mode */
+.glass-light {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(12px) saturate(1.1);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.glass-light-strong {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(16px) saturate(1.2);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.glass-light-subtle {
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Card shadows for glass elements */
+.glass-shadow {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+.glass-shadow-lg {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+}
+
+/* Architectural dot grid background */
+.bg-dot-grid {
+  background-image: radial-gradient(circle, #cbd5e1 1.5px, transparent 1.5px);
+  background-size: 24px 24px;
+  background-position: 0 0;
+}
+
+/* Custom scrollbar for panels */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
+
+/* Animations - Desktop only via @media */
+@media (min-width: 1024px) {
+  @keyframes blob {
+    0% {
+      transform: translate(0px, 0px) scale(1);
+    }
+    33% {
+      transform: translate(30px, -50px) scale(1.1);
+    }
+    66% {
+      transform: translate(-20px, 20px) scale(0.9);
+    }
+    100% {
+      transform: translate(0px, 0px) scale(1);
+    }
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  @keyframes pulse-slow {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+
+  .animate-blob {
+    animation: blob 7s infinite;
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-blob,
+  .animate-float,
+  .animate-pulse-slow {
+    animation: none;
+  }
 }

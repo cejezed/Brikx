@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { tryCreateServerSupabase } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/server/auth";
 
 // Dwing Node runtime + dynamisch af om build-time evaluatie te vermijden
 export const runtime = "nodejs";
@@ -102,6 +103,12 @@ function calculateFunnelMetrics(events: AnalyticsRow[]): FunnelMetrics {
 // POST: track event
 // =====================================================
 export async function POST(request: NextRequest) {
+  // SECURITY: Require authentication for analytics tracking
+  const authResult = await requireAuth();
+  if ('error' in authResult) {
+    return authResult.error;
+  }
+
   const supabase = tryCreateServerSupabase();
   if (!supabase) {
     return NextResponse.json(
@@ -154,6 +161,12 @@ export async function POST(request: NextRequest) {
 // GET: query events + funnel
 // =====================================================
 export async function GET(request: NextRequest) {
+  // SECURITY: Require authentication for analytics data access
+  const authResult = await requireAuth();
+  if ('error' in authResult) {
+    return authResult.error;
+  }
+
   const supabase = tryCreateServerSupabase();
   if (!supabase) {
     return NextResponse.json(

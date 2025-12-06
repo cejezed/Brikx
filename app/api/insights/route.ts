@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { InsightGenerator } from '@/lib/insights/InsightGenerator';
+import { InsightsRequestSchema } from '@/lib/validation/api-schemas';
 import type { InsightContext } from '@/lib/insights/types';
 
 export const runtime = 'nodejs'; // Voor OpenAI SDK compatibility
@@ -10,22 +11,20 @@ export const runtime = 'nodejs'; // Voor OpenAI SDK compatibility
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { context } = body as { context: InsightContext };
 
-    // Validation
-    if (!context || !context.currentChapter) {
+    // SECURITY: Validate input with Zod
+    const validation = InsightsRequestSchema.safeParse(body);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: 'Missing context.currentChapter' },
+        {
+          error: 'Invalid request body',
+          details: validation.error.issues
+        },
         { status: 400 }
       );
     }
 
-    if (!context.chapterAnswers) {
-      return NextResponse.json(
-        { error: 'Missing context.chapterAnswers' },
-        { status: 400 }
-      );
-    }
+    const { context } = validation.data;
 
     // Generate insights
     const generator = new InsightGenerator();
