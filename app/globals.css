@@ -308,3 +308,107 @@ body {
     animation: none;
   }
 }
+
+/* ===========================
+   FORM INPUTS (Fase 4)
+   Glassmorfisme input styling
+   =========================== */
+
+/* Glass input - Base style for all form inputs */
+.glass-input {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(8px);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  outline: none;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.glass-input::placeholder {
+  font-weight: 400;
+  color: rgb(148 163 184 / 0.6);
+}
+
+.glass-input:focus {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: #2dd4bf;
+  box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.1);
+}
+
+.glass-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Glass select - Dropdown styling */
+.glass-select {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(8px);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  outline: none;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1.25rem;
+  padding-right: 2.75rem;
+}
+
+.glass-select:focus {
+  background-color: rgba(255, 255, 255, 0.8);
+  border-color: #2dd4bf;
+  box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.1);
+}
+
+/* Glass textarea */
+.glass-textarea {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(8px);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  font-weight: 400;
+  transition: all 0.2s ease;
+  outline: none;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  resize: vertical;
+  min-height: 6rem;
+}
+
+.glass-textarea::placeholder {
+  font-weight: 400;
+  color: rgb(148 163 184 / 0.6);
+}
+
+.glass-textarea:focus {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: #2dd4bf;
+  box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.1);
+}
+
+/* Input group with icon */
+.input-icon-wrapper {
+  position: relative;
+}
+
+.input-icon-wrapper .input-icon {
+  position: absolute;
+  right: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgb(148 163 184);
+  transition: color 0.2s ease;
+  pointer-events: none;
+}
+
+.input-icon-wrapper:focus-within .input-icon {
+  color: #14b8a6;
+}
