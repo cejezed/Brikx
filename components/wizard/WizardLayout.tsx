@@ -184,7 +184,7 @@ export default function WizardLayout() {
               <MobileChatInput />
             </div>
 
-            <div className="flex items-center justify-between w-full lg:w-auto gap-4 order-2 lg:order-1">
+            <div className="flex items-center justify-between w-full lg:w-auto lg:ml-auto gap-4 order-2 lg:order-1">
               <button
                 onClick={() => {
                   const idx = chapterFlow?.indexOf(activeChapter) ?? -1;

@@ -102,7 +102,7 @@ export default function ChapterBasis() {
             <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
               Wat voor project wilt u uitwerken?
             </label>
-            <div className="flex gap-3 overflow-x-auto pb-4 -mx-6 px-6 lg:mx-0 lg:px-0 lg:pb-0 scrollbar-hide snap-x">
+            <div className="flex gap-3 overflow-x-auto pb-4 -mx-6 px-6 lg:mx-0 lg:px-0 lg:pb-0 scrollbar-hide snap-x lg:flex-nowrap">
               {[
                 { value: "nieuwbouw", label: "Nieuwbouw woning", icon: Home },
                 { value: "verbouwing", label: "Verbouwing / renovatie", icon: Hammer },
@@ -121,15 +121,15 @@ export default function ChapterBasis() {
                       update("projectType", option.value as BasisData["projectType"]);
                     }}
                     className={[
-                      "flex-none w-28 h-28 lg:w-32 lg:h-32 snap-center",
-                      "flex flex-col items-center justify-center gap-3 p-3",
-                      "rounded-2xl border-2 transition-all duration-200",
+                      "flex-none w-36 h-36 lg:w-auto lg:h-auto lg:aspect-square lg:flex-1 snap-center",
+                      "flex flex-col items-center justify-center gap-3 p-4",
+                      "rounded-2xl border-2 transition-all duration-300",
                       isActive
-                        ? "bg-brikx-500 border-brikx-500 text-white shadow-lg shadow-brikx-500/30 scale-105"
-                        : "bg-white/40 border-white/50 text-slate-500 hover:border-brikx-400 hover:text-brikx-600 hover:bg-white/60",
+                        ? "bg-brikx-500 border-brikx-500 text-white shadow-lg shadow-brikx-500/30 scale-105 z-10"
+                        : "bg-white/40 border-white/60 backdrop-blur-xl text-slate-600 hover:border-brikx-400 hover:text-brikx-600 hover:bg-white/60 shadow-sm hover:shadow-md",
                     ].join(" ")}
                   >
-                    <Icon size={28} className={isActive ? "text-white" : "text-current"} />
+                    <Icon size={32} className={isActive ? "text-white" : "text-slate-500"} />
                     <span className="text-xs font-bold text-center leading-tight">
                       {option.label}
                     </span>

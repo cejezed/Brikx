@@ -58,11 +58,14 @@ export default function ExpertCorner({
     if (staticTips.length > 0) return staticTips;
 
     // 2. Anders: toon de eerste algemene tip van de huidige chapter (fallback)
-    if (currentChapter && rules[currentChapter] && rules[currentChapter].length > 0) {
-      const firstTip = rules[currentChapter][0];
+    // Gebruik 'basis' als default als currentChapter nog leeg is (bij eerste load)
+    const effectiveChapter = currentChapter || "basis";
+
+    if (effectiveChapter && rules[effectiveChapter] && rules[effectiveChapter].length > 0) {
+      const firstTip = rules[effectiveChapter][0];
       return [{
         ...firstTip,
-        category: "basis" as const,
+        category: effectiveChapter as any,
       }];
     }
 
