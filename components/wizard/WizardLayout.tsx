@@ -19,6 +19,7 @@ import ChatPanel from "@/components/chat/ChatPanel";
 // DO NOT REMOVE or replace with another component: this feature is tracked in the feature registry.
 import ExpertCorner from "@/components/expert/ExpertCorner";
 import { useSaveProject } from "@/lib/hooks/useSaveProject";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 import Basis from "@/components/chapters/Basis";
 import Ruimtes from "@/components/chapters/Ruimtes";
@@ -110,7 +111,7 @@ export default function WizardLayout() {
       </div>
 
       {/* 2. Main Dashboard Shell - Matches 'containerClass' from archive */}
-      <div className="w-full h-full lg:max-w-[1800px] lg:h-[94vh] border lg:rounded-[2.5rem] relative z-10 flex flex-col lg:flex-row overflow-hidden transition-all duration-500 bg-white/40 border-white/40 shadow-2xl shadow-slate-400/20 backdrop-blur-[60px]">
+      <div className="w-full h-full lg:max-w-[1800px] lg:h-[94vh] border lg:rounded-[2.5rem] relative z-10 flex flex-col lg:flex-row overflow-hidden transition-all duration-500 bg-white/40 border-white/40 shadow-2xl shadow-slate-400/20 backdrop-blur-[60px] dark:bg-slate-900/40 dark:border-white/10 dark:shadow-slate-900/50">
 
         {/* Left: Chat Panel - 40% Width as requested */}
         <section className="
@@ -118,33 +119,35 @@ export default function WizardLayout() {
             hidden lg:flex flex-col
             lg:w-[35%] lg:min-w-[400px] lg:max-w-[800px] 
             bg-white/70 border-r border-white/60 backdrop-blur-2xl shadow-[20px_0_50px_-10px_rgba(148,163,184,0.3)]
+            dark:bg-slate-900/70 dark:border-white/10
         ">
           {/* @protected CHAT_F03_ONBOARDING */}
           <ChatPanel />
         </section>
 
         {/* Middle: Content Area - Matches 'contentPanelClass' */}
-        <section className="flex-1 flex flex-col min-w-0 relative z-10 transition-colors duration-500 bg-white/30">
+        <section className="flex-1 flex flex-col min-w-0 relative z-10 transition-colors duration-500 bg-white/30 dark:bg-slate-900/30">
 
           {/* Top Toolbar */}
-          <header className="h-20 px-8 flex items-center justify-between z-20 border-b transition-colors duration-500 border-white/40">
+          <header className="h-20 px-8 flex items-center justify-between z-20 border-b transition-colors duration-500 border-white/40 dark:border-white/10 dark:bg-black/20">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg border backdrop-blur-sm bg-white/60 border-white/50 text-brikx-600 shadow-sm">
+              <div className="p-2 rounded-lg border backdrop-blur-sm bg-white/60 border-white/50 text-brikx-600 shadow-sm dark:bg-white/10 dark:border-white/10 dark:text-brikx-400">
                 <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3zM14 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1v-3z" />
                 </svg>
               </div>
               <div>
-                <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   {basisData?.projectType || projectMeta?.projectType || "Nieuw Project"}
                 </span>
-                <span className="text-sm font-bold text-slate-800">
+                <span className="text-sm font-bold text-slate-800 dark:text-slate-100">
                   {basisData?.projectNaam || projectMeta?.projectNaam || "Naamloos Project"}
                 </span>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
+              <ThemeToggle />
               <div className="flex items-center gap-2">
                 {/* Expert Tips Toggle (Mobile/Tablet) */}
                 <MobileExpertIndicator className="xl:hidden flex items-center justify-center p-2 rounded-lg text-amber-600 bg-amber-50 border border-amber-100 hover:bg-amber-100 transition-colors" />
@@ -152,7 +155,7 @@ export default function WizardLayout() {
                 <button
                   onClick={handleSave}
                   disabled={isSaving || authLoading}
-                  className="flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-lg transition-colors text-slate-500 hover:text-brikx-600 hover:bg-white/60 disabled:opacity-50"
+                  className="flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-lg transition-colors text-slate-500 hover:text-brikx-600 hover:bg-white/60 disabled:opacity-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10"
                 >
                   {isSaving ? (
                     <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
@@ -218,7 +221,7 @@ export default function WizardLayout() {
         </section>
 
         {/* Right: Navigation Panel - Matches 'navPanelClass' */}
-        <aside className="hidden xl:flex w-[260px] relative z-10 border-l transition-colors duration-500 bg-white/30 border-white/40 backdrop-blur-md flex-col min-h-0 gap-4 p-4">
+        <aside className="hidden xl:flex w-[260px] relative z-10 border-l transition-colors duration-500 bg-white/30 border-white/40 backdrop-blur-md flex-col min-h-0 gap-4 p-4 dark:bg-slate-900/30 dark:border-white/10">
           {/* Note: In the archive, this panel contained the Navigation.tsx. Here we adapted the existing navigation logic. */}
           {chapterFlow && chapterFlow.length > 0 && (
             <nav className="flex-shrink-0 space-y-1.5">

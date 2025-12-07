@@ -85,10 +85,10 @@ export default function ChapterBasis() {
       {/* Header */}
       <FocusTarget chapter={CHAPTER} fieldId="__header">
         <header>
-          <h1 className="text-3xl lg:text-4xl font-black tracking-tight mb-3 text-slate-900">
+          <h1 className="text-3xl lg:text-4xl font-black tracking-tight mb-3 text-slate-900 dark:text-slate-100">
             De Basis.
           </h1>
-          <p className="text-lg leading-relaxed max-w-2xl text-slate-500">
+          <p className="text-lg leading-relaxed max-w-2xl text-slate-500 dark:text-slate-400">
             Laten we de fundering leggen. Vertel ons de basisgegevens zodat de wizard zich aanpast aan uw project.
           </p>
         </header>
@@ -99,7 +99,7 @@ export default function ChapterBasis() {
         {/* PROJECT TYPE */}
         <FocusTarget chapter={CHAPTER} fieldId="projectType">
           <div className="space-y-3">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Wat voor project wilt u uitwerken?
             </label>
             <div className="flex gap-3 overflow-x-auto pb-4 -mx-6 px-6 lg:mx-0 lg:px-0 lg:pb-0 scrollbar-hide snap-x lg:flex-nowrap">
@@ -126,7 +126,7 @@ export default function ChapterBasis() {
                       "rounded-2xl border-2 transition-all duration-300",
                       isActive
                         ? "bg-brikx-500 border-brikx-500 text-white shadow-lg shadow-brikx-500/30 scale-105 z-10"
-                        : "bg-white/40 border-white/60 backdrop-blur-xl text-slate-600 hover:border-brikx-400 hover:text-brikx-600 hover:bg-white/60 shadow-sm hover:shadow-md",
+                        : "bg-white/40 border-white/60 backdrop-blur-xl text-slate-600 hover:border-brikx-400 hover:text-brikx-600 hover:bg-white/60 shadow-sm hover:shadow-md dark:bg-white/5 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white",
                     ].join(" ")}
                   >
                     <Icon size={32} className={isActive ? "text-white" : "text-slate-500"} />
@@ -182,7 +182,7 @@ export default function ChapterBasis() {
             <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
               Budget Indicatie
             </label>
-            <div className="relative rounded-2xl p-2 border-2 focus-within:ring-4 transition-all backdrop-blur-sm bg-white/40 border-white/50 focus-within:border-brikx-400 focus-within:ring-brikx-400/20 shadow-sm">
+            <div className="relative rounded-2xl p-2 border-2 focus-within:ring-4 transition-all backdrop-blur-sm bg-white/40 border-white/50 focus-within:border-brikx-400 focus-within:ring-brikx-400/20 shadow-sm dark:bg-white/5 dark:border-white/10">
               <input
                 type="text"
                 inputMode="numeric"
@@ -201,7 +201,7 @@ export default function ChapterBasis() {
                 }}
                 onChange={(e) => updateBudget(e.target.value.replace(/\D/g, ''))}
                 placeholder="€ 0"
-                className="w-full text-4xl font-black tracking-tight bg-transparent px-6 py-4 focus:outline-none placeholder:text-slate-400 text-slate-900"
+                className="w-full text-4xl font-black tracking-tight bg-transparent px-6 py-4 focus:outline-none placeholder:text-slate-400 text-slate-900 dark:text-white"
               />
             </div>
             <p className="text-xs text-slate-500">
@@ -234,7 +234,7 @@ export default function ChapterBasis() {
                     "px-6 py-3 rounded-xl text-sm font-bold border-2 transition-all backdrop-blur-sm",
                     basisData?.projectSize === option.value
                       ? "bg-brikx-500 border-brikx-500 text-white shadow-lg shadow-brikx-500/30 transform scale-105"
-                      : "bg-white/40 text-slate-600 border-white/50 hover:border-brikx-400 hover:text-brikx-600 hover:bg-white/80 shadow-sm",
+                      : "bg-white/40 text-slate-600 border-white/50 hover:border-brikx-400 hover:text-brikx-600 hover:bg-white/80 shadow-sm dark:bg-white/5 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white",
                   ].join(" ")}
                 >
                   {option.label}

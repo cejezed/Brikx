@@ -140,14 +140,14 @@ export default function ExpertCorner({
       {/* Header removed as requested */}
 
       {/* Inhoud container - no longer fixed scroll, adjusts to parent */}
-      <div className="space-y-4 text-xs text-slate-700 mt-3">
+      <div className="space-y-4 text-xs text-slate-700 dark:text-slate-300 mt-3">
         {/* Empty state - styled as card */}
         {!hasTips && !ragLoading && (
-          <div className="border rounded-2xl p-5 text-center backdrop-blur-sm bg-white/30 border-slate-200">
+          <div className="border rounded-2xl p-5 text-center backdrop-blur-sm bg-white/30 border-slate-200 dark:bg-white/5 dark:border-white/10">
             <div className="inline-flex justify-center items-center w-8 h-8 rounded-full mb-2 bg-white border border-slate-200">
               <AlertCircle size={14} className="text-slate-400" />
             </div>
-            <p className="text-[10px] text-slate-500">
+            <p className="text-[10px] text-slate-500 dark:text-slate-400">
               Geen specifieke tips voor dit onderdeel.
             </p>
           </div>
@@ -201,7 +201,7 @@ export default function ExpertCorner({
 
         {/* ✅ v3.9: Static & Techniek tips met archive/temp design */}
         {displayTips.length > 0 && (
-          <div className="border rounded-2xl p-5 shadow-sm relative overflow-hidden group backdrop-blur-sm bg-emerald-50/80 border-emerald-100">
+          <div className="border rounded-2xl p-5 shadow-sm relative overflow-hidden group backdrop-blur-sm bg-emerald-50/80 border-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-900/50">
             {/* Glowing effect */}
             <div className="absolute -right-4 -top-4 w-16 h-16 rounded-full blur-xl group-hover:scale-150 transition-transform duration-700 bg-emerald-200/50"></div>
 
@@ -209,7 +209,7 @@ export default function ExpertCorner({
               <div className="w-6 h-6 rounded-full flex items-center justify-center shadow-sm bg-emerald-600 text-white">
                 <Lightbulb size={14} fill="currentColor" />
               </div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
                 Expert Tip
               </span>
             </div>
@@ -218,7 +218,7 @@ export default function ExpertCorner({
               {displayTips.map((tip) => (
                 <p
                   key={tip.id}
-                  className="text-xs leading-relaxed font-medium text-emerald-900"
+                  className="text-xs leading-relaxed font-medium text-emerald-900 dark:text-emerald-100"
                 >
                   {tip.text}
                 </p>
@@ -269,7 +269,7 @@ export default function ExpertCorner({
           ragSnippets.length === 0 &&
           focusedField &&
           staticTips.length === 0 && (
-            <p className="text-slate-500 italic">
+            <p className="text-slate-500 dark:text-slate-400 italic">
               Geen specifieke AI-inzichten gevonden voor dit veld.
             </p>
           )}
