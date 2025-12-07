@@ -8,6 +8,7 @@ import { useIsPremium } from "@/lib/stores/useAccountStore";
 import ExpertCorner from "@/components/expert/ExpertCorner";
 import ChatMessage from "@/components/chat/ChatMessage";
 import TypingIndicator from "@/components/common/TypingIndicator";
+import { useSaveProject } from "@/lib/hooks/useSaveProject";
 
 type MsgRole = "user" | "assistant";
 
@@ -61,6 +62,8 @@ export default function MobileChatInput() {
         }
     }, [abortController]);
 
+    const { handleSave, isSaving } = useSaveProject();
+
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
@@ -68,10 +71,6 @@ export default function MobileChatInput() {
         }
     };
 
-    const handleSave = () => {
-        // TODO: Implement save functionality
-        alert("Project opgeslagen!");
-    };
 
     return (
         <>
@@ -153,10 +152,11 @@ export default function MobileChatInput() {
                     {/* Save Button */}
                     <button
                         onClick={handleSave}
-                        className="flex-shrink-0 p-2.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                        disabled={isSaving}
+                        className="flex-shrink-0 p-2.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
                         aria-label="Opslaan"
                     >
-                        <Save size={20} />
+                        {isSaving ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={20} />}
                     </button>
                 </div>
             </div>

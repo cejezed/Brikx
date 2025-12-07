@@ -2,12 +2,14 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import MobileChatInput from "./MobileChatInput";
+import MobileExpertIndicator from "./MobileExpertIndicator";
+
 import { useWizardState } from "@/lib/stores/useWizardState";
 // @protected PREMIUM_F01_MODE_GATING
 // useIsPremium hook is critical for premium mode gating throughout the wizard.
 // DO NOT REMOVE: this is the primary entry point for premium feature access control.
 import { useIsPremium } from "@/lib/stores/useAccountStore";
-import type { ChapterKey } from "@/types/project";
+import type { ChapterKey, BasisData } from "@/types/project";
 // @protected CHAT_F03_ONBOARDING
 // ChatPanel is the primary chat interface component containing onboarding, message flow, and AI interaction.
 // DO NOT REMOVE or replace: this is tracked in config/features.registry.json.
@@ -16,6 +18,7 @@ import ChatPanel from "@/components/chat/ChatPanel";
 // ExpertCorner is the critical Expert Corner component that must always be present in the wizard layout.
 // DO NOT REMOVE or replace with another component: this feature is tracked in the feature registry.
 import ExpertCorner from "@/components/expert/ExpertCorner";
+import { useSaveProject } from "@/lib/hooks/useSaveProject";
 
 import Basis from "@/components/chapters/Basis";
 import Ruimtes from "@/components/chapters/Ruimtes";
@@ -62,6 +65,8 @@ const CHAPTER_COMPONENTS: Record<ChapterKey, React.ComponentType> = {
 };
 
 export default function WizardLayout() {
+  const projectMeta = useWizardState((s) => s.projectMeta);
+  const basisData = useWizardState((s) => s.chapterAnswers.basis as BasisData | undefined);
   const currentChapter = useWizardState((s) => s.currentChapter);
   const chapterFlow = useWizardState((s) => s.chapterFlow);
   const setChapterFlow = useWizardState((s) => s.setChapterFlow);
@@ -76,6 +81,8 @@ export default function WizardLayout() {
   // ✅ v3.10: Premium mode voor ExpertCorner
   const isPremium = useIsPremium();
   const expertMode = isPremium ? "PREMIUM" : "PREVIEW";
+
+  const { handleSave, isSaving, authLoading } = useSaveProject();
 
   // Init flow & startchapter één keer
   useEffect(() => {
@@ -128,23 +135,40 @@ export default function WizardLayout() {
                 </svg>
               </div>
               <div>
-                <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Resultaat</span>
-                <span className="text-sm font-bold text-slate-800">Naamloos Project</span>
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  {basisData?.projectType || projectMeta?.projectType || "Nieuw Project"}
+                </span>
+                <span className="text-sm font-bold text-slate-800">
+                  {basisData?.projectNaam || projectMeta?.projectNaam || "Naamloos Project"}
+                </span>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <button className="flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-lg transition-colors text-slate-500 hover:text-brikx-600 hover:bg-white/60">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                </svg>
-                <span className="hidden sm:inline">Opslaan</span>
-              </button>
+              <div className="flex items-center gap-2">
+                {/* Expert Tips Toggle (Mobile/Tablet) */}
+                <MobileExpertIndicator className="xl:hidden flex items-center justify-center p-2 rounded-lg text-amber-600 bg-amber-50 border border-amber-100 hover:bg-amber-100 transition-colors" />
+
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving || authLoading}
+                  className="flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-lg transition-colors text-slate-500 hover:text-brikx-600 hover:bg-white/60 disabled:opacity-50"
+                >
+                  {isSaving ? (
+                    <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                    </svg>
+                  )}
+                  <span className="hidden sm:inline">{isSaving ? "Even geduld..." : "Opslaan"}</span>
+                </button>
+              </div>
             </div>
           </header>
 
           {/* Scrollable Form Area */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar px-6 lg:px-12 py-4 scroll-smooth">
+          <div className="flex-1 overflow-y-auto custom-scrollbar px-6 lg:px-12 py-4 scroll-smooth z-0">
             <div className="max-w-3xl mx-auto pb-32 pt-4">
               <ActiveComponent />
 
@@ -153,40 +177,48 @@ export default function WizardLayout() {
           </div>
 
           {/* Bottom Action Bar (Sticky) */}
-          <div className="absolute bottom-0 inset-x-0 p-6 backdrop-blur-xl flex items-center justify-between z-20 transition-all duration-500 bg-white/60 border-t border-white/40">
-            <button
-              onClick={() => {
-                const idx = chapterFlow?.indexOf(activeChapter) ?? -1;
-                if (idx > 0 && chapterFlow) {
-                  setCurrentChapter(chapterFlow[idx - 1]);
-                  setShowPreview(false);
-                }
-              }}
-              disabled={!chapterFlow || chapterFlow.indexOf(activeChapter) === 0}
-              className="px-6 py-3 rounded-xl text-sm font-bold disabled:opacity-0 transition-all border border-transparent text-slate-500 hover:text-brikx-600 hover:bg-white/60"
-            >
-              Vorige Stap
-            </button>
-            <button
-              onClick={() => {
-                const idx = chapterFlow?.indexOf(activeChapter) ?? -1;
-                if (idx >= 0 && chapterFlow && idx < chapterFlow.length - 1) {
-                  setCurrentChapter(chapterFlow[idx + 1]);
-                  setShowPreview(false);
-                }
-              }}
-              className="px-8 py-3 rounded-xl text-sm font-bold shadow-lg hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3 group bg-slate-800 text-white shadow-slate-400/50 hover:bg-slate-900"
-            >
-              <span>Volgende Stap</span>
-              <div className="w-6 h-6 rounded-full flex items-center justify-center transition-colors bg-white/20 group-hover:bg-white/30">
-                <div className="w-2 h-2 rounded-full bg-white"></div>
-              </div>
-            </button>
+          <div className="fixed bottom-0 lg:absolute inset-x-0 p-4 lg:p-6 backdrop-blur-xl flex flex-col lg:flex-row items-center justify-between z-50 transition-all duration-500 bg-white/60 border-t border-white/40 gap-4">
+
+            {/* Mobile Chat Input Integration */}
+            <div className="w-full lg:hidden order-1">
+              <MobileChatInput />
+            </div>
+
+            <div className="flex items-center justify-between w-full lg:w-auto gap-4 order-2 lg:order-1">
+              <button
+                onClick={() => {
+                  const idx = chapterFlow?.indexOf(activeChapter) ?? -1;
+                  if (idx > 0 && chapterFlow) {
+                    setCurrentChapter(chapterFlow[idx - 1]);
+                    setShowPreview(false);
+                  }
+                }}
+                disabled={!chapterFlow || chapterFlow.indexOf(activeChapter) === 0}
+                className="px-6 py-3 rounded-xl text-sm font-bold disabled:invisible transition-all border border-transparent text-slate-500 hover:text-brikx-600 hover:bg-white/60"
+              >
+                Vorige Stap
+              </button>
+              <button
+                onClick={() => {
+                  const idx = chapterFlow?.indexOf(activeChapter) ?? -1;
+                  if (idx >= 0 && chapterFlow && idx < chapterFlow.length - 1) {
+                    setCurrentChapter(chapterFlow[idx + 1]);
+                    setShowPreview(false);
+                  }
+                }}
+                className="px-8 py-3 rounded-xl text-sm font-bold shadow-lg hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3 group bg-slate-800 text-white shadow-slate-400/50 hover:bg-slate-900"
+              >
+                <span>Volgende Stap</span>
+                <div className="w-6 h-6 rounded-full flex items-center justify-center transition-colors bg-white/20 group-hover:bg-white/30">
+                  <div className="w-2 h-2 rounded-full bg-white"></div>
+                </div>
+              </button>
+            </div>
           </div>
         </section>
 
         {/* Right: Navigation Panel - Matches 'navPanelClass' */}
-        <aside className="hidden 2xl:flex w-[260px] relative z-10 border-l transition-colors duration-500 bg-white/30 border-white/40 backdrop-blur-md flex-col min-h-0 gap-4 p-4">
+        <aside className="hidden xl:flex w-[260px] relative z-10 border-l transition-colors duration-500 bg-white/30 border-white/40 backdrop-blur-md flex-col min-h-0 gap-4 p-4">
           {/* Note: In the archive, this panel contained the Navigation.tsx. Here we adapted the existing navigation logic. */}
           {chapterFlow && chapterFlow.length > 0 && (
             <nav className="flex-shrink-0 space-y-1.5">
@@ -260,17 +292,7 @@ export default function WizardLayout() {
 
       </div>
 
-      {/* Mobile: Simplified Layout - kept as fallback for small screens */}
-      <div className="lg:hidden fixed inset-0 flex flex-col pt-16 pb-[140px] z-[60]">
-        <div className="flex-1 min-h-0 p-4 overflow-y-auto">
-          <ActiveComponent />
-          {/* Also add ExpertCorner here for mobile if needed, or stick to MobileExpertIndicator */}
-          <div className="mt-8 pt-6 border-t border-slate-200 block xl:hidden">
-            <ExpertCorner mode={expertMode} />
-          </div>
-        </div>
-        <MobileChatInput />
-      </div>
+
     </div>
   );
 }

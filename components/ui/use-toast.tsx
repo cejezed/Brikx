@@ -8,6 +8,7 @@ export type Toast = {
   description?: string;
   variant?: "default" | "destructive" | string;
   duration?: number; // ms
+  action?: React.ReactNode;
 };
 
 type ToastCtx = {
@@ -25,9 +26,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const api = useMemo<ToastCtx>(() => {
     return {
       toasts,
-      toast: ({ title, description, variant = "default", duration = 3500 }) => {
+      toast: ({ title, description, variant = "default", duration = 3500, action }) => {
         const id = crypto?.randomUUID?.() ?? String(Date.now() + Math.random());
-        const t: Toast = { id, title, description, variant, duration };
+        const t: Toast = { id, title, description, variant, duration, action };
         setToasts((prev) => [...prev, t]);
         if (duration > 0) {
           setTimeout(() => {
@@ -62,6 +63,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           >
             {t.title && <div className="text-sm font-semibold">{t.title}</div>}
             {t.description && <div className="mt-1 text-sm text-gray-600">{t.description}</div>}
+            {t.action && <div className="mt-2">{t.action}</div>}
             <div className="mt-2 flex justify-end">
               <button
                 onClick={() => api.dismiss(t.id)}
@@ -84,7 +86,7 @@ export function useToast() {
     // eslint-disable-next-line no-console
     console.warn("useToast used without <ToastProvider>. Using no-op shim.");
     const noop = () => ({ id: "noop" });
-    return { toasts: [] as Toast[], toast: noop, dismiss: () => {}, dismissAll: () => {} };
+    return { toasts: [] as Toast[], toast: noop, dismiss: () => { }, dismissAll: () => { } };
   }
   return ctx;
 }
