@@ -12,7 +12,7 @@ export default function WizardMobileMenu() {
             {/* Floating Hamburger Button */}
             <button
                 onClick={() => setIsOpen(true)}
-                className="fixed top-4 right-4 z-[60] bg-white/90 backdrop-blur-sm shadow-md p-2.5 rounded-full text-slate-700 hover:bg-slate-100 transition-all border border-slate-200"
+                className="fixed top-4 right-4 z-[100] bg-white/90 backdrop-blur-sm shadow-md p-2.5 rounded-full text-slate-700 hover:bg-slate-100 transition-all border border-slate-200"
                 aria-label="Open menu"
             >
                 <Menu size={24} />
@@ -20,7 +20,7 @@ export default function WizardMobileMenu() {
 
             {/* Full Screen Menu Overlay */}
             {isOpen && (
-                <div className="fixed inset-0 z-[70] bg-slate-900/95 backdrop-blur-sm flex flex-col items-center justify-center p-6 animate-in fade-in duration-200">
+                <div className="fixed inset-0 z-[110] bg-slate-900/95 backdrop-blur-sm flex flex-col items-center justify-center p-6 animate-in fade-in duration-200">
                     <button
                         onClick={() => setIsOpen(false)}
                         className="absolute top-6 right-6 text-white/80 hover:text-white p-2"

@@ -34,26 +34,28 @@ export default function ChapterControls({
   if (!chapters.length) return null;
 
   return (
-    <div className="mt-12 flex items-center justify-between gap-4">
-      <button
-        type="button"
-        onClick={goPrev}
-        disabled={activeIndex <= 0}
-        className="px-8 py-4 rounded-2xl text-base font-bold transition-all duration-200 bg-white/60 hover:bg-white/80 text-slate-700 border-2 border-white/50 hover:border-slate-300 shadow-sm backdrop-blur-sm disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        ← Vorige
-      </button>
-      <div className="text-sm font-semibold text-slate-500 bg-white/40 backdrop-blur-sm px-4 py-2 rounded-full border border-white/50">
-        Stap {activeIndex + 1} / {chapters.length}
+    <div className="sticky bottom-0 left-0 right-0 mt-12 -mx-4 -mb-4 p-4 bg-gradient-to-t from-white via-white/95 to-transparent backdrop-blur-sm border-t border-slate-100">
+      <div className="flex items-center justify-between gap-4">
+        <button
+          type="button"
+          onClick={goPrev}
+          disabled={activeIndex <= 0}
+          className="px-8 py-4 rounded-2xl text-base font-bold transition-all duration-200 bg-white/60 hover:bg-white/80 text-slate-700 border-2 border-white/50 hover:border-slate-300 shadow-sm backdrop-blur-sm disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none"
+        >
+          ← Vorige
+        </button>
+        <div className="text-sm font-semibold text-slate-500 bg-white/40 backdrop-blur-sm px-4 py-2 rounded-full border border-white/50">
+          Stap {activeIndex + 1} / {chapters.length}
+        </div>
+        <button
+          type="button"
+          onClick={goNext}
+          disabled={activeIndex >= chapters.length - 1}
+          className="px-8 py-4 rounded-2xl text-base font-bold transition-all duration-200 bg-gradient-to-r from-brikx-500 to-emerald-500 hover:from-brikx-600 hover:to-emerald-600 text-white shadow-xl shadow-brikx-500/30 hover:shadow-2xl disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none"
+        >
+          Volgende →
+        </button>
       </div>
-      <button
-        type="button"
-        onClick={goNext}
-        disabled={activeIndex >= chapters.length - 1}
-        className="px-8 py-4 rounded-2xl text-base font-bold transition-all duration-200 bg-gradient-to-r from-brikx-500 to-emerald-500 hover:from-brikx-600 hover:to-emerald-600 text-white shadow-xl shadow-brikx-500/30 hover:shadow-2xl disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        Volgende →
-      </button>
     </div>
   );
 }

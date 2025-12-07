@@ -8,7 +8,6 @@ import { useWizardState } from "@/lib/stores/useWizardState";
 import { generateChapters } from "@/lib/wizard/generateChapters";
 import type { ChapterKey, BasisData, BudgetData } from "@/types/project";
 import FocusTarget from "@/components/wizard/FocusTarget";
-import ChapterControls from "@/components/wizard/ChapterControls";
 // ✅ v3.0: Importeer de focus-helper
 import { createFocusKey } from "@/lib/wizard/focusKeyHelper";
 // ✅ v3.13: Dossier & Documenten checklist
@@ -192,68 +191,104 @@ export default function ChapterBasis() {
 
       {/* PROJECT SIZE */}
       <FocusTarget chapter={CHAPTER} fieldId="projectSize">
-        <label className="block text-sm font-medium text-slate-800">
-          Hoe groot is het ongeveer?
-        </label>
-        <select
-          className="w-full rounded-md border px-3 py-2 text-sm"
-          value={basisData?.projectSize ?? ""}
-          // ✅ STAP 3: Voeg onFocus toe
-          onFocus={() => handleFocus("projectSize")}
-          onChange={(e) =>
-            update("projectSize", e.target.value as BasisData["projectSize"])
-          }
-        >
-          <option value="">Kies een categorie…</option>
-          <option value="<75m2">Compact (&lt; 75 m²)</option>
-          <option value="75-150m2">Normaal (75–150 m²)</option>
-          <option value="150-250m2">Ruim (150–250 m²)</option>
-          <option value=">250m2">Groot (&gt; 250 m²)</option>
-        </select>
+        <div className="space-y-3">
+          <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            Hoe groot is het ongeveer?
+          </label>
+          <div className="flex gap-2">
+            {[
+              { value: "<75m2", label: "< 75 m²" },
+              { value: "75-150m2", label: "75–150 m²" },
+              { value: "150-250m2", label: "150–250 m²" },
+              { value: ">250m2", label: "> 250 m²" },
+            ].map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  handleFocus("projectSize");
+                  update("projectSize", option.value as BasisData["projectSize"]);
+                }}
+                className={[
+                  "px-6 py-3 rounded-xl text-sm font-bold border-2 transition-all backdrop-blur-sm",
+                  basisData?.projectSize === option.value
+                    ? "bg-brikx-500 border-brikx-500 text-white shadow-lg shadow-brikx-500/30 transform scale-105"
+                    : "bg-white/40 text-slate-600 border-white/50 hover:border-brikx-400 hover:text-brikx-600 hover:bg-white/80 shadow-sm",
+                ].join(" ")}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </FocusTarget>
 
       {/* URGENCY */}
       <FocusTarget chapter={CHAPTER} fieldId="urgency">
-        <label className="block text-sm font-medium text-slate-800">
-          Wanneer wilt u ongeveer starten?
-        </label>
-        <select
-          className="w-full rounded-md border px-3 py-2 text-sm"
-          value={basisData?.urgency ?? ""}
-          // ✅ STAP 3: Voeg onFocus toe
-          onFocus={() => handleFocus("urgency")}
-          onChange={(e) =>
-            update("urgency", e.target.value as BasisData["urgency"])
-          }
-        >
-          <option value="">Kies een indicatie…</option>
-          <option value="<3mnd">Binnen 3 maanden</option>
-          <option value="3-6mnd">Binnen 3–6 maanden</option>
-          <option value="6-12mnd">Binnen 6–12 maanden</option>
-          <option value=">12mnd">Langer dan 12 maanden</option>
-          <option value="onzeker">Nog geen idee</option>
-        </select>
+        <div className="space-y-3">
+          <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            Wanneer wilt u ongeveer starten?
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { value: "<3mnd", label: "< 3 maanden" },
+              { value: "3-6mnd", label: "3–6 maanden" },
+              { value: "6-12mnd", label: "6–12 maanden" },
+              { value: ">12mnd", label: "> 12 maanden" },
+              { value: "onzeker", label: "Nog onzeker" },
+            ].map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  handleFocus("urgency");
+                  update("urgency", option.value as BasisData["urgency"]);
+                }}
+                className={[
+                  "px-6 py-3 rounded-xl text-sm font-bold border-2 transition-all backdrop-blur-sm",
+                  basisData?.urgency === option.value
+                    ? "bg-brikx-500 border-brikx-500 text-white shadow-lg shadow-brikx-500/30 transform scale-105"
+                    : "bg-white/40 text-slate-600 border-white/50 hover:border-brikx-400 hover:text-brikx-600 hover:bg-white/80 shadow-sm",
+                ].join(" ")}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </FocusTarget>
 
       {/* EXPERIENCE */}
       <FocusTarget chapter={CHAPTER} fieldId="ervaring">
-        <label className="block text-sm font-medium text-slate-800">
-          Hoe ervaren bent u met bouwprojecten?
-        </label>
-        <select
-          className="w-full rounded-md border px-3 py-2 text-sm"
-          value={basisData?.ervaring ?? ""}
-          // ✅ STAP 3: Voeg onFocus toe
-          onFocus={() => handleFocus("ervaring")}
-          onChange={(e) =>
-            update("ervaring", e.target.value as BasisData["ervaring"])
-          }
-        >
-          <option value="">Kies een optie…</option>
-          <option value="starter">Dit is mijn eerste keer</option>
-          <option value="enigszins">Ik heb eerder een project gedaan</option>
-          <option value="ervaren">Ik ben zeer ervaren / professioneel</option>
-        </select>
+        <div className="space-y-3">
+          <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            Hoe ervaren bent u met bouwprojecten?
+          </label>
+          <div className="flex gap-2">
+            {[
+              { value: "starter", label: "Eerste project" },
+              { value: "enigszins", label: "Enigszins ervaren" },
+              { value: "ervaren", label: "Zeer ervaren" },
+            ].map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  handleFocus("ervaring");
+                  update("ervaring", option.value as BasisData["ervaring"]);
+                }}
+                className={[
+                  "flex-1 px-6 py-3 rounded-xl text-sm font-bold border-2 transition-all backdrop-blur-sm",
+                  basisData?.ervaring === option.value
+                    ? "bg-brikx-500 border-brikx-500 text-white shadow-lg shadow-brikx-500/30 transform scale-105"
+                    : "bg-white/40 text-slate-600 border-white/50 hover:border-brikx-400 hover:text-brikx-600 hover:bg-white/80 shadow-sm",
+                ].join(" ")}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </FocusTarget>
 
       {/* TOELICHTING */}
@@ -310,15 +345,6 @@ export default function ChapterBasis() {
       )}
 
       </div>
-
-      {/* NAVIGATION */}
-      <ChapterControls
-        chapters={chapterFlow.map((ch: ChapterKey) => ({
-          key: ch,
-          title: ch, // (Idealiter zou dit een 'mooie' titel moeten zijn)
-        }))}
-        activeIndex={0} // (Aanname: Basis is altijd 0)
-      />
     </section>
   );
 }

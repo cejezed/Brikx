@@ -37,14 +37,7 @@ export default function FocusTarget({
   }, [isFocused]);
 
   return (
-    <div
-      ref={ref}
-      className={`rounded-xl transition-all duration-200 ${
-        isFocused 
-          ? 'ring-2 ring-accent bg-accent/5 shadow-md'
-          : ''
-      }`}
-    >
+    <div ref={ref}>
       {children}
     </div>
   );

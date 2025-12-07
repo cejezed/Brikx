@@ -8,18 +8,14 @@ import WizardMobileMenu from "@/components/wizard/WizardMobileMenu";
 
 export default function WizardPage() {
   return (
-    <>
+    <div className="h-screen w-full overflow-hidden flex flex-col">
       <WizardMobileMenu />
 
-      <main className="bg-white flex justify-center min-h-[calc(100vh-60px)] p-0 xl:py-8 xl:pb-[44px]">
-        <div className="w-full max-w-[1552px] px-0 xl:px-4 h-[calc(100vh-60px)] xl:h-[calc(100vh-60px-2rem-44px)]">
+      <main className="flex-1 w-full h-full relative">
+        <div className="absolute inset-0 p-0 lg:p-6 flex items-center justify-center">
           <WizardLayout />
         </div>
       </main>
-
-      <div className="hidden xl:block">
-        <Footer />
-      </div>
-    </>
+    </div>
   );
 }
