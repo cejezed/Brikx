@@ -101,7 +101,7 @@ export default function WizardLayout() {
   );
 
   return (
-    <div className="h-full w-full font-sans relative flex items-center justify-center transition-colors duration-500">
+    <div className="h-full min-h-0 w-full font-sans relative flex items-center justify-center transition-colors duration-500">
 
       {/* 1. Global Background Atmosphere */}
       <div className="fixed inset-0 pointer-events-none transition-opacity duration-700 -z-10 bg-slate-200">
@@ -111,7 +111,7 @@ export default function WizardLayout() {
       </div>
 
       {/* 2. Main Dashboard Shell - Matches 'containerClass' from archive */}
-      <div className="w-full h-full lg:max-w-[1800px] lg:h-[94vh] border lg:rounded-[2.5rem] relative z-10 flex flex-col lg:flex-row overflow-hidden transition-all duration-500 bg-white/40 border-white/40 shadow-2xl shadow-slate-400/20 backdrop-blur-[60px] dark:bg-slate-900/40 dark:border-white/10 dark:shadow-slate-900/50">
+      <div className="w-full h-full lg:max-w-[1800px] lg:h-[94vh] border lg:rounded-[2.5rem] relative z-10 flex flex-col lg:flex-row overflow-hidden transition-all duration-500 bg-white/40 border-white/40 shadow-2xl shadow-slate-400/20 backdrop-blur-[60px] dark:bg-slate-900/40 dark:border-white/10 dark:shadow-slate-900/50 min-h-0">
 
         {/* Left: Chat Panel - 40% Width as requested */}
         <section className="
@@ -126,7 +126,7 @@ export default function WizardLayout() {
         </section>
 
         {/* Middle: Content Area - Matches 'contentPanelClass' */}
-        <section className="flex-1 flex flex-col min-w-0 relative z-10 transition-colors duration-500 bg-white/30 dark:bg-slate-900/30">
+        <section className="flex-1 flex flex-col min-w-0 min-h-0 relative z-10 transition-colors duration-500 bg-white/30 dark:bg-slate-900/30">
 
           {/* Top Toolbar */}
           <header className="h-20 px-8 flex items-center justify-between z-20 border-b transition-colors duration-500 border-white/40 dark:border-white/10 dark:bg-black/20">
@@ -171,7 +171,7 @@ export default function WizardLayout() {
           </header>
 
           {/* Scrollable Form Area */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar px-6 lg:px-12 py-4 scroll-smooth z-0">
+          <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-6 lg:px-12 py-4 scroll-smooth z-0">
             <div className="max-w-3xl mx-auto pb-32 pt-4">
               <ActiveComponent />
 
@@ -180,7 +180,7 @@ export default function WizardLayout() {
           </div>
 
           {/* Bottom Action Bar (Sticky) */}
-          <div className="fixed bottom-0 lg:absolute inset-x-0 p-4 lg:p-6 backdrop-blur-xl flex flex-col lg:flex-row items-center justify-between z-50 transition-all duration-500 bg-white/60 border-t border-white/40 gap-4">
+          <div className="fixed bottom-0 lg:absolute inset-x-0 p-4 lg:p-6 backdrop-blur-xl flex flex-col lg:flex-row items-center justify-between z-50 transition-all duration-500 bg-white/70 border-t border-white/40 gap-4">
 
             {/* Mobile Chat Input Integration */}
             <div className="w-full lg:hidden order-1">
