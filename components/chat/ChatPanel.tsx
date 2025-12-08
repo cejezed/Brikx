@@ -63,10 +63,10 @@ export default function ChatPanel() {
 
   return (
     <>
-      <div className="flex flex-col h-full relative overflow-hidden glass-light-strong rounded-2xl glass-shadow-lg">
+      <div className="flex flex-col h-full relative overflow-hidden rounded-l-2xl glass-shadow-lg bg-white/70 shadow-lg dark:bg-slate-900/70 dark:shadow-[0_20px_40px_-20px_rgba(0,0,0,0.6)] transition-colors duration-500 border-0">
 
         {/* Enhanced Header - JulesChat Style */}
-        <div className="px-6 py-6 flex items-center gap-4 bg-gradient-to-b from-white/80 to-transparent border-b border-white/50">
+        <div className="px-6 py-6 flex items-center gap-4 bg-gradient-to-b from-white/80 to-transparent dark:from-slate-900/60 dark:to-transparent">
           <div className="relative group cursor-pointer">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brikx-500 to-emerald-400 flex items-center justify-center text-white shadow-xl shadow-emerald-500/20 group-hover:scale-105 transition-transform duration-500">
               <Bot size={24} />
@@ -76,13 +76,13 @@ export default function ChatPanel() {
             </div>
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="font-black text-lg tracking-tight leading-none mb-1 text-slate-800 truncate">
+            <h2 className="font-black text-lg tracking-tight leading-none mb-1 text-slate-800 dark:text-slate-100 truncate">
               Jules
             </h2>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-brikx-600">AI Architect</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-brikx-600 dark:text-brikx-300">AI Architect</span>
               <span className="w-1 h-1 rounded-full bg-slate-400"></span>
-              <span className="text-xs text-slate-500">Online</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">Online</span>
             </div>
           </div>
         </div>
@@ -94,7 +94,7 @@ export default function ChatPanel() {
         >
           {/* Today label */}
           <div className="text-center py-2">
-            <span className="px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase backdrop-blur-md bg-slate-900/5 text-slate-500">
+            <span className="px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase backdrop-blur-md bg-slate-900/5 text-slate-500 dark:bg-white/5 dark:text-slate-400">
               Vandaag
             </span>
           </div>
@@ -126,7 +126,7 @@ export default function ChatPanel() {
         </div>
 
         {/* Input Area - Jules Style (within container, not floating absolute) */}
-        <div className="flex-shrink-0 p-4 lg:p-6 bg-gradient-to-t from-slate-100 via-slate-50/80 to-transparent">
+        <div className="flex-shrink-0 p-4 lg:p-6 bg-gradient-to-t from-slate-100 via-slate-50/80 to-transparent dark:from-slate-900/70 dark:via-slate-900/50 dark:to-transparent">
           <ChatInput
             value={input}
             onChange={setInput}

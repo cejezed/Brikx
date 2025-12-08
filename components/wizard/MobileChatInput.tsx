@@ -76,13 +76,13 @@ export default function MobileChatInput() {
         <>
             {/* Chat Responses Area - Collapsible */}
             {showResponses && recentMessages.length > 0 && (
-                <div className="xl:hidden flex-shrink-0 border-t border-slate-200 bg-slate-50 max-h-[20vh] overflow-y-auto">
+                <div className="xl:hidden flex-shrink-0 border-t border-slate-200 bg-slate-50 max-h-[20vh] overflow-y-auto dark:border-white/10 dark:bg-slate-900/60">
                     <div className="p-3 space-y-2">
                         <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-medium text-slate-600">Chat Responses</span>
+                            <span className="text-xs font-medium text-slate-600 dark:text-slate-300">Chat Responses</span>
                             <button
                                 onClick={() => setShowResponses(false)}
-                                className="text-xs text-slate-500 hover:text-slate-700"
+                                className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white"
                             >
                                 Verberg
                             </button>
@@ -104,14 +104,14 @@ export default function MobileChatInput() {
             )}
 
             {/* Chat Input Bar */}
-            <div className="xl:hidden flex-shrink-0 border-t-2 border-slate-200 bg-white p-2 pb-0">
+            <div className="xl:hidden flex-shrink-0 border-t-2 border-slate-200 bg-white p-2 pb-0 dark:border-white/10 dark:bg-slate-900/80">
                 <div className="flex items-end gap-2">
                     {/* Expert Button */}
                     <button
                         onClick={() => setShowExpert(true)}
                         className={`flex-shrink-0 p-2.5 rounded-full transition-all ${hasRelevantTip
                             ? "bg-amber-400 text-amber-900 animate-pulse"
-                            : "bg-slate-100 text-slate-600"
+                            : "bg-slate-100 text-slate-600 dark:bg-amber-500/10 dark:text-amber-200"
                             }`}
                         aria-label="Expert tips"
                     >
@@ -119,7 +119,7 @@ export default function MobileChatInput() {
                     </button>
 
                     {/* Chat Input */}
-                    <div className="flex-1 flex items-end gap-2 bg-slate-100 rounded-2xl px-3 py-2">
+                    <div className="flex-1 flex items-end gap-2 bg-slate-100 rounded-2xl px-3 py-2 dark:bg-slate-800/60">
                         <textarea
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
@@ -127,7 +127,7 @@ export default function MobileChatInput() {
                             placeholder="Stel een vraag..."
                             disabled={isStreaming}
                             rows={1}
-                            className="flex-1 bg-transparent border-none focus:ring-0 p-0 text-sm max-h-24 resize-none text-slate-800 placeholder:text-slate-400"
+                            className="flex-1 bg-transparent border-none focus:ring-0 p-0 text-sm max-h-24 resize-none text-slate-800 placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500"
                             style={{ minHeight: "20px" }}
                         />
                         {isStreaming ? (
@@ -141,7 +141,7 @@ export default function MobileChatInput() {
                             <button
                                 onClick={() => handleSend()}
                                 disabled={!input.trim()}
-                                className={`pb-0.5 transition-colors ${input.trim() ? "text-blue-600" : "text-slate-300"
+                                className={`pb-0.5 transition-colors ${input.trim() ? "text-blue-600 dark:text-brikx-300" : "text-slate-300 dark:text-slate-500"
                                     }`}
                             >
                                 <Send size={20} />
@@ -153,7 +153,7 @@ export default function MobileChatInput() {
                     <button
                         onClick={handleSave}
                         disabled={isSaving}
-                        className="flex-shrink-0 p-2.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
+                        className="flex-shrink-0 p-2.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50 dark:bg-brikx-500 dark:hover:bg-brikx-400"
                         aria-label="Opslaan"
                     >
                         {isSaving ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={20} />}
@@ -164,23 +164,23 @@ export default function MobileChatInput() {
             {/* Expert Corner Modal */}
             {showExpert && (
                 <div className="fixed inset-0 z-[70] bg-slate-900/50 backdrop-blur-sm flex items-end xl:hidden">
-                    <div className="bg-white w-full max-h-[80vh] rounded-t-3xl shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300">
+                    <div className="bg-white w-full max-h-[80vh] rounded-t-3xl shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300 dark:bg-slate-900">
                         {/* Header */}
-                        <div className="flex items-center justify-between p-4 border-b border-slate-200">
+                        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-white/10">
                             <div className="flex items-center gap-2">
                                 <Lightbulb size={20} className="text-amber-500" />
-                                <h2 className="font-semibold text-slate-900">Expert Tips</h2>
+                                <h2 className="font-semibold text-slate-900 dark:text-slate-100">Expert Tips</h2>
                             </div>
                             <button
                                 onClick={() => setShowExpert(false)}
-                                className="text-slate-400 hover:text-slate-600 p-1"
+                                className="text-slate-400 hover:text-slate-600 p-1 dark:hover:text-white"
                             >
                                 <XCircle size={24} />
                             </button>
                         </div>
 
                         {/* Content */}
-                        <div className="flex-1 overflow-y-auto p-4">
+                        <div className="flex-1 overflow-y-auto p-4 text-slate-900 dark:text-slate-100">
                             <ExpertCorner mode={expertMode} />
                         </div>
                     </div>

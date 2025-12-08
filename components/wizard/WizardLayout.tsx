@@ -101,35 +101,35 @@ export default function WizardLayout() {
   );
 
   return (
-    <div className="h-full min-h-0 w-full font-sans relative flex items-center justify-center transition-colors duration-500">
+    <div className="wizard-shell h-full min-h-0 w-full font-sans relative flex items-center justify-center transition-colors duration-500 bg-gradient-to-br from-slate-100 via-slate-200 to-slate-300 text-slate-900 dark:bg-gradient-to-br dark:from-[#1b273d] dark:via-[#243450] dark:to-[#2e4366] dark:text-slate-100 overflow-hidden">
 
       {/* 1. Global Background Atmosphere */}
-      <div className="fixed inset-0 pointer-events-none transition-opacity duration-700 -z-10 bg-slate-200">
-        <div className="absolute top-[-20%] left-[-10%] w-[60rem] h-[60rem] rounded-full mix-blend-screen filter blur-[100px] animate-blob bg-brikx-400/30 mix-blend-multiply opacity-80"></div>
-        <div className="absolute top-[10%] right-[-10%] w-[50rem] h-[50rem] rounded-full mix-blend-screen filter blur-[100px] animate-blob animation-delay-2000 bg-blue-400/30 mix-blend-multiply opacity-80"></div>
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-30 mix-blend-overlay"></div>
+      <div className="fixed inset-0 pointer-events-none transition-opacity duration-700 -z-10">
+        <div className="absolute top-[-20%] left-[-10%] w-[60rem] h-[60rem] rounded-full mix-blend-screen filter blur-[100px] animate-blob bg-brikx-400/30 mix-blend-multiply opacity-90 dark:bg-brikx-500/12 dark:mix-blend-screen dark:opacity-70"></div>
+        <div className="absolute top-[10%] right-[-10%] w-[50rem] h-[50rem] rounded-full mix-blend-screen filter blur-[100px] animate-blob animation-delay-2000 bg-blue-400/30 mix-blend-multiply opacity-85 dark:bg-indigo-500/12 dark:mix-blend-screen dark:opacity-70"></div>
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-30 mix-blend-overlay dark:opacity-10 dark:brightness-110 dark:contrast-125"></div>
       </div>
 
       {/* 2. Main Dashboard Shell - Matches 'containerClass' from archive */}
-      <div className="w-full h-full lg:max-w-[1800px] lg:h-[94vh] border lg:rounded-[2.5rem] relative z-10 flex flex-col lg:flex-row overflow-hidden transition-all duration-500 bg-white/40 border-white/40 shadow-2xl shadow-slate-400/20 backdrop-blur-[60px] dark:bg-slate-900/40 dark:border-white/10 dark:shadow-slate-900/50 min-h-0">
+      <div className="w-full h-full lg:max-w-[1800px] lg:h-[94vh] border lg:rounded-[2.5rem] relative z-10 flex flex-col lg:flex-row overflow-hidden transition-all duration-500 bg-white/40 border-white/40 shadow-2xl shadow-slate-400/20 backdrop-blur-[60px] dark:bg-slate-900/40 dark:border-white/10 dark:shadow-black/50 dark:backdrop-blur-[40px] min-h-0">
 
         {/* Left: Chat Panel - 40% Width as requested */}
         <section className="
             absolute inset-0 z-50 lg:relative lg:z-30 
             hidden lg:flex flex-col
-            lg:w-[35%] lg:min-w-[400px] lg:max-w-[800px] 
-            bg-white/70 border-r border-white/60 backdrop-blur-2xl shadow-[20px_0_50px_-10px_rgba(148,163,184,0.3)]
-            dark:bg-slate-900/70 dark:border-white/10
+            lg:w-[40%] lg:min-w-[450px] lg:max-w-[820px] 
+            bg-white/70 backdrop-blur-2xl shadow-[20px_0_50px_-10px_rgba(148,163,184,0.3)]
+            dark:bg-slate-950/60 dark:shadow-[20px_0_50px_-10px_rgba(0,0,0,0.5)] dark:backdrop-blur-2xl
         ">
           {/* @protected CHAT_F03_ONBOARDING */}
           <ChatPanel />
         </section>
 
         {/* Middle: Content Area - Matches 'contentPanelClass' */}
-        <section className="flex-1 flex flex-col min-w-0 min-h-0 relative z-10 transition-colors duration-500 bg-white/30 dark:bg-slate-900/30">
+        <section className="flex-1 flex flex-col min-w-0 min-h-0 relative z-10 transition-colors duration-500 bg-white/30 dark:bg-slate-900/30 dark:backdrop-blur-[2px]">
 
           {/* Top Toolbar */}
-          <header className="h-20 px-8 flex items-center justify-between z-20 border-b transition-colors duration-500 border-white/40 dark:border-white/10 dark:bg-black/20">
+          <header className="h-20 px-8 flex items-center justify-between z-20 border-b transition-colors duration-500 border-white/40 bg-white/40 text-slate-800 dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-100 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg border backdrop-blur-sm bg-white/60 border-white/50 text-brikx-600 shadow-sm dark:bg-white/10 dark:border-white/10 dark:text-brikx-400">
                 <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -150,7 +150,7 @@ export default function WizardLayout() {
               <ThemeToggle />
               <div className="flex items-center gap-2">
                 {/* Expert Tips Toggle (Mobile/Tablet) */}
-                <MobileExpertIndicator className="xl:hidden flex items-center justify-center p-2 rounded-lg text-amber-600 bg-amber-50 border border-amber-100 hover:bg-amber-100 transition-colors" />
+                <MobileExpertIndicator className="xl:hidden flex items-center justify-center p-2 rounded-lg text-amber-600 bg-amber-50 border border-amber-100 hover:bg-amber-100 transition-colors dark:text-amber-300 dark:bg-amber-500/10 dark:border-amber-500/30 dark:hover:bg-amber-500/20" />
 
                 <button
                   onClick={handleSave}
@@ -180,7 +180,7 @@ export default function WizardLayout() {
           </div>
 
           {/* Bottom Action Bar (Sticky) */}
-          <div className="fixed bottom-0 lg:absolute inset-x-0 p-4 lg:p-6 backdrop-blur-xl flex flex-col lg:flex-row items-center justify-between z-50 transition-all duration-500 bg-white/70 border-t border-white/40 gap-4">
+          <div className="fixed bottom-0 lg:absolute inset-x-0 p-4 lg:p-6 backdrop-blur-xl flex flex-col lg:flex-row items-center justify-between z-50 transition-all duration-500 bg-white/70 border-t border-white/40 gap-4 dark:bg-slate-900/80 dark:border-white/5">
 
             {/* Mobile Chat Input Integration */}
             <div className="w-full lg:hidden order-1">
@@ -197,7 +197,7 @@ export default function WizardLayout() {
                   }
                 }}
                 disabled={!chapterFlow || chapterFlow.indexOf(activeChapter) === 0}
-                className="px-6 py-3 rounded-xl text-sm font-bold disabled:invisible transition-all border border-transparent text-slate-500 hover:text-brikx-600 hover:bg-white/60"
+                className="px-6 py-3 rounded-xl text-sm font-bold disabled:invisible transition-all border border-transparent text-slate-500 hover:text-brikx-600 hover:bg-white/60 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10"
               >
                 Vorige Stap
               </button>
@@ -209,11 +209,11 @@ export default function WizardLayout() {
                     setShowPreview(false);
                   }
                 }}
-                className="px-8 py-3 rounded-xl text-sm font-bold shadow-lg hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3 group bg-slate-800 text-white shadow-slate-400/50 hover:bg-slate-900"
+                className="px-8 py-3 rounded-xl text-sm font-bold shadow-lg hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3 group bg-slate-800 text-white shadow-slate-400/50 hover:bg-slate-900 dark:bg-white dark:text-slate-900 dark:shadow-white/10 dark:hover:bg-slate-200"
               >
                 <span>Volgende Stap</span>
-                <div className="w-6 h-6 rounded-full flex items-center justify-center transition-colors bg-white/20 group-hover:bg-white/30">
-                  <div className="w-2 h-2 rounded-full bg-white"></div>
+                <div className="w-6 h-6 rounded-full flex items-center justify-center transition-colors bg-white/20 group-hover:bg-white/30 dark:bg-slate-900/10 dark:group-hover:bg-slate-900/20">
+                  <div className="w-2 h-2 rounded-full bg-white dark:bg-slate-900"></div>
                 </div>
               </button>
             </div>
@@ -225,7 +225,7 @@ export default function WizardLayout() {
           {/* Note: In the archive, this panel contained the Navigation.tsx. Here we adapted the existing navigation logic. */}
           {chapterFlow && chapterFlow.length > 0 && (
             <nav className="flex-shrink-0 space-y-1.5">
-              <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-3 px-2">
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-3 px-2 dark:text-slate-400">
                 Overzicht
               </h3>
               {chapterFlow.map((ch, index) => {
@@ -243,8 +243,8 @@ export default function WizardLayout() {
                     className={[
                       "relative w-full flex items-center gap-3 px-3 py-2.5 text-left transition-all duration-200 rounded-lg group",
                       isActive
-                        ? "bg-white/60 border-l-4 border-brikx-500 text-slate-900 shadow-sm"
-                        : "border-l-4 border-transparent text-slate-600 hover:bg-white/40 hover:text-slate-900",
+                        ? "bg-white/60 border-l-4 border-brikx-500 text-slate-900 shadow-sm dark:bg-white/10 dark:text-slate-100 dark:border-brikx-400"
+                        : "border-l-4 border-transparent text-slate-600 hover:bg-white/40 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5",
                     ].join(" ")}
                   >
                     <div
@@ -252,7 +252,7 @@ export default function WizardLayout() {
                         "w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[9px] font-bold transition-colors",
                         isActive
                           ? "bg-brikx-500 text-white"
-                          : "border border-slate-300 text-slate-400 group-hover:border-brikx-300 group-hover:text-brikx-500",
+                          : "border border-slate-300 text-slate-400 group-hover:border-brikx-300 group-hover:text-brikx-500 dark:border-slate-700 dark:text-slate-500 dark:group-hover:border-brikx-300 dark:group-hover:text-brikx-300",
                       ].join(" ")}
                     >
                       {index + 1}
@@ -261,15 +261,15 @@ export default function WizardLayout() {
                   </button>
                 );
               })}
-              <div className="w-full h-px bg-slate-200/50 my-2" />
+              <div className="w-full h-px bg-slate-200/50 my-2 dark:bg-white/5" />
               <button
                 type="button"
                 onClick={() => setShowPreview(!showPreview)}
                 className={[
                   "relative w-full flex items-center gap-3 px-3 py-2.5 text-left transition-all duration-200 rounded-lg group",
                   showPreview
-                    ? "bg-white/60 border-l-4 border-brikx-500 text-slate-900 shadow-sm"
-                    : "border-l-4 border-transparent text-slate-600 hover:bg-white/40 hover:text-slate-900",
+                    ? "bg-white/60 border-l-4 border-brikx-500 text-slate-900 shadow-sm dark:bg-white/10 dark:text-slate-100 dark:border-brikx-400"
+                    : "border-l-4 border-transparent text-slate-600 hover:bg-white/40 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5",
                 ].join(" ")}
               >
                 <div
@@ -277,7 +277,7 @@ export default function WizardLayout() {
                     "w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[9px] font-bold transition-colors",
                     showPreview
                       ? "bg-brikx-500 text-white"
-                      : "border border-slate-300 text-slate-400 group-hover:border-brikx-300 group-hover:text-brikx-500",
+                      : "border border-slate-300 text-slate-400 group-hover:border-brikx-300 group-hover:text-brikx-500 dark:border-slate-700 dark:text-slate-500 dark:group-hover:border-brikx-300 dark:group-hover:text-brikx-300",
                   ].join(" ")}
                 >
                   📋
@@ -288,7 +288,7 @@ export default function WizardLayout() {
           )}
 
           {/* Expert Corner restored to sidebar */}
-          <div className="mt-auto border-t border-white/40 pt-4">
+          <div className="mt-auto border-t border-white/40 pt-4 dark:border-white/10">
             <ExpertCorner mode={expertMode} />
           </div>
         </aside>

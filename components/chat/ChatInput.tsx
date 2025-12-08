@@ -41,7 +41,7 @@ export default function ChatInput({
     <div className="relative flex items-center gap-2">
       <input
         ref={inputRef}
-        className="flex-1 rounded-2xl border border-slate-200 bg-white/60 backdrop-blur-sm px-4 py-3 pr-12 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brikx-500/20 focus:border-brikx-400 shadow-sm transition-all duration-200"
+        className="flex-1 rounded-2xl border border-slate-200 bg-white/60 backdrop-blur-sm px-4 py-3 pr-12 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brikx-500/20 focus:border-brikx-400 shadow-sm transition-all duration-200 dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-brikx-500/30 dark:focus:border-brikx-300"
         placeholder="Stel je vraag aan Jules over je (ver)bouwplannen…"
         value={value}
         disabled={disabled}
@@ -63,7 +63,7 @@ export default function ChatInput({
           type="button"
           onClick={onSend}
           disabled={disabled || !value.trim()}
-          className="absolute right-2 p-2 rounded-xl bg-gradient-to-tr from-brikx-500 to-emerald-400 hover:from-brikx-600 hover:to-emerald-500 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-brikx-500/25 hover:shadow-xl hover:shadow-brikx-500/30"
+          className="absolute right-2 p-2 rounded-xl bg-gradient-to-tr from-brikx-500 to-emerald-400 hover:from-brikx-600 hover:to-emerald-500 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-brikx-500/25 hover:shadow-xl hover:shadow-brikx-500/30 dark:shadow-brikx-300/30"
           aria-label="Verstuur bericht"
         >
           <Send size={18} />

@@ -1,5 +1,6 @@
 /* Tailwind v4 – één import is genoeg */
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 /* ===========================
    Brikx Theme (Tailwind v4)
@@ -202,6 +203,44 @@ select:focus {
   outline: none;
   border-color: rgba(77, 184, 186, 0.6);
   box-shadow: 0 0 0 2px rgba(77, 184, 186, .2);
+}
+
+/* Donker thema: inputs krijgen contrasterende achtergrond/tekst */
+:where(.dark) input[type="text"],
+:where(.dark) input[type="number"],
+:where(.dark) input[type="email"],
+:where(.dark) textarea,
+:where(.dark) select {
+  background: #0f172a;
+  border-color: #1f2937;
+  color: #e2e8f0;
+}
+
+:where(.dark) input::placeholder,
+:where(.dark) textarea::placeholder {
+  color: #94a3b8;
+}
+
+.dark .wizard-shell :where(.bg-white) {
+  background-color: #0f172a;
+  color: #e2e8f0;
+}
+
+.dark .wizard-shell :where(.bg-gray-50) {
+  background-color: #111827;
+  color: #e2e8f0;
+}
+
+.dark .wizard-shell :where(.border-gray-200, .border-slate-200) {
+  border-color: #1f2937;
+}
+
+.dark .wizard-shell :where(.text-gray-600) {
+  color: #cbd5e1;
+}
+
+.dark .wizard-shell :where(.text-gray-700) {
+  color: #e2e8f0;
 }
 
 /* Tabs (bladen/pills) */
