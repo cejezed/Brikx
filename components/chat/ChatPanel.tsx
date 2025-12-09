@@ -125,8 +125,8 @@ export default function ChatPanel() {
           )}
         </div>
 
-        {/* Input Area - Jules Style (within container, not floating absolute) */}
-        <div className="flex-shrink-0 p-4 lg:p-6 bg-gradient-to-t from-slate-100 via-slate-50/80 to-transparent dark:from-slate-900/70 dark:via-slate-900/50 dark:to-transparent">
+        {/* Input Area - Jules Style (Desktop only - mobile uses MobileChatInput) */}
+        <div className="hidden lg:block flex-shrink-0 p-4 lg:p-6 bg-gradient-to-t from-slate-100 via-slate-50/80 to-transparent dark:from-slate-900/70 dark:via-slate-900/50 dark:to-transparent">
           <ChatInput
             value={input}
             onChange={setInput}

@@ -113,20 +113,15 @@ export default function WizardLayout() {
       {/* 2. Main Dashboard Shell - Matches 'containerClass' from archive */}
       <div className="w-full h-full lg:max-w-[1800px] lg:h-[94vh] border lg:rounded-[2.5rem] relative z-10 flex flex-col lg:flex-row overflow-hidden transition-all duration-500 bg-white/40 border-white/40 shadow-2xl shadow-slate-400/20 backdrop-blur-[60px] dark:bg-slate-900/40 dark:border-white/10 dark:shadow-black/50 dark:backdrop-blur-[40px] min-h-0">
 
-        {/* Left: Chat Panel - 40% Width as requested */}
-        <section className="
-            absolute inset-0 z-50 lg:relative lg:z-30 
-            hidden lg:flex flex-col
-            lg:w-[40%] lg:min-w-[450px] lg:max-w-[820px] 
-            bg-white/70 backdrop-blur-2xl shadow-[20px_0_50px_-10px_rgba(148,163,184,0.3)]
-            dark:bg-slate-950/60 dark:shadow-[20px_0_50px_-10px_rgba(0,0,0,0.5)] dark:backdrop-blur-2xl
-        ">
+        {/* Left: Chat Panel - Desktop: 40% Width | Mobile: Hidden (rendered outside) */}
+        <section className="hidden lg:flex lg:relative lg:z-30 flex-col lg:w-[40%] lg:min-w-[450px] lg:max-w-[820px] bg-white/70 backdrop-blur-2xl shadow-[20px_0_50px_-10px_rgba(148,163,184,0.3)] dark:bg-slate-950/60 dark:shadow-[20px_0_50px_-10px_rgba(0,0,0,0.5)] dark:backdrop-blur-2xl">
           {/* @protected CHAT_F03_ONBOARDING */}
           <ChatPanel />
         </section>
 
         {/* Middle: Content Area - Matches 'contentPanelClass' */}
-        <section className="flex-1 flex flex-col min-w-0 min-h-0 relative z-10 transition-colors duration-500 bg-white/30 dark:bg-slate-900/30 dark:backdrop-blur-[2px]">
+        <section className="flex-1 flex flex-col min-w-0 min-h-0 relative z-10 transition-colors duration-500 bg-white/30 dark:bg-slate-900/30 dark:backdrop-blur-[2px] pb-[calc(45vh+160px)] lg:pb-0"
+        >
 
           {/* Top Toolbar */}
           <header className="h-20 px-8 flex items-center justify-between z-20 border-b transition-colors duration-500 border-white/40 bg-white/40 text-slate-800 dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-100 shadow-sm">
@@ -179,44 +174,36 @@ export default function WizardLayout() {
             </div>
           </div>
 
-          {/* Bottom Action Bar (Sticky) */}
-          <div className="fixed bottom-0 lg:absolute inset-x-0 p-4 lg:p-6 backdrop-blur-xl flex flex-col lg:flex-row items-center justify-between z-50 transition-all duration-500 bg-white/70 border-t border-white/40 gap-4 dark:bg-slate-900/80 dark:border-white/5">
-
-            {/* Mobile Chat Input Integration */}
-            <div className="w-full lg:hidden order-1">
-              <MobileChatInput />
-            </div>
-
-            <div className="flex items-center justify-between w-full lg:w-auto lg:ml-auto gap-4 order-2 lg:order-1">
-              <button
-                onClick={() => {
-                  const idx = chapterFlow?.indexOf(activeChapter) ?? -1;
-                  if (idx > 0 && chapterFlow) {
-                    setCurrentChapter(chapterFlow[idx - 1]);
-                    setShowPreview(false);
-                  }
-                }}
-                disabled={!chapterFlow || chapterFlow.indexOf(activeChapter) === 0}
-                className="px-6 py-3 rounded-xl text-sm font-bold disabled:invisible transition-all border border-transparent text-slate-500 hover:text-brikx-600 hover:bg-white/60 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10"
-              >
-                Vorige Stap
-              </button>
-              <button
-                onClick={() => {
-                  const idx = chapterFlow?.indexOf(activeChapter) ?? -1;
-                  if (idx >= 0 && chapterFlow && idx < chapterFlow.length - 1) {
-                    setCurrentChapter(chapterFlow[idx + 1]);
-                    setShowPreview(false);
-                  }
-                }}
-                className="px-8 py-3 rounded-xl text-sm font-bold shadow-lg hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3 group bg-slate-800 text-white shadow-slate-400/50 hover:bg-slate-900 dark:bg-white dark:text-slate-900 dark:shadow-white/10 dark:hover:bg-slate-200"
-              >
-                <span>Volgende Stap</span>
-                <div className="w-6 h-6 rounded-full flex items-center justify-center transition-colors bg-white/20 group-hover:bg-white/30 dark:bg-slate-900/10 dark:group-hover:bg-slate-900/20">
-                  <div className="w-2 h-2 rounded-full bg-white dark:bg-slate-900"></div>
-                </div>
-              </button>
-            </div>
+          {/* Bottom Action Bar (Desktop only - Sticky) */}
+          <div className="hidden lg:flex absolute bottom-0 inset-x-0 p-6 backdrop-blur-xl items-center justify-between z-20 transition-all duration-500 bg-white/60 border-t border-white/40 dark:bg-slate-900/80 dark:border-white/5">
+            <button
+              onClick={() => {
+                const idx = chapterFlow?.indexOf(activeChapter) ?? -1;
+                if (idx > 0 && chapterFlow) {
+                  setCurrentChapter(chapterFlow[idx - 1]);
+                  setShowPreview(false);
+                }
+              }}
+              disabled={!chapterFlow || chapterFlow.indexOf(activeChapter) === 0}
+              className="px-6 py-3 rounded-xl text-sm font-bold disabled:invisible transition-all border border-transparent text-slate-500 hover:text-brikx-600 hover:bg-white/60 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10"
+            >
+              Vorige Stap
+            </button>
+            <button
+              onClick={() => {
+                const idx = chapterFlow?.indexOf(activeChapter) ?? -1;
+                if (idx >= 0 && chapterFlow && idx < chapterFlow.length - 1) {
+                  setCurrentChapter(chapterFlow[idx + 1]);
+                  setShowPreview(false);
+                }
+              }}
+              className="px-8 py-3 rounded-xl text-sm font-bold shadow-lg hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3 group bg-slate-800 text-white shadow-slate-400/50 hover:bg-slate-900 dark:bg-white dark:text-slate-900 dark:shadow-white/10 dark:hover:bg-slate-200"
+            >
+              <span>Volgende Stap</span>
+              <div className="w-6 h-6 rounded-full flex items-center justify-center transition-colors bg-white/20 group-hover:bg-white/30 dark:bg-slate-900/10 dark:group-hover:bg-slate-900/20">
+                <div className="w-2 h-2 rounded-full bg-white dark:bg-slate-900"></div>
+              </div>
+            </button>
           </div>
         </section>
 
@@ -295,6 +282,16 @@ export default function WizardLayout() {
 
       </div>
 
+      {/* Mobile Chat Panel - Fixed at bottom, outside dashboard shell */}
+      <div className="lg:hidden fixed bottom-[80px] left-0 right-0 h-[30vh] max-h-[300px] z-50 bg-white/70 backdrop-blur-2xl shadow-[0_-20px_50px_-10px_rgba(148,163,184,0.3)] dark:bg-slate-950/60 dark:shadow-[0_-20px_50px_-10px_rgba(0,0,0,0.5)] dark:backdrop-blur-2xl">
+        {/* @protected CHAT_F03_ONBOARDING */}
+        <ChatPanel />
+      </div>
+
+      {/* Mobile Chat Input - Fixed at bottom on mobile only */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[60]">
+        <MobileChatInput />
+      </div>
 
     </div>
   );

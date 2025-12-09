@@ -74,36 +74,7 @@ export default function MobileChatInput() {
 
     return (
         <>
-            {/* Chat Responses Area - Collapsible */}
-            {showResponses && recentMessages.length > 0 && (
-                <div className="xl:hidden flex-shrink-0 border-t border-slate-200 bg-slate-50 max-h-[20vh] overflow-y-auto dark:border-white/10 dark:bg-slate-900/60">
-                    <div className="p-3 space-y-2">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-medium text-slate-600 dark:text-slate-300">Chat Responses</span>
-                            <button
-                                onClick={() => setShowResponses(false)}
-                                className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white"
-                            >
-                                Verberg
-                            </button>
-                        </div>
-                        {recentMessages.map((m) => (
-                            <ChatMessage
-                                key={m.id}
-                                msg={{
-                                    id: m.id,
-                                    role: m.role as MsgRole,
-                                    text: m.content,
-                                }}
-                            />
-                        ))}
-                        {isStreaming && <TypingIndicator name="Jules" className="mt-2" />}
-                        <div ref={messagesEndRef} />
-                    </div>
-                </div>
-            )}
-
-            {/* Chat Input Bar */}
+            {/* Chat Input Bar - Messages are shown in ChatPanel above */}
             <div className="xl:hidden flex-shrink-0 border-t-2 border-slate-200 bg-white p-2 pb-0 dark:border-white/10 dark:bg-slate-900/80">
                 <div className="flex items-end gap-2">
                     {/* Expert Button */}

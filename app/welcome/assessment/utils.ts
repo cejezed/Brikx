@@ -111,21 +111,16 @@ export function isStep1Valid(data: IntakeFormData): boolean {
 }
 
 export function isStep2Valid(data: IntakeFormData): boolean {
-  return data.urgency !== null && data.projectNaam.trim().length > 0;
+  return (
+    data.timeline !== null &&
+    data.experience !== null &&
+    (data.budgetOnbekend || data.budget > 0)
+  );
 }
 
 export function isStep3Valid(data: IntakeFormData): boolean {
-  return data.budgetRange !== null;
-}
-
-export function isStep4Valid(_data: IntakeFormData): boolean {
-  // All fields optional
+  // All fields optional in step 3
   return true;
-}
-
-export function isStep5Valid(data: IntakeFormData): boolean {
-  // At least one PvE doel required
-  return data.pveDoelen.length > 0 || data.pveAndersDoel.trim().length > 0;
 }
 
 /**
@@ -139,10 +134,6 @@ export function canProceed(currentStep: number, data: IntakeFormData): boolean {
       return isStep2Valid(data);
     case 3:
       return isStep3Valid(data);
-    case 4:
-      return isStep4Valid(data);
-    case 5:
-      return isStep5Valid(data);
     default:
       return false;
   }
