@@ -2,6 +2,7 @@
 // ✅ v3.3: Fixed imports, removed unused
 // ✅ v3.5: Added crypto for UUID generation
 // ✅ v3.x: META_TOOLING pre-layer voor tool-help en onboarding
+// ✅ v4.0: ANSWER GUARD integration
 
 import { NextRequest } from "next/server";
 import { randomUUID } from "node:crypto";
@@ -22,6 +23,13 @@ import { validateChapter } from "@/lib/wizard/CHAPTER_SCHEMAS";
 // ✅ v3.x: META_TOOLING helpers
 import { getToolHelp, getOnboardingMessage } from "@/lib/ai/toolHelp";
 import { detectMetaTooling } from "@/lib/ai/metaDetection";
+// ✅ v4.0: ANSWER GUARD
+import {
+  runAnswerGuard,
+  buildClarificationPrompt,
+  buildRelevancePrompt,
+  type AnswerGuardInput,
+} from "@/lib/ai/AnswerGuard";
 
 import type { ChatRequest } from "@/types/chat";
 import type {
@@ -444,17 +452,84 @@ async function runAITriage(
       // De AI bepaalt zelf wanneer het logisch is om naar ontbrekende info te vragen
       // Dit voorkomt "domme" vragen die niet bij het gesprek passen
     } else if (intent === "ADVIES_VRAAG") {
-      console.log("[runAITriage] ADVIES_VRAAG → RAG");
+      console.log("[runAITriage] ADVIES_VRAAG → RAG + AnswerGuard");
       const ragContext = await Kennisbank.query(query, {
         chapter: activeChapter ?? undefined,
         isPremium: mode === "PREMIUM",
       });
 
-      responseText = await ProModel.generateResponse(
+      // ✅ v4.0: STEP 1 - Genereer DRAFT antwoord
+      const draftAnswer = await ProModel.generateResponse(
         query,
         ragContext,
         { mode, wizardState, history }
       );
+
+      console.log("[runAITriage] Draft answer generated, running AnswerGuard...");
+
+      // ✅ v4.0: STEP 2 - Valideer met AnswerGuard
+      const guardInput: AnswerGuardInput = {
+        userQuery: query,
+        intent,
+        activeChapter,
+        draftAnswer,
+        ragMeta: {
+          topicId: ragContext.topicId,
+          docsFound: ragContext.docs?.length || 0,
+          cacheHit: ragContext.cacheHit,
+        },
+      };
+
+      const guardResult = await runAnswerGuard(guardInput, callLLMForValidation);
+
+      // ✅ v4.0: STEP 3 - Handel verdict af
+      if (guardResult.verdict === "OK") {
+        // Draft is goed, gebruik die
+        console.log("[runAITriage] AnswerGuard: OK - using draft");
+        responseText = draftAnswer;
+      } else if (guardResult.verdict === "NEEDS_CLARIFICATION") {
+        // Vraag is te vaag, genereer verbeterd antwoord met verduidelijkingsvragen
+        console.log("[runAITriage] AnswerGuard: NEEDS_CLARIFICATION - generating clarification");
+
+        await logEvent("answer_guard.needs_clarification", {
+          requestId,
+          query,
+          intent,
+          reasons: guardResult.reasons,
+        });
+
+        const clarificationPrompt = buildClarificationPrompt(
+          query,
+          guardResult.suggestions
+        );
+
+        responseText = await generateImprovedResponse(
+          query,
+          clarificationPrompt,
+          mode
+        );
+      } else if (guardResult.verdict === "IRRELEVANT") {
+        // Antwoord is niet relevant, genereer verbeterd antwoord
+        console.log("[runAITriage] AnswerGuard: IRRELEVANT - generating focused answer");
+
+        await logEvent("answer_guard.irrelevant", {
+          requestId,
+          query,
+          intent,
+          reasons: guardResult.reasons,
+        });
+
+        const relevancePrompt = buildRelevancePrompt(
+          query,
+          guardResult.suggestions
+        );
+
+        responseText = await generateImprovedResponse(
+          query,
+          relevancePrompt,
+          mode
+        );
+      }
 
       // ✅ v3.8: Expert focus sync voor adviesvragen
       // Als de RAG een topic vindt, update de ExpertCorner focus
@@ -494,12 +569,72 @@ async function runAITriage(
           "Ik kon niet goed bepalen naar welk onderdeel u wilt. Probeer: 'ga naar [hoofdstuk]'.";
       }
     } else {
-      console.log("[runAITriage] SMALLTALK/FALLBACK");
-      responseText = await ProModel.generateResponse(
+      console.log("[runAITriage] SMALLTALK/FALLBACK → with AnswerGuard");
+
+      // ✅ v4.0: STEP 1 - Genereer DRAFT antwoord
+      const draftAnswer = await ProModel.generateResponse(
         query,
         null,
         { mode, wizardState, history }
       );
+
+      console.log("[runAITriage] Draft answer generated, running AnswerGuard...");
+
+      // ✅ v4.0: STEP 2 - Valideer met AnswerGuard (ook voor SMALLTALK)
+      const guardInput: AnswerGuardInput = {
+        userQuery: query,
+        intent,
+        activeChapter,
+        draftAnswer,
+      };
+
+      const guardResult = await runAnswerGuard(guardInput, callLLMForValidation);
+
+      // ✅ v4.0: STEP 3 - Handel verdict af
+      if (guardResult.verdict === "OK") {
+        console.log("[runAITriage] AnswerGuard: OK - using draft");
+        responseText = draftAnswer;
+      } else if (guardResult.verdict === "NEEDS_CLARIFICATION") {
+        console.log("[runAITriage] AnswerGuard: NEEDS_CLARIFICATION - generating clarification");
+
+        await logEvent("answer_guard.needs_clarification", {
+          requestId,
+          query,
+          intent,
+          reasons: guardResult.reasons,
+        });
+
+        const clarificationPrompt = buildClarificationPrompt(
+          query,
+          guardResult.suggestions
+        );
+
+        responseText = await generateImprovedResponse(
+          query,
+          clarificationPrompt,
+          mode
+        );
+      } else if (guardResult.verdict === "IRRELEVANT") {
+        console.log("[runAITriage] AnswerGuard: IRRELEVANT - generating focused answer");
+
+        await logEvent("answer_guard.irrelevant", {
+          requestId,
+          query,
+          intent,
+          reasons: guardResult.reasons,
+        });
+
+        const relevancePrompt = buildRelevancePrompt(
+          query,
+          guardResult.suggestions
+        );
+
+        responseText = await generateImprovedResponse(
+          query,
+          relevancePrompt,
+          mode
+        );
+      }
     }
 
     // ┌─────────────────────────────────────────────────────────
@@ -708,4 +843,89 @@ function chunkText(text: string, size = 48): string[] {
   }
 
   return chunks;
+}
+
+/**
+ * ✅ v4.0: Helper voor LLM calls die AnswerGuard gebruikt
+ * Maakt een eenvoudige LLM-call zonder streaming voor validatie doeleinden
+ */
+async function callLLMForValidation(opts: {
+  system: string;
+  user: string;
+}): Promise<string> {
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini", // Gebruik mini voor snelle validatie
+        messages: [
+          { role: "system", content: opts.system },
+          { role: "user", content: opts.user },
+        ],
+        temperature: 0.0,
+        response_format: { type: "json_object" },
+        max_tokens: 500,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`LLM validation error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || "{}";
+  } catch (error) {
+    console.error("[callLLMForValidation] Error:", error);
+    return '{"verdict":"OK","reasons":[],"suggestions":[],"confidence":0.5}';
+  }
+}
+
+/**
+ * ✅ v4.0: Helper om een verbeterde response te genereren na AnswerGuard feedback
+ */
+async function generateImprovedResponse(
+  query: string,
+  improvedPrompt: string,
+  mode: "PREVIEW" | "PREMIUM"
+): Promise<string> {
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: mode === "PREMIUM" ? "gpt-4o" : "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: `U bent Jules, de digitale bouwcoach van Brikx.
+U bent vriendelijk, behulpzaam en eerlijk.
+Spreek de gebruiker aan met "u".`,
+          },
+          { role: "user", content: improvedPrompt },
+        ],
+        temperature: 0.3,
+        max_tokens: 300,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`LLM improved response error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return (
+      data.choices?.[0]?.message?.content ||
+      "Kunt u uw vraag iets specifieker formuleren?"
+    );
+  } catch (error) {
+    console.error("[generateImprovedResponse] Error:", error);
+    return "Kunt u uw vraag iets specifieker formuleren? Dan kan ik u beter helpen.";
+  }
 }
