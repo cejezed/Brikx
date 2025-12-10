@@ -33,19 +33,24 @@ export default function Step3DetailsDoelen({ data, onChange }: Step3Props) {
         </p>
       </header>
 
-      {/* Style Preference */}
+      {/* Design Styles (multi-select) */}
       <div className="space-y-3">
         <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-          Gewenste stijl
+          Gewenste stijl (meerdere mogelijk)
         </label>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           {STYLE_OPTIONS.map((option) => {
-            const isActive = data.style === option.value;
+            const isActive = data.designStyles.includes(option.label);
             return (
               <button
                 key={option.value}
                 type="button"
-                onClick={() => onChange({ style: option.value })}
+                onClick={() => {
+                  const newStyles = isActive
+                    ? data.designStyles.filter(s => s !== option.label)
+                    : [...data.designStyles, option.label];
+                  onChange({ designStyles: newStyles });
+                }}
                 className={[
                   "flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all backdrop-blur-sm",
                   isActive
@@ -61,14 +66,14 @@ export default function Step3DetailsDoelen({ data, onChange }: Step3Props) {
         </div>
       </div>
 
-      {/* Description */}
+      {/* Vrije toelichting */}
       <div className="space-y-3">
         <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
           Omschrijving van uw project
         </label>
         <textarea
-          value={data.description}
-          onChange={(e) => onChange({ description: e.target.value })}
+          value={data.vrijeToelichting}
+          onChange={(e) => onChange({ vrijeToelichting: e.target.value })}
           placeholder="Beschrijf in eigen woorden wat u voor ogen heeft..."
           rows={5}
           className="glass-textarea w-full resize-none"
@@ -78,19 +83,24 @@ export default function Step3DetailsDoelen({ data, onChange }: Step3Props) {
         </p>
       </div>
 
-      {/* Doel */}
+      {/* PvE Doelen (multi-select) */}
       <div className="space-y-3">
         <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-          Wat is uw doel met deze informatie?
+          Wat is uw doel met dit PvE? (meerdere mogelijk)
         </label>
         <div className="grid grid-cols-2 gap-3">
           {DOEL_OPTIONS.map((option) => {
-            const isActive = data.doel === option.value;
+            const isActive = data.pveDoelen.includes(option.label);
             return (
               <button
                 key={option.value}
                 type="button"
-                onClick={() => onChange({ doel: option.value })}
+                onClick={() => {
+                  const newDoelen = isActive
+                    ? data.pveDoelen.filter(d => d !== option.label)
+                    : [...data.pveDoelen, option.label];
+                  onChange({ pveDoelen: newDoelen });
+                }}
                 className={[
                   "px-6 py-3 rounded-xl text-sm font-bold border-2 transition-all backdrop-blur-sm",
                   isActive

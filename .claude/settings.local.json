@@ -3,7 +3,8 @@
     "allow": [
       "Bash(git add:*)",
       "Bash(git push:*)",
-      "Bash(git commit -m \"$(cat <<''EOF''\nfix: Start Intake button nu gaat direct naar assessment\n\n- handleStartIntake reset nu eerst alle wizard state\n- Navigeert daarna naar /welcome/assessment i.p.v. /?intake=true\n- Zorgt voor clean intake start zonder oude data\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n)\")"
+      "Bash(git commit -m \"$(cat <<''EOF''\nfix: Start Intake button nu gaat direct naar assessment\n\n- handleStartIntake reset nu eerst alle wizard state\n- Navigeert daarna naar /welcome/assessment i.p.v. /?intake=true\n- Zorgt voor clean intake start zonder oude data\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(npx tsc:*)"
     ]
   }
 }

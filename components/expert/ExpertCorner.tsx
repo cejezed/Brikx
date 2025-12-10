@@ -139,13 +139,13 @@ export default function ExpertCorner({
   const handleStartIntake = () => {
     // Reset wizard state en ga naar assessment
     const resetState = useWizardState.getState();
-    resetState.updateChapterData("basis", {});
-    resetState.updateChapterData("ruimtes", {});
-    resetState.updateChapterData("functionaliteiten", {});
-    resetState.updateChapterData("sustainability", {});
-    resetState.updateChapterData("aesthetics", {});
-    resetState.updateChapterData("timing", {});
-    resetState.updateChapterData("risico", {});
+    resetState.updateChapterData("basis", () => ({}));
+    resetState.updateChapterData("ruimtes", () => ({}));
+    resetState.updateChapterData("wensen", () => ({}));
+    resetState.updateChapterData("budget", () => ({}));
+    resetState.updateChapterData("techniek", () => ({}));
+    resetState.updateChapterData("duurzaam", () => ({}));
+    resetState.updateChapterData("risico", () => ({}));
 
     // Ga naar intake assessment
     window.location.href = "/welcome/assessment";
@@ -155,13 +155,13 @@ export default function ExpertCorner({
     if (confirm("Weet je zeker dat je alle velden wilt legen? Dit kan niet ongedaan worden.")) {
       // Reset alle chapter data
       const resetState = useWizardState.getState();
-      resetState.updateChapterData("basis", {});
-      resetState.updateChapterData("ruimtes", {});
-      resetState.updateChapterData("functionaliteiten", {});
-      resetState.updateChapterData("sustainability", {});
-      resetState.updateChapterData("aesthetics", {});
-      resetState.updateChapterData("timing", {});
-      resetState.updateChapterData("risico", {});
+      resetState.updateChapterData("basis", () => ({}));
+      resetState.updateChapterData("ruimtes", () => ({}));
+      resetState.updateChapterData("wensen", () => ({}));
+      resetState.updateChapterData("budget", () => ({}));
+      resetState.updateChapterData("techniek", () => ({}));
+      resetState.updateChapterData("duurzaam", () => ({}));
+      resetState.updateChapterData("risico", () => ({}));
 
       alert("Alle velden zijn geleegd!");
       window.location.reload();

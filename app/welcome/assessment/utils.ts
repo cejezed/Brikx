@@ -112,9 +112,9 @@ export function isStep1Valid(data: IntakeFormData): boolean {
 
 export function isStep2Valid(data: IntakeFormData): boolean {
   return (
-    data.timeline !== null &&
-    data.experience !== null &&
-    (data.budgetOnbekend || data.budget > 0)
+    data.urgency !== null &&
+    data.ervaring !== null &&
+    data.budgetRange !== null
   );
 }
 
