@@ -7,11 +7,11 @@ interface Step1Props {
 }
 
 const PROJECT_TYPES = [
-  { value: 'nieuwbouw', label: 'Nieuwbouw', icon: Home },
-  { value: 'verbouwing', label: 'Verbouwing', icon: Hammer },
-  { value: 'bijgebouw', label: 'Bijgebouw', icon: Scaling },
-  { value: 'hybride', label: 'Hybride', icon: Layers },
-  { value: 'anders', label: 'Anders', icon: HelpCircle },
+  { value: 'nieuwbouw' as const, label: 'Nieuwbouw', icon: Home },
+  { value: 'verbouwing' as const, label: 'Verbouwing', icon: Hammer },
+  { value: 'bijgebouw' as const, label: 'Bijgebouw', icon: Scaling },
+  { value: 'hybride' as const, label: 'Hybride', icon: Layers },
+  { value: 'anders' as const, label: 'Anders', icon: HelpCircle },
 ];
 
 export default function Step1ProjectEssentials({ data, onChange }: Step1Props) {
@@ -108,20 +108,17 @@ export default function Step1ProjectEssentials({ data, onChange }: Step1Props) {
         </label>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { value: '<75m2', label: '< 75 m²' },
-            { value: '75-150m2', label: '75–150 m²' },
-            { value: '150-250m2', label: '150–250 m²' },
-            { value: '>250m2', label: '> 250 m²' },
+            { sqMeters: 50, label: '< 75 m²' },
+            { sqMeters: 100, label: '75–150 m²' },
+            { sqMeters: 200, label: '150–250 m²' },
+            { sqMeters: 300, label: '> 250 m²' },
           ].map((option) => {
-            const isActive = data.projectSize === option.value;
+            const isActive = data.sqMeters === option.sqMeters;
             return (
               <button
-                key={option.value}
+                key={option.sqMeters}
                 type="button"
-                onClick={() => onChange({
-                  projectSize: option.value,
-                  sqMeters: option.value === '<75m2' ? 50 : option.value === '75-150m2' ? 100 : option.value === '150-250m2' ? 200 : 300
-                })}
+                onClick={() => onChange({ sqMeters: option.sqMeters })}
                 className={[
                   "px-6 py-3 rounded-xl text-sm font-bold border-2 transition-all backdrop-blur-sm",
                   isActive
