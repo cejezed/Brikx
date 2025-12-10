@@ -200,7 +200,8 @@ export default function ExpertCorner({
       });
 
       if (!res.ok) {
-        throw new Error(`PDF generatie mislukt (${res.status})`);
+        const errorData = await res.json();
+        throw new Error(errorData.message || `PDF generatie mislukt (${res.status})`);
       }
 
       const blob = await res.blob();
@@ -213,7 +214,8 @@ export default function ExpertCorner({
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (error: any) {
-      alert(`Fout bij PDF generatie: ${error?.message || "Onbekende fout"}`);
+      console.error('[ExpertCorner] PDF download error:', error);
+      alert(`PDF Export:\n\n${error?.message || "Onbekende fout"}`);
     }
   };
 
