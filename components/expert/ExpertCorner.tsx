@@ -137,8 +137,18 @@ export default function ExpertCorner({
 
   // ✅ TEMP: Handler functions voor dev-knoppen
   const handleStartIntake = () => {
-    // Reset wizard state en ga naar intake
-    window.location.href = "/?intake=true";
+    // Reset wizard state en ga naar assessment
+    const resetState = useWizardState.getState();
+    resetState.updateChapterData("basis", {});
+    resetState.updateChapterData("ruimtes", {});
+    resetState.updateChapterData("functionaliteiten", {});
+    resetState.updateChapterData("sustainability", {});
+    resetState.updateChapterData("aesthetics", {});
+    resetState.updateChapterData("timing", {});
+    resetState.updateChapterData("risico", {});
+
+    // Ga naar intake assessment
+    window.location.href = "/welcome/assessment";
   };
 
   const handleResetAll = () => {
