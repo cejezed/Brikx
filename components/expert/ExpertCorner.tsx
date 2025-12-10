@@ -135,9 +135,95 @@ export default function ExpertCorner({
     lifestyleHints.length > 0 ||
     (mode === "PREMIUM" && (ragLoading || ragSnippets.length > 0));
 
+  // ✅ TEMP: Handler functions voor dev-knoppen
+  const handleStartIntake = () => {
+    // Reset wizard state en ga naar intake
+    window.location.href = "/?intake=true";
+  };
+
+  const handleResetAll = () => {
+    if (confirm("Weet je zeker dat je alle velden wilt legen? Dit kan niet ongedaan worden.")) {
+      // Reset alle chapter data
+      const resetState = useWizardState.getState();
+      resetState.updateChapterData("basis", {});
+      resetState.updateChapterData("ruimtes", {});
+      resetState.updateChapterData("functionaliteiten", {});
+      resetState.updateChapterData("sustainability", {});
+      resetState.updateChapterData("aesthetics", {});
+      resetState.updateChapterData("timing", {});
+      resetState.updateChapterData("risico", {});
+
+      alert("Alle velden zijn geleegd!");
+      window.location.reload();
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    try {
+      const wizardState = useWizardState.getState();
+      const snapshot = {
+        stateVersion: wizardState.stateVersion,
+        chapterAnswers: wizardState.chapterAnswers,
+        currentChapter: wizardState.currentChapter,
+        chapterFlow: wizardState.chapterFlow,
+        mode: wizardState.mode,
+      };
+
+      const res = await fetch("/api/pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wizardState: snapshot }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`PDF generatie mislukt (${res.status})`);
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "Brikx-PvE.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error: any) {
+      alert(`Fout bij PDF generatie: ${error?.message || "Onbekende fout"}`);
+    }
+  };
+
   return (
     <div className="flex flex-col p-4 w-full">
-      {/* Header removed as requested */}
+      {/* ✅ TEMP: Dev Action Bar */}
+      <div className="mb-4 p-3 rounded-xl bg-amber-50/80 border border-amber-200 backdrop-blur-sm">
+        <div className="text-[10px] font-semibold uppercase text-amber-700 mb-2">
+          🛠️ Dev Tools (Tijdelijk)
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={handleStartIntake}
+            className="px-3 py-1.5 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+            type="button"
+          >
+            🔄 Start Intake
+          </button>
+          <button
+            onClick={handleResetAll}
+            className="px-3 py-1.5 text-xs rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
+            type="button"
+          >
+            🗑️ Reset Alles
+          </button>
+          <button
+            onClick={handleDownloadPdf}
+            className="px-3 py-1.5 text-xs rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors"
+            type="button"
+          >
+            📄 Download PDF
+          </button>
+        </div>
+      </div>
 
       {/* Inhoud container - no longer fixed scroll, adjusts to parent */}
       <div className="space-y-4 text-xs text-slate-700 dark:text-slate-300 mt-3">
