@@ -1,39 +1,59 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { renderToBuffer } from '@react-pdf/renderer';
+import { PveTemplate } from '@/lib/pdf/PveTemplate';
+import React from 'react';
 
 /**
  * POST /api/pdf
  *
- * Placeholder endpoint voor PDF generatie.
- * TODO: Implementeer daadwerkelijke PDF generatie met @react-pdf/renderer of puppeteer
+ * Generates a PDF from the wizard state using PveTemplate
  */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { wizardState } = body;
 
-    // TODO: Implementeer PDF generatie
-    // Voor nu: return een foutmelding dat de feature nog niet beschikbaar is
+    if (!wizardState || !wizardState.chapterAnswers) {
+      return NextResponse.json(
+        { error: 'Geen wizard data beschikbaar voor PDF generatie' },
+        { status: 400 }
+      );
+    }
 
-    return NextResponse.json(
-      {
-        error: 'PDF export is nog niet geïmplementeerd',
-        message: 'Deze functie is in ontwikkeling. Gebruik voorlopig JSON export via de export modal.'
-      },
-      { status: 501 } // Not Implemented
+    // Transform wizardState.chapterAnswers to match PveTemplate data structure
+    const pdfData = {
+      triage: wizardState.chapterAnswers?.basis,
+      basis: wizardState.chapterAnswers?.basis,
+      wensen: wizardState.chapterAnswers?.wensen,
+      budget: wizardState.chapterAnswers?.budget,
+      ruimtes: wizardState.chapterAnswers?.ruimtes,
+      techniek: wizardState.chapterAnswers?.techniek,
+      duurzaamheid: wizardState.chapterAnswers?.duurzaam,
+      risico: wizardState.chapterAnswers?.risico,
+    };
+
+    const isPremium = wizardState.mode === 'PREMIUM';
+
+    // Generate PDF buffer using PveTemplate
+    const pdfBuffer = await renderToBuffer(
+      React.createElement(PveTemplate, {
+        data: pdfData,
+        isPremium,
+        documentStatus: null
+      })
     );
 
-    // Toekomstige implementatie zou er zo uit kunnen zien:
-    // const pdfBuffer = await generatePvePdf(wizardState);
-    // return new NextResponse(pdfBuffer, {
-    //   headers: {
-    //     'Content-Type': 'application/pdf',
-    //     'Content-Disposition': 'attachment; filename="Brikx-PvE.pdf"',
-    //   },
-    // });
+    // Return PDF as downloadable file
+    return new NextResponse(pdfBuffer, {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': 'attachment; filename="Brikx-PvE.pdf"',
+      },
+    });
   } catch (error: any) {
     console.error('[API /pdf] Error:', error);
     return NextResponse.json(
-      { error: 'Internal server error', message: error?.message },
+      { error: 'PDF generatie mislukt', message: error?.message },
       { status: 500 }
     );
   }
