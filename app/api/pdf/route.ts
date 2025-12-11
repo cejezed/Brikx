@@ -40,11 +40,11 @@ export async function POST(req: NextRequest) {
         data: pdfData,
         isPremium,
         documentStatus: null
-      })
+      }) as any  // Type workaround for React PDF
     );
 
     // Return PDF as downloadable file
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(pdfBuffer as any, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': 'attachment; filename="Brikx-PvE.pdf"',
