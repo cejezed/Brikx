@@ -37,10 +37,11 @@ describe('ResponseOrchestrator', () => {
     turnCount: 5,
   });
 
-  const createTurnPlan = (goal: TurnPlan['goal'] = 'clarify'): TurnPlan => ({
+  const createTurnPlan = (goal: TurnPlan['goal'] = 'clarify', allowPatches: boolean = true): TurnPlan => ({
     goal,
     priority: 'user_query',
     route: 'normal',
+    allowPatches,
     reasoning: 'Test plan',
   });
 
@@ -136,6 +137,7 @@ describe('ResponseOrchestrator', () => {
         goal: 'anticipate_and_guide',
         priority: 'anticipation',
         route: 'normal',
+        allowPatches: true,
         reasoning: 'User needs guidance on budget',
         anticipationGuidance: {
           id: 'ant-1',
@@ -169,6 +171,7 @@ describe('ResponseOrchestrator', () => {
         goal: 'surface_risks',
         priority: 'system_conflict',
         route: 'guard_required',
+        allowPatches: false,
         reasoning: 'Budget conflict detected',
         systemConflicts: [
           {
@@ -469,6 +472,7 @@ describe('ResponseOrchestrator', () => {
         goal: 'surface_risks',
         priority: 'system_conflict',
         route: 'guard_required',
+        allowPatches: false,
         reasoning: 'Conflict detected',
         systemConflicts: [
           {

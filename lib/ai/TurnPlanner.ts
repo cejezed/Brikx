@@ -68,6 +68,7 @@ export class TurnPlanner {
           goal: 'surface_risks',
           priority: 'system_conflict',
           route: 'guard_required',
+          allowPatches: false, // BLOCKING conflicts = NO patches allowed
           reasoning: `Detected ${blockingConflicts.length} blocking conflict(s) that must be resolved before proceeding.`,
           systemConflicts: sortedConflicts,
         };
@@ -79,6 +80,7 @@ export class TurnPlanner {
           goal: 'anticipate_and_guide',
           priority: 'anticipation',
           route: 'normal',
+          allowPatches: false, // CRITICAL anticipation = NO patches allowed
           reasoning: `Critical proactive guidance needed: ${anticipationGuidance.question}`,
           anticipationGuidance,
         };
@@ -91,6 +93,7 @@ export class TurnPlanner {
           goal: 'surface_risks',
           priority: 'system_conflict',
           route: 'guard_required',
+          allowPatches: true, // WARNING conflicts = patches allowed
           reasoning: `Detected ${warningConflicts.length} warning conflict(s) that should be addressed.`,
           systemConflicts: sortedConflicts,
         };
@@ -102,6 +105,7 @@ export class TurnPlanner {
           goal: 'anticipate_and_guide',
           priority: 'anticipation',
           route: 'normal',
+          allowPatches: true, // Normal anticipation = patches allowed
           reasoning: `Proactive ${anticipationGuidance.priority} priority guidance available.`,
           anticipationGuidance,
         };
@@ -115,6 +119,7 @@ export class TurnPlanner {
           goal: 'fill_data',
           priority: 'user_query',
           route: 'guard_required',
+          allowPatches: true, // Data input = patches expected
           reasoning: 'User is providing concrete data for wizard state.',
         };
       }
@@ -126,6 +131,7 @@ export class TurnPlanner {
           goal: 'offer_alternatives',
           priority: 'user_query',
           route: 'normal',
+          allowPatches: true, // Offering alternatives = patches allowed
           reasoning: 'User is exploring options and needs alternatives.',
         };
       }
@@ -135,6 +141,7 @@ export class TurnPlanner {
         goal: 'clarify',
         priority: 'user_query',
         route: 'normal',
+        allowPatches: true, // Clarification questions = patches allowed
         reasoning: 'User is asking for clarification or information.',
       };
     } catch (error) {
@@ -224,6 +231,7 @@ export class TurnPlanner {
       goal: 'clarify',
       priority: 'user_query',
       route: 'normal',
+      allowPatches: true,
       reasoning: 'Default plan due to missing or invalid input.',
     };
   }

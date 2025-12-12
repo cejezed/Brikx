@@ -227,6 +227,7 @@ export interface TurnPlan {
   priority: TurnPriority;
   route: TurnRoute;
   reasoning: string;                      // Why this plan was chosen
+  allowPatches: boolean;                  // Whether patches are allowed (for AnswerGuard)
   subActions?: string[];                  // NEW - for 'navigate', 'reset', etc.
   systemConflicts?: SystemConflict[];
   anticipationGuidance?: AnticipationGuidance;

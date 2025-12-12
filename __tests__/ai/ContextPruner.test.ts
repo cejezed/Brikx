@@ -37,10 +37,11 @@ describe('ContextPruner', () => {
     turnCount: 0,
   });
 
-  const createTurnPlan = (goal: TurnPlan['goal'] = 'clarify'): TurnPlan => ({
+  const createTurnPlan = (goal: TurnPlan['goal'] = 'clarify', allowPatches: boolean = true): TurnPlan => ({
     goal,
     priority: 'user_query',
     route: 'normal',
+    allowPatches,
     reasoning: 'Test plan',
   });
 
