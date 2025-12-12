@@ -163,43 +163,25 @@ export interface SystemConflict {
 // ============================================================================
 
 /**
- * Detected patterns in user's conversation behavior.
- */
-export interface BehaviorPattern {
-  askingManyQuestions: boolean;    // User asks >3 questions in row
-  providingDetails: boolean;        // User giving concrete answers
-  exploring: boolean;               // User browsing/comparing options
-  decisive: boolean;                // User making clear choices
-}
-
-/**
  * Emotional/engagement signals from user messages.
+ * These are the ONLY behavioral signals we track (per v3.1 Manifest).
  */
 export interface BehaviorSignals {
   overwhelmed: boolean;             // Short answers, confusion
+  confused: boolean;                // Repeated clarification requests
+  impatient: boolean;               // Wants to move faster
   engaged: boolean;                 // Long messages, follow-ups
-  frustrated: boolean;              // Repeated questions, negative tone
-  confident: boolean;               // Precise, technical language
 }
 
 /**
- * Classified user style (update after 5+ turns).
- */
-export type UserStyle = 'explorer' | 'doer' | 'delegator' | 'researcher';
-
-/**
- * Recommended tone for AI responses based on behavior.
- */
-export type RecommendedTone = 'supportive' | 'directive' | 'informative' | 'collaborative';
-
-/**
- * Complete behavior analysis result.
+ * Complete behavior analysis result (v3.1 Manifest compliant).
+ * No personality profiling - only signals and preferences.
  */
 export interface BehaviorProfile {
-  patterns: BehaviorPattern;
   signals: BehaviorSignals;
-  userStyle: UserStyle;
-  recommendedTone: RecommendedTone;
+  toneHint: 'warm' | 'neutral' | 'direct';
+  confidenceLevel: 'low' | 'medium' | 'high';
+  speedPreference: 'thorough' | 'balanced' | 'quick';
   turnCount: number;
 }
 
@@ -208,19 +190,19 @@ export interface BehaviorProfile {
 // ============================================================================
 
 /**
- * The action to take for this conversation turn.
+ * The goal for this conversation turn (v3.1 Manifest official goals).
+ * These are the ONLY allowed goals - no custom actions.
  */
-export type TurnAction =
-  | 'patch'                  // Apply data patches (VULLEN_DATA)
-  | 'advies'                 // Give advice (ADVIES_VRAAG)
-  | 'probe'                  // Ask proactive question (Anticipation)
-  | 'navigate'               // Navigate to different chapter
-  | 'feedback'               // Deliver queued feedback
-  | 'conflict_resolution';   // Address system conflict
+export type TurnGoal =
+  | 'fill_data'              // Collect wizard data (was 'patch')
+  | 'anticipate_and_guide'   // Proactive guidance (was 'probe')
+  | 'surface_risks'          // Show conflicts (was 'conflict_resolution')
+  | 'offer_alternatives'     // Present options
+  | 'clarify';               // Ask clarifying question (was 'advies')
 
 /**
  * Priority level for this turn.
- * Determines which action wins if multiple are possible.
+ * Determines which goal wins if multiple are possible.
  */
 export type TurnPriority =
   | 'user_query'           // Normal user query (default)
@@ -241,13 +223,13 @@ export type TurnRoute =
  * Decided by TurnPlanner based on all intelligence inputs.
  */
 export interface TurnPlan {
-  action: TurnAction;
-  tone: RecommendedTone;
+  goal: TurnGoal;                         // RENAMED from 'action'
   priority: TurnPriority;
   route: TurnRoute;
   reasoning: string;                      // Why this plan was chosen
-  anticipationGuidance?: AnticipationGuidance;
+  subActions?: string[];                  // NEW - for 'navigate', 'reset', etc.
   systemConflicts?: SystemConflict[];
+  anticipationGuidance?: AnticipationGuidance;
 }
 
 // ============================================================================
@@ -274,13 +256,14 @@ export interface PrunedContext {
 /**
  * Response when opening a new chapter.
  * Provides contextual greeting and sets turn goals.
+ * NOTE: Tone is determined by LLM via PromptBuilder, NOT here.
  */
 export interface ChapterOpeningResponse {
   message: string;
-  turnGoal: TurnAction;
-  tone: RecommendedTone;
+  turnGoal: TurnGoal;              // UPDATED to use TurnGoal
   allowPatches: boolean;
   focusChapter: ChapterKey;
+  // NO tone field - LLM determines tone
 }
 
 // ============================================================================

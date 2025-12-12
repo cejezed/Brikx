@@ -1,13 +1,12 @@
 // lib/ai/TurnPlanner.ts
-// Week 2, Day 8 - Turn Planner Module
+// Week 2, Day 8 - Turn Planner Module (v3.1 Manifest Compliant)
 // Purpose: Determine AI response strategy based on priority matrix
 
 import type {
   TurnPlan,
-  TurnAction,
+  TurnGoal,
   TurnPriority,
   TurnRoute,
-  RecommendedTone,
   SystemConflict,
   AnticipationGuidance,
   BehaviorProfile,
@@ -24,20 +23,21 @@ export interface TurnPlannerInput {
 }
 
 /**
- * TurnPlanner - Determines AI response strategy
+ * TurnPlanner - Determines AI response strategy (v3.1 Manifest)
  *
  * Priority Matrix (in order):
- * 1. BLOCKING conflicts → conflict_resolution (highest priority)
- * 2. CRITICAL anticipation → probe
- * 3. WARNING conflicts → conflict_resolution (allow patches)
- * 4. HIGH/MEDIUM anticipation → probe
- * 5. Normal user queries → patch or advies
+ * 1. BLOCKING conflicts → surface_risks (highest priority)
+ * 2. CRITICAL anticipation → anticipate_and_guide
+ * 3. WARNING conflicts → surface_risks (allow patches)
+ * 4. HIGH/MEDIUM anticipation → anticipate_and_guide
+ * 5. Normal user queries → fill_data or clarify
  *
- * Tone Adaptation:
- * - overwhelmed → supportive
- * - doer + decisive → directive
- * - researcher + confident → collaborative
- * - default → informative
+ * Official TurnGoals (ONLY these 5):
+ * - fill_data: Collect wizard data
+ * - anticipate_and_guide: Proactive guidance
+ * - surface_risks: Show conflicts
+ * - offer_alternatives: Present options
+ * - clarify: Ask clarifying question
  *
  * Performance target: <20ms
  */
@@ -46,7 +46,7 @@ export class TurnPlanner {
    * Create a turn plan based on all intelligence inputs.
    *
    * @param input - All relevant context for planning
-   * @returns Complete turn plan with action, tone, priority, route, and reasoning
+   * @returns Complete turn plan with goal, priority, route, and reasoning
    */
   plan(input: TurnPlannerInput): TurnPlan {
     try {
@@ -60,16 +60,12 @@ export class TurnPlanner {
       // Sort conflicts by severity (blocking first)
       const sortedConflicts = this.sortConflictsBySeverity(systemConflicts || []);
 
-      // Determine tone from behavior profile
-      const tone = behaviorProfile.recommendedTone || 'informative';
-
       // Apply priority matrix
       // 1. Check for BLOCKING conflicts (highest priority)
       const blockingConflicts = sortedConflicts.filter((c) => c.severity === 'blocking');
       if (blockingConflicts.length > 0) {
         return {
-          action: 'conflict_resolution',
-          tone,
+          goal: 'surface_risks',
           priority: 'system_conflict',
           route: 'guard_required',
           reasoning: `Detected ${blockingConflicts.length} blocking conflict(s) that must be resolved before proceeding.`,
@@ -80,8 +76,7 @@ export class TurnPlanner {
       // 2. Check for CRITICAL anticipation
       if (anticipationGuidance && anticipationGuidance.priority === 'critical') {
         return {
-          action: 'probe',
-          tone,
+          goal: 'anticipate_and_guide',
           priority: 'anticipation',
           route: 'normal',
           reasoning: `Critical proactive guidance needed: ${anticipationGuidance.question}`,
@@ -93,8 +88,7 @@ export class TurnPlanner {
       const warningConflicts = sortedConflicts.filter((c) => c.severity === 'warning');
       if (warningConflicts.length > 0) {
         return {
-          action: 'conflict_resolution',
-          tone,
+          goal: 'surface_risks',
           priority: 'system_conflict',
           route: 'guard_required',
           reasoning: `Detected ${warningConflicts.length} warning conflict(s) that should be addressed.`,
@@ -105,8 +99,7 @@ export class TurnPlanner {
       // 4. Check for HIGH or MEDIUM anticipation
       if (anticipationGuidance && (anticipationGuidance.priority === 'high' || anticipationGuidance.priority === 'medium')) {
         return {
-          action: 'probe',
-          tone,
+          goal: 'anticipate_and_guide',
           priority: 'anticipation',
           route: 'normal',
           reasoning: `Proactive ${anticipationGuidance.priority} priority guidance available.`,
@@ -114,26 +107,35 @@ export class TurnPlanner {
         };
       }
 
-      // 5. Normal user queries - determine if data input or advice request
+      // 5. Normal user queries - determine if data input or clarification needed
       const isDataInput = this.detectDataInput(behaviorProfile, userMessage);
 
       if (isDataInput) {
         return {
-          action: 'patch',
-          tone,
+          goal: 'fill_data',
           priority: 'user_query',
           route: 'guard_required',
           reasoning: 'User is providing concrete data for wizard state.',
         };
       }
 
-      // Default: advice request
+      // Check if alternatives should be offered
+      const needsAlternatives = this.detectNeedsAlternatives(behaviorProfile, userMessage);
+      if (needsAlternatives) {
+        return {
+          goal: 'offer_alternatives',
+          priority: 'user_query',
+          route: 'normal',
+          reasoning: 'User is exploring options and needs alternatives.',
+        };
+      }
+
+      // Default: clarify
       return {
-        action: 'advies',
-        tone,
+        goal: 'clarify',
         priority: 'user_query',
         route: 'normal',
-        reasoning: 'User is asking for advice or information.',
+        reasoning: 'User is asking for clarification or information.',
       };
     } catch (error) {
       console.error('[TurnPlanner.plan] Error:', error);
@@ -157,8 +159,8 @@ export class TurnPlanner {
    * @private
    */
   private detectDataInput(behaviorProfile: BehaviorProfile, userMessage: string): boolean {
-    // User is providing details and being decisive = data input
-    if (behaviorProfile.patterns.providingDetails && behaviorProfile.patterns.decisive) {
+    // User has high confidence and providing details = data input
+    if (behaviorProfile.confidenceLevel === 'high' && behaviorProfile.speedPreference === 'quick') {
       return true;
     }
 
@@ -170,25 +172,47 @@ export class TurnPlanner {
       /\d+ (slaapkamers|kamers)/i,
       /is €/i,
       /maart|april|mei|juni|juli|augustus|september|oktober|november|december/i,
+      /ik kies/i,
+      /ik wil/i,
+      /staat vast/i,
     ].some((pattern) => pattern.test(userMessage));
 
-    // If user is providing details and message contains data = data input
-    if (behaviorProfile.patterns.providingDetails && hasDataPatterns) {
+    // If user is engaged and message contains data = data input
+    if (behaviorProfile.signals.engaged && hasDataPatterns) {
       return true;
     }
 
-    // User is asking many questions = advice request (not data input)
-    if (behaviorProfile.patterns.askingManyQuestions) {
+    // User is confused = not data input
+    if (behaviorProfile.signals.confused) {
       return false;
     }
 
-    // User is exploring = advice request (not data input)
-    if (behaviorProfile.patterns.exploring) {
-      return false;
-    }
-
-    // Default: assume advice request if unclear
+    // Default: assume clarification needed if unclear
     return false;
+  }
+
+  /**
+   * Detect if user needs alternatives/options presented.
+   * @private
+   */
+  private detectNeedsAlternatives(behaviorProfile: BehaviorProfile, userMessage: string): boolean {
+    // User has thorough speed preference = wants alternatives
+    if (behaviorProfile.speedPreference === 'thorough') {
+      return true;
+    }
+
+    // Check for exploration patterns in message
+    const hasExplorationPatterns = [
+      /verschil/i,
+      /vergelijk/i,
+      /opties/i,
+      /alternatieven/i,
+      /versus|vs\.|of/i,
+      /voor- en nadelen/i,
+      /wat zijn de/i,
+    ].some((pattern) => pattern.test(userMessage));
+
+    return hasExplorationPatterns;
   }
 
   /**
@@ -197,8 +221,7 @@ export class TurnPlanner {
    */
   private getDefaultPlan(): TurnPlan {
     return {
-      action: 'advies',
-      tone: 'informative',
+      goal: 'clarify',
       priority: 'user_query',
       route: 'normal',
       reasoning: 'Default plan due to missing or invalid input.',

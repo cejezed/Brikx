@@ -1,26 +1,23 @@
 // lib/ai/BehaviorAnalyzer.ts
-// Week 2, Day 6-7 - Behavior Analyzer Module
-// Purpose: Analyze user behavior patterns from conversation history
+// Week 2, Day 6-7 - Behavior Analyzer Module (v3.1 Manifest Compliant)
+// Purpose: Analyze user behavior signals from conversation history
 
 import type {
   ConversationTurn,
   BehaviorProfile,
-  BehaviorPattern,
   BehaviorSignals,
-  UserStyle,
-  RecommendedTone,
 } from '@/types/ai';
 
 /**
- * BehaviorAnalyzer - Analyzes user conversation patterns
+ * BehaviorAnalyzer - Analyzes user conversation signals (v3.1 Manifest)
  *
  * Responsibilities:
- * - Detect patterns: asking questions, providing details, exploring, decisive
- * - Detect signals: overwhelmed, engaged, frustrated, confident
- * - Classify user style: explorer, doer, delegator, researcher
- * - Recommend tone: supportive, directive, informative, collaborative
+ * - Detect 4 signals: overwhelmed, confused, impatient, engaged
+ * - Determine toneHint: warm, neutral, direct
+ * - Determine confidenceLevel: low, medium, high
+ * - Determine speedPreference: thorough, balanced, quick
  *
- * Strategy: Keyword-based pattern matching (no ML)
+ * Strategy: Keyword-based pattern matching (no ML, no personality profiling)
  * Performance: Analyzes last 10 turns only for speed
  */
 export class BehaviorAnalyzer {
@@ -28,7 +25,7 @@ export class BehaviorAnalyzer {
    * Analyze conversation history and return behavior profile.
    *
    * @param conversation - Array of conversation turns
-   * @returns Complete behavior profile
+   * @returns Behavior profile with signals and preferences
    */
   analyze(conversation: ConversationTurn[]): BehaviorProfile {
     try {
@@ -41,23 +38,19 @@ export class BehaviorAnalyzer {
       const recentTurns = conversation.slice(-10);
       const userTurns = recentTurns.filter((turn) => turn.role === 'user');
 
-      // Detect patterns
-      const patterns = this.detectPatterns(userTurns);
-
-      // Detect signals
+      // Detect signals (ONLY these 4)
       const signals = this.detectSignals(userTurns);
 
-      // Classify user style
-      const userStyle = this.classifyUserStyle(patterns, signals);
-
-      // Recommend tone
-      const recommendedTone = this.recommendTone(patterns, signals, userStyle);
+      // Determine preferences
+      const toneHint = this.determineToneHint(signals, userTurns);
+      const confidenceLevel = this.determineConfidenceLevel(userTurns);
+      const speedPreference = this.determineSpeedPreference(signals, userTurns);
 
       return {
-        patterns,
         signals,
-        userStyle,
-        recommendedTone,
+        toneHint,
+        confidenceLevel,
+        speedPreference,
         turnCount: conversation.length,
       };
     } catch (error) {
@@ -67,70 +60,36 @@ export class BehaviorAnalyzer {
   }
 
   /**
-   * Detect behavioral patterns from user messages.
-   * @private
-   */
-  private detectPatterns(userTurns: ConversationTurn[]): BehaviorPattern {
-    const askingManyQuestions = this.hasPattern(userTurns, [
-      /\?/g,
-      /wat is/i,
-      /hoe/i,
-      /waarom/i,
-      /kun je/i,
-      /kan ik/i,
-      /moet ik/i,
-    ], 3);
-
-    const providingDetails = this.hasPattern(userTurns, [
-      /\dm2/i,
-      /€\d/,
-      /\d+m2/,
-      /budget/i,
-      /\d+ (euro|k)/i,
-      /maart|april|mei|juni|juli|augustus|september|oktober|november|december/i,
-    ], 2);
-
-    const exploring = this.hasPattern(userTurns, [
-      /verschil/i,
-      /vergelijk/i,
-      /opties/i,
-      /alternatieven/i,
-      /versus|vs\.|of/i,
-      /voor- en nadelen/i,
-      /wat zijn de/i,
-    ], 2);
-
-    const decisive = this.hasPattern(userTurns, [
-      /ik kies/i,
-      /ik wil/i,
-      /staat vast/i,
-      /zeker/i,
-      /geen cent meer/i,
-      /definitief/i,
-      /besloten/i,
-    ], 2);
-
-    return {
-      askingManyQuestions,
-      providingDetails,
-      exploring,
-      decisive,
-    };
-  }
-
-  /**
-   * Detect emotional/engagement signals from user messages.
+   * Detect the 4 behavioral signals from user messages.
    * @private
    */
   private detectSignals(userTurns: ConversationTurn[]): BehaviorSignals {
     const overwhelmed = this.hasPattern(userTurns, [
-      /weet niet/i,
       /te veel/i,
-      /ingewikkeld/i,
-      /moeilijk/i,
+      /te complex/i,
+      /te ingewikkeld/i,
       /snap het niet/i,
       /begrijp het niet/i,
-      /te complex/i,
+    ], 2);
+
+    const confused = this.hasPattern(userTurns, [
+      /weet niet/i,
+      /snap/i,
+      /begrijp/i,
+      /wat bedoel je/i,
+      /hoe zit dat/i,
+      /kun je uitleggen/i,
+      /wat is/i,
+    ], 3);
+
+    const impatient = this.hasPattern(userTurns, [
+      /snel/i,
+      /kort/i,
+      /vlot/i,
+      /direct/i,
+      /zonder veel uitleg/i,
+      /gewoon/i,
+      /simpel/i,
     ], 2);
 
     // Engaged: long messages (>100 chars average)
@@ -139,16 +98,40 @@ export class BehaviorAnalyzer {
       : 0;
     const engaged = avgLength > 100;
 
-    const frustrated = this.hasPattern(userTurns, [
-      /maar/i,
-      /ja maar/i,
-      /schiet niet op/i,
-      /geen duidelijk antwoord/i,
-      /steeds/i,
-      /nog steeds niet/i,
-    ], 2);
+    return {
+      overwhelmed,
+      confused,
+      impatient,
+      engaged,
+    };
+  }
 
-    const confident = this.hasPattern(userTurns, [
+  /**
+   * Determine tone hint based on signals.
+   * @private
+   */
+  private determineToneHint(signals: BehaviorSignals, userTurns: ConversationTurn[]): 'warm' | 'neutral' | 'direct' {
+    // Warm: user is overwhelmed or confused
+    if (signals.overwhelmed || signals.confused) {
+      return 'warm';
+    }
+
+    // Direct: user is impatient
+    if (signals.impatient) {
+      return 'direct';
+    }
+
+    // Neutral: default
+    return 'neutral';
+  }
+
+  /**
+   * Determine confidence level based on technical language usage.
+   * @private
+   */
+  private determineConfidenceLevel(userTurns: ConversationTurn[]): 'low' | 'medium' | 'high' {
+    // High: uses technical terms
+    const usesTechnicalTerms = this.hasPattern(userTurns, [
       /RC-waarde/i,
       /U-waarde/i,
       /COP/i,
@@ -158,66 +141,58 @@ export class BehaviorAnalyzer {
       /NTA 8800/i,
       /Qpres/i,
       /Bouwbesluit/i,
+      /isolatie/i,
+      /warmtepomp/i,
     ], 1);
 
-    return {
-      overwhelmed,
-      engaged,
-      frustrated,
-      confident,
-    };
+    if (usesTechnicalTerms) {
+      return 'high';
+    }
+
+    // Medium: provides concrete details
+    const providesDetails = this.hasPattern(userTurns, [
+      /\dm2/i,
+      /€\d/,
+      /\d+m2/,
+      /budget/i,
+      /\d+ (euro|k)/i,
+    ], 2);
+
+    if (providesDetails) {
+      return 'medium';
+    }
+
+    // Low: default
+    return 'low';
   }
 
   /**
-   * Classify user style based on patterns and signals.
+   * Determine speed preference based on signals and message patterns.
    * @private
    */
-  private classifyUserStyle(patterns: BehaviorPattern, signals: BehaviorSignals): UserStyle {
-    // Researcher: confident and uses technical language
-    if (signals.confident) {
-      return 'researcher';
+  private determineSpeedPreference(signals: BehaviorSignals, userTurns: ConversationTurn[]): 'thorough' | 'balanced' | 'quick' {
+    // Quick: impatient user
+    if (signals.impatient) {
+      return 'quick';
     }
 
-    // Doer: decisive and provides details
-    if (patterns.decisive && patterns.providingDetails) {
-      return 'doer';
+    // Thorough: exploring options
+    const isExploring = this.hasPattern(userTurns, [
+      /verschil/i,
+      /vergelijk/i,
+      /opties/i,
+      /alternatieven/i,
+      /versus|vs\.|of/i,
+      /voor- en nadelen/i,
+      /wat zijn de/i,
+    ], 2);
+
+    if (isExploring) {
+      return 'thorough';
     }
 
-    // Delegator: asking questions but not exploring deeply
-    if (patterns.askingManyQuestions && !patterns.exploring) {
-      return 'delegator';
-    }
-
-    // Explorer: exploring options and comparing (default)
-    return 'explorer';
-  }
-
-  /**
-   * Recommend tone based on behavior profile.
-   * @private
-   */
-  private recommendTone(
-    patterns: BehaviorPattern,
-    signals: BehaviorSignals,
-    userStyle: UserStyle
-  ): RecommendedTone {
-    // Supportive: user is overwhelmed
-    if (signals.overwhelmed) {
-      return 'supportive';
-    }
-
-    // Directive: decisive doer who wants clear instructions
-    if (userStyle === 'doer' && patterns.decisive) {
-      return 'directive';
-    }
-
-    // Collaborative: researcher with technical knowledge
-    if (userStyle === 'researcher' && signals.confident) {
-      return 'collaborative';
-    }
-
-    // Informative: explorer who wants to learn (default)
-    return 'informative';
+    // Balanced: default
+    return 'balanced';
   }
 
   /**
@@ -244,20 +219,15 @@ export class BehaviorAnalyzer {
    */
   private getDefaultProfile(): BehaviorProfile {
     return {
-      patterns: {
-        askingManyQuestions: false,
-        providingDetails: false,
-        exploring: false,
-        decisive: false,
-      },
       signals: {
         overwhelmed: false,
+        confused: false,
+        impatient: false,
         engaged: false,
-        frustrated: false,
-        confident: false,
       },
-      userStyle: 'explorer',
-      recommendedTone: 'informative',
+      toneHint: 'neutral',
+      confidenceLevel: 'medium',
+      speedPreference: 'balanced',
       turnCount: 0,
     };
   }
