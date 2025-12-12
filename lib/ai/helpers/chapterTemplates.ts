@@ -2,8 +2,7 @@
 // Week 2, Day 10 - Chapter Opening Templates
 // Purpose: Provide contextual chapter opening messages
 
-import type { ChapterKey, BasisData } from '@/types/project';
-import type { RecommendedTone } from '@/types/ai';
+import type { ChapterKey } from '@/types/project';
 
 /**
  * Template context for generating chapter opening messages.
@@ -11,7 +10,6 @@ import type { RecommendedTone } from '@/types/ai';
 export interface TemplateContext {
   chapter: ChapterKey;
   userExperience?: 'starter' | 'enigszins' | 'ervaren';
-  tone: RecommendedTone;
   hasConflict: boolean;
   hasAnticipation: boolean;
 }
@@ -19,11 +17,11 @@ export interface TemplateContext {
 /**
  * Get chapter opening message based on context.
  *
- * @param context - Template context with chapter, tone, and scenario info
+ * @param context - Template context with chapter and scenario info
  * @returns Contextual opening message in Dutch
  */
 export function getChapterOpeningMessage(context: TemplateContext): string {
-  const { chapter, userExperience, tone, hasConflict, hasAnticipation } = context;
+  const { chapter, userExperience, hasConflict, hasAnticipation } = context;
 
   // Conflict scenario takes priority
   if (hasConflict) {
@@ -36,7 +34,7 @@ export function getChapterOpeningMessage(context: TemplateContext): string {
   }
 
   // Normal scenario
-  return getNormalMessage(chapter, userExperience, tone);
+  return getNormalMessage(chapter, userExperience);
 }
 
 /**
@@ -45,8 +43,7 @@ export function getChapterOpeningMessage(context: TemplateContext): string {
  */
 function getNormalMessage(
   chapter: ChapterKey,
-  userExperience?: 'starter' | 'enigszins' | 'ervaren',
-  tone?: RecommendedTone
+  userExperience?: 'starter' | 'enigszins' | 'ervaren'
 ): string {
   const isStarter = userExperience === 'starter';
   const isExpert = userExperience === 'ervaren';

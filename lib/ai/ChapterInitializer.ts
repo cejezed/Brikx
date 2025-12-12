@@ -8,8 +8,7 @@ import type {
   BehaviorProfile,
   SystemConflict,
   AnticipationGuidance,
-  TurnAction,
-  RecommendedTone,
+  TurnGoal,
 } from '@/types/ai';
 import type { WizardState, ChapterKey } from '@/types/project';
 
@@ -95,15 +94,13 @@ export class ChapterInitializer {
       const message = getChapterOpeningMessage({
         chapter,
         userExperience,
-        tone: turnPlan.tone,
         hasConflict,
         hasAnticipation,
       });
 
       return {
         message,
-        turnGoal: this.determineTurnGoal(turnPlan.action, hasConflict, hasAnticipation),
-        tone: turnPlan.tone,
+        turnGoal: this.determineTurnGoal(turnPlan.goal, hasConflict, hasAnticipation),
         allowPatches: true, // Always allow patches during chapter navigation
         focusChapter: chapter,
       };
@@ -154,27 +151,28 @@ export class ChapterInitializer {
    * @private
    */
   private determineTurnGoal(
-    plannedAction: TurnAction,
+    plannedGoal: TurnGoal,
     hasConflict: boolean,
     hasAnticipation: boolean
-  ): TurnAction {
+  ): TurnGoal {
     // Conflict always takes priority
     if (hasConflict) {
-      return 'conflict_resolution';
+      return 'surface_risks';
     }
 
     // Anticipation suggests probing
     if (hasAnticipation) {
-      return 'probe';
+      return 'anticipate_and_guide';
     }
 
     // For chapter openings, we typically want to give advice or collect data
-    if (plannedAction === 'patch') {
-      return 'patch';
+    // If the planned goal was already to fill data (patch), keep it
+    if (plannedGoal === 'fill_data') {
+      return 'fill_data';
     }
 
-    // Default: provide advice/guidance
-    return 'advies';
+    // Default: provide advice/guidance (clarify/advice)
+    return 'clarify';
   }
 
   /**
@@ -184,8 +182,7 @@ export class ChapterInitializer {
   private getDefaultResponse(chapter: ChapterKey): ChapterOpeningResponse {
     return {
       message: 'Laten we aan de slag gaan met dit onderdeel van je project. Waar wil je beginnen?',
-      turnGoal: 'advies',
-      tone: 'informative',
+      turnGoal: 'clarify',
       allowPatches: true,
       focusChapter: chapter,
     };
