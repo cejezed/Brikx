@@ -89,8 +89,20 @@ export class ResponseOrchestrator {
       // Step 4: Parse response
       const candidate = this.parseResponse(llmResult.response);
 
-      // Validate patches
-      const validPatches = this.validatePatches(candidate.patches || []);
+      // CRITICAL CHECK #1: Enforce allowPatches
+      let finalPatches = candidate.patches || [];
+      if (turnPlan.allowPatches === false) {
+        if (finalPatches.length > 0) {
+          console.warn('[ResponseOrchestrator] allowPatches=false but LLM returned patches. Filtering out.');
+        }
+        finalPatches = []; // Hard enforcement: no patches when not allowed
+      } else {
+        // Validate patches only if allowed
+        finalPatches = this.validatePatches(finalPatches);
+
+        // CRITICAL CHECK #2: Add requiresConfirmation to all patches
+        finalPatches = this.addConfirmationFlags(finalPatches, this.calculateConfidence(turnPlan, candidate));
+      }
 
       // Calculate confidence
       const confidence = this.calculateConfidence(turnPlan, candidate);
@@ -98,7 +110,7 @@ export class ResponseOrchestrator {
       // Step 6: Return result
       return {
         draftResponse: candidate.reply || this.getFallbackMessage(turnPlan.goal),
-        patches: validPatches,
+        patches: finalPatches,
         confidence,
         tokensUsed: llmResult.tokensUsed,
       };
@@ -143,10 +155,10 @@ export class ResponseOrchestrator {
   ): string {
     const toneDirective = this.getToneDirective(turnPlan, behaviorProfile);
 
-    return `Je bent Jules, een ervaren Nederlandse architect.
+    return `U bent Jules, een ervaren Nederlandse architect.
 
 TONE & TAAL:
-- Spreek ALTIJD formeel (u, uw). Nooit informeel.
+- Spreek ALTIJD formeel (u, uw). Nooit informeel (je, jij).
 - Gebruik GEEN emojis.
 - Antwoorden zijn helder, technisch correct, niet overdreven.
 - Doe NOOIT aannames buiten de context.
@@ -269,7 +281,7 @@ OUTPUT FORMAAT (STRICT JSON):
 - Proactieve begeleiding op basis van projectcontext.
 ${guidance ? `- Stel deze vraag: "${guidance.question}"` : ''}
 - Maximaal 1 vraag per beurt.
-- Leg kort uit waarom je dit vraagt.`;
+- Leg kort uit waarom u dit vraagt.`;
 
       case 'surface_risks':
         const conflicts = turnPlan.systemConflicts || [];
@@ -412,6 +424,18 @@ ${conflictDescriptions}
 
       return true;
     });
+  }
+
+  /**
+   * Add requiresConfirmation flags to patches (indirect patching).
+   * Only patches with confidence > 0.95 are auto-confirmed.
+   * @private
+   */
+  private addConfirmationFlags(patches: PatchEvent[], confidence: number): PatchEvent[] {
+    return patches.map((patch) => ({
+      ...patch,
+      requiresConfirmation: confidence <= 0.95, // Indirect patching: require confirmation unless very high confidence
+    }));
   }
 
   /**

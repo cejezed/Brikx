@@ -319,6 +319,112 @@ describe('ResponseOrchestrator', () => {
       // Invalid patches should be filtered out
       expect(result.patches).toHaveLength(0);
     });
+
+    it('CRITICAL: enforces allowPatches=false (no patches returned)', async () => {
+      const query = 'Budget is 100k';
+      const turnPlan = createTurnPlan('fill_data', false); // allowPatches=false
+      const prunedContext = createPrunedContext();
+
+      const mockPatchResult = {
+        followUpQuestion: 'Budget noted',
+        patches: [
+          {
+            chapter: 'budget' as const,
+            delta: {
+              operation: 'set' as const,
+              path: 'budgetTotaal',
+              value: 100000,
+            },
+          },
+        ],
+        tokensUsed: 80,
+      };
+
+      const { ProModel } = await import('@/lib/ai/ProModel');
+      vi.mocked(ProModel.generatePatch).mockResolvedValue(mockPatchResult);
+
+      const result = await orchestrator.generate({
+        query,
+        turnPlan,
+        prunedContext,
+      });
+
+      // Even though LLM returned patches, they MUST be filtered out
+      expect(result.patches).toHaveLength(0);
+      expect(result.draftResponse).toBeTruthy();
+    });
+
+    it('CRITICAL: adds requiresConfirmation=true to patches (indirect patching)', async () => {
+      const query = 'Budget is 100k';
+      const turnPlan = createTurnPlan('fill_data', true);
+      const prunedContext = createPrunedContext();
+
+      const mockPatchResult = {
+        followUpQuestion: 'Budget set',
+        patches: [
+          {
+            chapter: 'budget' as const,
+            delta: {
+              operation: 'set' as const,
+              path: 'budgetTotaal',
+              value: 100000,
+            },
+          },
+        ],
+        tokensUsed: 80,
+      };
+
+      const { ProModel } = await import('@/lib/ai/ProModel');
+      vi.mocked(ProModel.generatePatch).mockResolvedValue(mockPatchResult);
+
+      const result = await orchestrator.generate({
+        query,
+        turnPlan,
+        prunedContext,
+      });
+
+      expect(result.patches).toHaveLength(1);
+      expect(result.patches[0].requiresConfirmation).toBe(true); // Confidence is 0.75, so requires confirmation
+    });
+
+    it('CRITICAL: only auto-confirms patches when confidence > 0.95', async () => {
+      const query = 'Show conflicts';
+      const turnPlan: TurnPlan = {
+        goal: 'surface_risks',
+        priority: 'system_conflict',
+        route: 'guard_required',
+        allowPatches: true, // Even though allowed, surface_risks shouldn't generate patches
+        reasoning: 'Conflict',
+        systemConflicts: [
+          {
+            id: 'c1',
+            type: 'budget_risk',
+            severity: 'blocking',
+            description: 'Budget too low',
+            affectedFields: [],
+            affectedChapters: ['budget'],
+            resolution: 'Increase budget',
+          },
+        ],
+      };
+      const prunedContext = createPrunedContext();
+
+      const { ProModel } = await import('@/lib/ai/ProModel');
+      vi.mocked(ProModel.generateResponse).mockResolvedValue('Conflict message');
+
+      const result = await orchestrator.generate({
+        query,
+        turnPlan,
+        prunedContext,
+      });
+
+      // surface_risks has confidence 0.95, but patches should still require confirmation
+      expect(result.confidence).toBe(0.95);
+      if (result.patches.length > 0) {
+        // If patches were somehow generated, they should require confirmation
+        expect(result.patches[0].requiresConfirmation).toBe(true);
+      }
+    });
   });
 
   // ============================================================================

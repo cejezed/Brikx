@@ -416,6 +416,7 @@ export type PatchDelta = {
 export type PatchEvent = {
   chapter: ChapterKey;
   delta: PatchDelta;
+  requiresConfirmation?: boolean; // Indirect patching: true = show to user for confirmation, false/undefined = auto-apply
 };
 
 // ✅ NEW v3.3: Multiple patches
