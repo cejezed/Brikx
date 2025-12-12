@@ -82,8 +82,8 @@ describe('ChapterInitializer', () => {
 
       expect(response.message).toBeTruthy();
       expect(response.focusChapter).toBe('basis');
-      expect(response.turnGoal).toBe('advies');
-      expect(['informative', 'supportive']).toContain(response.tone);
+      expect(response.turnGoal).toBe('clarify');
+      // Tone is no longer part of ChapterOpeningResponse (LLM determines tone)
       expect(response.allowPatches).toBe(true);
     });
 
@@ -100,7 +100,7 @@ describe('ChapterInitializer', () => {
 
       expect(response.message).toBeTruthy();
       expect(response.focusChapter).toBe('ruimtes');
-      expect(['advies', 'probe']).toContain(response.turnGoal);
+      expect(['clarify', 'anticipate_and_guide']).toContain(response.turnGoal);
       expect(response.allowPatches).toBe(true);
     });
 
@@ -118,7 +118,7 @@ describe('ChapterInitializer', () => {
 
       expect(response.message).toBeTruthy();
       expect(response.focusChapter).toBe('wensen');
-      expect(['advies', 'probe']).toContain(response.turnGoal);
+      expect(['clarify', 'anticipate_and_guide']).toContain(response.turnGoal);
       expect(response.allowPatches).toBe(true);
     });
 
@@ -136,7 +136,7 @@ describe('ChapterInitializer', () => {
 
       expect(response.message).toBeTruthy();
       expect(response.focusChapter).toBe('budget');
-      expect(['advies', 'patch']).toContain(response.turnGoal);
+      expect(['clarify', 'fill_data']).toContain(response.turnGoal);
       expect(response.allowPatches).toBe(true);
     });
 
@@ -154,7 +154,7 @@ describe('ChapterInitializer', () => {
 
       expect(response.message).toBeTruthy();
       expect(response.focusChapter).toBe('techniek');
-      expect(['advies', 'probe']).toContain(response.turnGoal);
+      expect(['clarify', 'anticipate_and_guide']).toContain(response.turnGoal);
       expect(response.allowPatches).toBe(true);
     });
 
@@ -172,7 +172,7 @@ describe('ChapterInitializer', () => {
 
       expect(response.message).toBeTruthy();
       expect(response.focusChapter).toBe('duurzaam');
-      expect(['advies', 'probe']).toContain(response.turnGoal);
+      expect(['clarify', 'anticipate_and_guide']).toContain(response.turnGoal);
       expect(response.allowPatches).toBe(true);
     });
 
@@ -190,7 +190,7 @@ describe('ChapterInitializer', () => {
 
       expect(response.message).toBeTruthy();
       expect(response.focusChapter).toBe('risico');
-      expect(['advies', 'probe']).toContain(response.turnGoal);
+      expect(['clarify', 'anticipate_and_guide']).toContain(response.turnGoal);
       expect(response.allowPatches).toBe(true);
     });
   });
@@ -234,7 +234,7 @@ describe('ChapterInitializer', () => {
 
       // When there are expensive wishes but no budget, should probe
       expect(response.message).toBeTruthy();
-      expect(['probe', 'advies']).toContain(response.turnGoal);
+      expect(['anticipate_and_guide', 'clarify']).toContain(response.turnGoal);
     });
 
     it('TECHNIEK with lifestyle anticipation adapts tone', () => {
@@ -251,7 +251,7 @@ describe('ChapterInitializer', () => {
       const response = initializer.handleChapterStart('techniek', state, conversation);
 
       expect(response.message).toBeTruthy();
-      expect(['supportive', 'informative', 'collaborative']).toContain(response.tone);
+      // Tone is no longer part of ChapterOpeningResponse (LLM determines tone)
     });
   });
 
@@ -346,7 +346,7 @@ describe('ChapterInitializer', () => {
 
       const response = initializer.handleChapterStart('ruimtes', state, conversation);
 
-      expect(['supportive', 'informative']).toContain(response.tone);
+      // Tone is no longer part of ChapterOpeningResponse (LLM determines tone)
       expect(response.message).toBeTruthy();
     });
 
@@ -364,7 +364,7 @@ describe('ChapterInitializer', () => {
 
       const response = initializer.handleChapterStart('techniek', state, conversation);
 
-      expect(['collaborative', 'informative', 'directive']).toContain(response.tone);
+      // Tone is no longer part of ChapterOpeningResponse (LLM determines tone)
       expect(response.message).toBeTruthy();
     });
 
@@ -402,7 +402,7 @@ describe('ChapterInitializer', () => {
       const state = createMinimalState();
       const response = initializer.handleChapterStart('budget', state, conversation);
 
-      expect(['supportive', 'informative']).toContain(response.tone);
+      // Tone is no longer part of ChapterOpeningResponse (LLM determines tone)
     });
 
     it('decisive user gets directive tone', () => {
@@ -427,7 +427,7 @@ describe('ChapterInitializer', () => {
 
       const response = initializer.handleChapterStart('budget', state, conversation);
 
-      expect(['directive', 'informative', 'collaborative']).toContain(response.tone);
+      // Tone is no longer part of ChapterOpeningResponse (LLM determines tone)
     });
   });
 
@@ -547,7 +547,7 @@ describe('ChapterInitializer', () => {
 
       // Should analyze conversation and determine appropriate turn plan
       expect(response.turnGoal).toBeDefined();
-      expect(response.tone).toBeDefined();
+      // Tone is no longer part of ChapterOpeningResponse (LLM determines tone)
     });
 
     it('step 6: generates contextual opening message', () => {

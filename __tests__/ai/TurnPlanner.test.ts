@@ -14,22 +14,17 @@ import { TurnPlanner } from '@/lib/ai/TurnPlanner';
 describe('TurnPlanner', () => {
   let planner: TurnPlanner;
 
-  // Helper to create default behavior profile
+  // Helper to create default behavior profile (v3.1 Manifest)
   const createBehaviorProfile = (overrides?: Partial<BehaviorProfile>): BehaviorProfile => ({
-    patterns: {
-      askingManyQuestions: false,
-      providingDetails: false,
-      exploring: false,
-      decisive: false,
-    },
     signals: {
       overwhelmed: false,
+      confused: false,
+      impatient: false,
       engaged: false,
-      frustrated: false,
-      confident: false,
     },
-    userStyle: 'explorer',
-    recommendedTone: 'informative',
+    toneHint: 'neutral',
+    confidenceLevel: 'medium',
+    speedPreference: 'balanced',
     turnCount: 5,
     ...overrides,
   });
@@ -79,7 +74,7 @@ describe('TurnPlanner', () => {
         userMessage: 'Wat kost dit?',
       });
 
-      expect(plan.action).toBe('conflict_resolution');
+      expect(plan.goal).toBe('surface_risks');
       expect(plan.priority).toBe('system_conflict');
       expect(plan.systemConflicts).toContain(blockingConflict);
       expect(plan.reasoning).toContain('blocking');
@@ -101,8 +96,8 @@ describe('TurnPlanner', () => {
     it('uses supportive tone when user is overwhelmed with blocking conflict', () => {
       const blockingConflict = createConflict('budget_risk', 'blocking');
       const behaviorProfile = createBehaviorProfile({
-        signals: { overwhelmed: true, engaged: false, frustrated: false, confident: false },
-        recommendedTone: 'supportive',
+        signals: { overwhelmed: true, confused: false, impatient: false, engaged: false },
+        toneHint: 'warm',
       });
 
       const plan = planner.plan({
@@ -111,7 +106,7 @@ describe('TurnPlanner', () => {
         userMessage: 'Help',
       });
 
-      expect(plan.tone).toBe('supportive');
+      // Tone is no longer part of TurnPlan (determined by LLM via PromptBuilder)
     });
   });
 
@@ -130,7 +125,7 @@ describe('TurnPlanner', () => {
         userMessage: 'Ik ga beginnen',
       });
 
-      expect(plan.action).toBe('probe');
+      expect(plan.goal).toBe('anticipate_and_guide');
       expect(plan.priority).toBe('anticipation');
       expect(plan.anticipationGuidance).toEqual(criticalGuidance);
     });
@@ -147,7 +142,7 @@ describe('TurnPlanner', () => {
         userMessage: 'Test',
       });
 
-      expect(plan.action).toBe('probe');
+      expect(plan.goal).toBe('anticipate_and_guide');
       expect(plan.priority).toBe('anticipation');
     });
 
@@ -180,7 +175,7 @@ describe('TurnPlanner', () => {
         userMessage: 'Hoe zit het met mijn budget?',
       });
 
-      expect(plan.action).toBe('conflict_resolution');
+      expect(plan.goal).toBe('surface_risks');
       expect(plan.priority).toBe('system_conflict');
       expect(plan.systemConflicts).toContain(warningConflict);
     });
@@ -214,7 +209,7 @@ describe('TurnPlanner', () => {
         userMessage: 'Wat nu?',
       });
 
-      expect(plan.action).toBe('probe');
+      expect(plan.goal).toBe('anticipate_and_guide');
       expect(plan.priority).toBe('anticipation');
       expect(plan.anticipationGuidance).toEqual(highGuidance);
     });
@@ -225,14 +220,11 @@ describe('TurnPlanner', () => {
   // ============================================================================
 
   describe('normal queries: data input', () => {
-    it('detects data input intent and sets action to patch', () => {
+    it('detects data input intent and sets goal to fill_data', () => {
       const behaviorProfile = createBehaviorProfile({
-        patterns: {
-          askingManyQuestions: false,
-          providingDetails: true,
-          exploring: false,
-          decisive: true,
-        },
+        signals: { overwhelmed: false, confused: false, impatient: false, engaged: true },
+        confidenceLevel: 'high',
+        speedPreference: 'quick',
       });
 
       const plan = planner.plan({
@@ -240,21 +232,15 @@ describe('TurnPlanner', () => {
         userMessage: 'Mijn budget is €250.000 en ik wil 3 slaapkamers van elk 12m2',
       });
 
-      expect(plan.action).toBe('patch');
+      expect(plan.goal).toBe('fill_data');
       expect(plan.priority).toBe('user_query');
       expect(plan.route).toBe('guard_required');
     });
 
     it('uses directive tone for decisive data providers', () => {
       const behaviorProfile = createBehaviorProfile({
-        patterns: {
-          askingManyQuestions: false,
-          providingDetails: true,
-          exploring: false,
-          decisive: true,
-        },
-        userStyle: 'doer',
-        recommendedTone: 'directive',
+        confidenceLevel: 'high',
+        speedPreference: 'quick',
       });
 
       const plan = planner.plan({
@@ -262,7 +248,7 @@ describe('TurnPlanner', () => {
         userMessage: 'Budget: €200k, start: maart',
       });
 
-      expect(plan.tone).toBe('directive');
+      // Tone is no longer part of TurnPlan (determined by LLM via PromptBuilder)
     });
   });
 
@@ -273,12 +259,7 @@ describe('TurnPlanner', () => {
   describe('normal queries: advice request', () => {
     it('detects advice request and sets action to advies', () => {
       const behaviorProfile = createBehaviorProfile({
-        patterns: {
-          askingManyQuestions: true,
-          providingDetails: false,
-          exploring: true,
-          decisive: false,
-        },
+        speedPreference: 'thorough',
       });
 
       const plan = planner.plan({
@@ -286,21 +267,15 @@ describe('TurnPlanner', () => {
         userMessage: 'Wat raad je me aan voor verwarming? Warmtepomp of gas?',
       });
 
-      expect(plan.action).toBe('advies');
+      expect(plan.goal).toBe('clarify');
       expect(plan.priority).toBe('user_query');
       expect(plan.route).toBe('normal');
     });
 
     it('uses informative tone for explorers asking advice', () => {
       const behaviorProfile = createBehaviorProfile({
-        patterns: {
-          askingManyQuestions: true,
-          providingDetails: false,
-          exploring: true,
-          decisive: false,
-        },
-        userStyle: 'explorer',
-        recommendedTone: 'informative',
+        speedPreference: 'thorough',
+        toneHint: 'neutral',
       });
 
       const plan = planner.plan({
@@ -308,7 +283,7 @@ describe('TurnPlanner', () => {
         userMessage: 'Wat zijn de opties?',
       });
 
-      expect(plan.tone).toBe('informative');
+      // Tone is no longer part of TurnPlan (determined by LLM via PromptBuilder)
     });
   });
 
@@ -319,8 +294,8 @@ describe('TurnPlanner', () => {
   describe('tone adaptation', () => {
     it('uses supportive tone when user is overwhelmed', () => {
       const behaviorProfile = createBehaviorProfile({
-        signals: { overwhelmed: true, engaged: false, frustrated: false, confident: false },
-        recommendedTone: 'supportive',
+        signals: { overwhelmed: true, confused: false, impatient: false, engaged: false },
+        toneHint: 'warm',
       });
 
       const plan = planner.plan({
@@ -328,19 +303,13 @@ describe('TurnPlanner', () => {
         userMessage: 'Dit is te moeilijk',
       });
 
-      expect(plan.tone).toBe('supportive');
+      // Tone is no longer part of TurnPlan (determined by LLM via PromptBuilder)
     });
 
     it('uses directive tone for confident doers', () => {
       const behaviorProfile = createBehaviorProfile({
-        patterns: {
-          askingManyQuestions: false,
-          providingDetails: true,
-          exploring: false,
-          decisive: true,
-        },
-        userStyle: 'doer',
-        recommendedTone: 'directive',
+        confidenceLevel: 'high',
+        speedPreference: 'quick',
       });
 
       const plan = planner.plan({
@@ -348,14 +317,13 @@ describe('TurnPlanner', () => {
         userMessage: 'Ik wil vloerverwarming, punt uit',
       });
 
-      expect(plan.tone).toBe('directive');
+      // Tone is no longer part of TurnPlan (determined by LLM via PromptBuilder)
     });
 
     it('uses collaborative tone for researchers', () => {
       const behaviorProfile = createBehaviorProfile({
-        signals: { overwhelmed: false, engaged: true, frustrated: false, confident: true },
-        userStyle: 'researcher',
-        recommendedTone: 'collaborative',
+        signals: { overwhelmed: false, confused: false, impatient: false, engaged: true },
+        confidenceLevel: 'high',
       });
 
       const plan = planner.plan({
@@ -363,7 +331,7 @@ describe('TurnPlanner', () => {
         userMessage: 'Volgens mijn berekening heb ik RC 6.0 nodig',
       });
 
-      expect(plan.tone).toBe('collaborative');
+      // Tone is no longer part of TurnPlan (determined by LLM via PromptBuilder)
     });
 
     it('uses informative tone by default', () => {
@@ -374,7 +342,7 @@ describe('TurnPlanner', () => {
         userMessage: 'Vertel me meer',
       });
 
-      expect(plan.tone).toBe('informative');
+      // Tone is no longer part of TurnPlan (determined by LLM via PromptBuilder)
     });
   });
 
@@ -394,7 +362,7 @@ describe('TurnPlanner', () => {
         userMessage: 'Test',
       });
 
-      expect(plan.action).toBe('conflict_resolution');
+      expect(plan.goal).toBe('surface_risks');
       expect(plan.systemConflicts?.[0]).toEqual(blockingConflict);
     });
 
@@ -471,12 +439,8 @@ describe('TurnPlanner', () => {
   describe('route assignment', () => {
     it('assigns guard_required for data patches', () => {
       const behaviorProfile = createBehaviorProfile({
-        patterns: {
-          askingManyQuestions: false,
-          providingDetails: true,
-          exploring: false,
-          decisive: true,
-        },
+        confidenceLevel: 'high',
+        speedPreference: 'quick',
       });
 
       const plan = planner.plan({
@@ -489,12 +453,7 @@ describe('TurnPlanner', () => {
 
     it('assigns normal for advice requests', () => {
       const behaviorProfile = createBehaviorProfile({
-        patterns: {
-          askingManyQuestions: true,
-          providingDetails: false,
-          exploring: true,
-          decisive: false,
-        },
+        speedPreference: 'thorough',
       });
 
       const plan = planner.plan({
@@ -547,7 +506,7 @@ describe('TurnPlanner', () => {
         userMessage: 'Test message',
       });
 
-      expect(plan.action).toBe('advies');
+      expect(plan.goal).toBe('clarify');
       expect(plan.priority).toBe('user_query');
     });
 
@@ -568,8 +527,8 @@ describe('TurnPlanner', () => {
         userMessage: 'Hi',
       });
 
-      expect(plan.action).toBeDefined();
-      expect(plan.tone).toBeDefined();
+      expect(plan.goal).toBeDefined();
+      // Tone is no longer part of TurnPlan (determined by LLM via PromptBuilder)
       expect(plan.priority).toBeDefined();
       expect(plan.route).toBeDefined();
       expect(plan.reasoning).toBeDefined();
@@ -584,8 +543,8 @@ describe('TurnPlanner', () => {
     it('starter user with blocking conflict gets supportive conflict resolution', () => {
       const blockingConflict = createConflict('budget_risk', 'blocking');
       const behaviorProfile = createBehaviorProfile({
-        signals: { overwhelmed: true, engaged: false, frustrated: false, confident: false },
-        recommendedTone: 'supportive',
+        signals: { overwhelmed: true, confused: false, impatient: false, engaged: false },
+        toneHint: 'warm',
       });
 
       const plan = planner.plan({
@@ -594,22 +553,16 @@ describe('TurnPlanner', () => {
         userMessage: 'Help, wat nu?',
       });
 
-      expect(plan.action).toBe('conflict_resolution');
-      expect(plan.tone).toBe('supportive');
+      expect(plan.goal).toBe('surface_risks');
+      // Tone is no longer part of TurnPlan (determined by LLM via PromptBuilder)
       expect(plan.priority).toBe('system_conflict');
       expect(plan.route).toBe('guard_required');
     });
 
     it('experienced user providing data gets directive patch action', () => {
       const behaviorProfile = createBehaviorProfile({
-        patterns: {
-          askingManyQuestions: false,
-          providingDetails: true,
-          exploring: false,
-          decisive: true,
-        },
-        userStyle: 'doer',
-        recommendedTone: 'directive',
+        confidenceLevel: 'high',
+        speedPreference: 'quick',
       });
 
       const plan = planner.plan({
@@ -617,23 +570,17 @@ describe('TurnPlanner', () => {
         userMessage: 'Budget €250k, 3 slaapkamers, start maart',
       });
 
-      expect(plan.action).toBe('patch');
-      expect(plan.tone).toBe('directive');
+      expect(plan.goal).toBe('fill_data');
+      // Tone is no longer part of TurnPlan (determined by LLM via PromptBuilder)
       expect(plan.priority).toBe('user_query');
       expect(plan.route).toBe('guard_required');
     });
 
     it('researcher asking for advice gets collaborative informative response', () => {
       const behaviorProfile = createBehaviorProfile({
-        patterns: {
-          askingManyQuestions: true,
-          providingDetails: false,
-          exploring: true,
-          decisive: false,
-        },
-        signals: { overwhelmed: false, engaged: true, frustrated: false, confident: true },
-        userStyle: 'researcher',
-        recommendedTone: 'collaborative',
+        speedPreference: 'thorough',
+        signals: { overwhelmed: false, confused: false, impatient: false, engaged: true },
+        confidenceLevel: 'high',
       });
 
       const plan = planner.plan({
@@ -641,8 +588,8 @@ describe('TurnPlanner', () => {
         userMessage: 'Wat zijn de verschillen tussen RC 4.5 en RC 6.0?',
       });
 
-      expect(plan.action).toBe('advies');
-      expect(plan.tone).toBe('collaborative');
+      expect(plan.goal).toBe('clarify');
+      // Tone is no longer part of TurnPlan (determined by LLM via PromptBuilder)
       expect(plan.priority).toBe('user_query');
     });
   });

@@ -36,10 +36,10 @@ export interface FullContext {
  * Responsibilities:
  * - Prune context to strict token limit (<4000 tokens)
  * - Always include core: behaviorProfile, turnPlan, wizardState essentials
- * - Conditionally include based on turnPlan.action:
- *   - "probe" → anticipation (max 2), conversation (max 2)
- *   - "patch" → KB nuggets (max 3), examples (max 2)
- *   - "conflict_resolution" → all conflicts, no KB nuggets
+ * - Conditionally include based on turnPlan.goal:
+ *   - "anticipate_and_guide" → anticipation (max 2), conversation (max 2)
+ *   - "fill_data" → KB nuggets (max 3), examples (max 2)
+ *   - "surface_risks" → all conflicts, no KB nuggets
  * - Never prune focused field/chapter
  * - Log what was removed for debugging
  *
@@ -103,8 +103,8 @@ export class ContextPruner {
         }
       }
 
-      // STEP 3: Conditional content based on turnPlan.action
-      if (turnPlan.action === 'probe') {
+      // STEP 3: Conditional content based on turnPlan.goal
+      if (turnPlan.goal === 'anticipate_and_guide') {
         // Include anticipation guidance (max 2, prioritize critical/high)
         if (anticipationGuidance && anticipationGuidance.length > 0) {
           const sortedGuidance = [...anticipationGuidance].sort((a, b) => {
@@ -131,7 +131,7 @@ export class ContextPruner {
         const historyTokens = estimateTokens(JSON.stringify(prunedHistory));
         remainingTokens -= historyTokens;
 
-      } else if (turnPlan.action === 'patch') {
+      } else if (turnPlan.goal === 'fill_data') {
         // Include KB nuggets (max 3, sorted by relevance)
         if (kbNuggets && kbNuggets.length > 0) {
           const sortedNuggets = [...kbNuggets].sort((a, b) => b.relevanceScore - a.relevanceScore);
@@ -170,7 +170,7 @@ export class ContextPruner {
         const historyTokens = estimateTokens(JSON.stringify(prunedHistory));
         remainingTokens -= historyTokens;
 
-      } else if (turnPlan.action === 'conflict_resolution') {
+      } else if (turnPlan.goal === 'surface_risks') {
         // Include ALL conflicts (blocking + warning)
         if (systemConflicts && systemConflicts.length > 0) {
           const conflictsTokens = estimateTokens(JSON.stringify(systemConflicts));

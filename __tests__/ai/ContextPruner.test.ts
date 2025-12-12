@@ -25,26 +25,20 @@ describe('ContextPruner', () => {
   });
 
   const createBehaviorProfile = (): BehaviorProfile => ({
-    patterns: {
-      askingManyQuestions: false,
-      providingDetails: false,
-      exploring: false,
-      decisive: false,
-    },
     signals: {
       overwhelmed: false,
+      confused: false,
+      impatient: false,
       engaged: false,
-      frustrated: false,
-      confident: false,
     },
-    userStyle: 'explorer',
-    recommendedTone: 'informative',
+    toneHint: 'neutral',
+    confidenceLevel: 'medium',
+    speedPreference: 'balanced',
     turnCount: 0,
   });
 
-  const createTurnPlan = (action: TurnPlan['action'] = 'advies'): TurnPlan => ({
-    action,
-    tone: 'informative',
+  const createTurnPlan = (goal: TurnPlan['goal'] = 'clarify'): TurnPlan => ({
+    goal,
     priority: 'user_query',
     route: 'normal',
     reasoning: 'Test plan',
@@ -186,8 +180,8 @@ describe('ContextPruner', () => {
   describe('core always included', () => {
     it('includes behaviorProfile essentials', () => {
       const behaviorProfile = createBehaviorProfile();
-      behaviorProfile.userStyle = 'researcher';
-      behaviorProfile.recommendedTone = 'collaborative';
+      behaviorProfile.confidenceLevel = 'high';
+      behaviorProfile.toneHint = 'direct';
 
       const fullContext: FullContext = {
         wizardState: createMinimalWizardState(),
@@ -203,7 +197,7 @@ describe('ContextPruner', () => {
     });
 
     it('includes turnPlan essentials', () => {
-      const turnPlan = createTurnPlan('probe');
+      const turnPlan = createTurnPlan('anticipate_and_guide');
       turnPlan.reasoning = 'Critical guidance needed';
 
       const fullContext: FullContext = {
@@ -254,7 +248,7 @@ describe('ContextPruner', () => {
 
       const fullContext: FullContext = {
         wizardState: createMinimalWizardState(),
-        turnPlan: createTurnPlan('probe'),
+        turnPlan: createTurnPlan('anticipate_and_guide'),
         behaviorProfile: createBehaviorProfile(),
         conversationHistory: [],
         anticipationGuidance: [anticipation],
@@ -273,7 +267,7 @@ describe('ContextPruner', () => {
 
       const fullContext: FullContext = {
         wizardState: createMinimalWizardState(),
-        turnPlan: createTurnPlan('probe'),
+        turnPlan: createTurnPlan('anticipate_and_guide'),
         behaviorProfile: createBehaviorProfile(),
         conversationHistory,
       };
@@ -295,7 +289,7 @@ describe('ContextPruner', () => {
 
       const fullContext: FullContext = {
         wizardState: createMinimalWizardState(),
-        turnPlan: createTurnPlan('patch'),
+        turnPlan: createTurnPlan('fill_data'),
         behaviorProfile: createBehaviorProfile(),
         conversationHistory: [],
         kbNuggets,
@@ -316,7 +310,7 @@ describe('ContextPruner', () => {
 
       const fullContext: FullContext = {
         wizardState: createMinimalWizardState(),
-        turnPlan: createTurnPlan('patch'),
+        turnPlan: createTurnPlan('fill_data'),
         behaviorProfile: createBehaviorProfile(),
         conversationHistory: [],
         customerExamples,
@@ -338,7 +332,7 @@ describe('ContextPruner', () => {
 
       const fullContext: FullContext = {
         wizardState: createMinimalWizardState(),
-        turnPlan: createTurnPlan('conflict_resolution'),
+        turnPlan: createTurnPlan('surface_risks'),
         behaviorProfile: createBehaviorProfile(),
         conversationHistory: [],
         systemConflicts: conflicts,
@@ -359,7 +353,7 @@ describe('ContextPruner', () => {
 
       const fullContext: FullContext = {
         wizardState: createMinimalWizardState(),
-        turnPlan: createTurnPlan('conflict_resolution'),
+        turnPlan: createTurnPlan('surface_risks'),
         behaviorProfile: createBehaviorProfile(),
         conversationHistory: [],
         kbNuggets,
@@ -521,7 +515,7 @@ describe('ContextPruner', () => {
 
       const fullContext: FullContext = {
         wizardState: createMinimalWizardState(),
-        turnPlan: createTurnPlan('advies'),
+        turnPlan: createTurnPlan('clarify'),
         behaviorProfile: createBehaviorProfile(),
         conversationHistory,
       };
@@ -543,7 +537,7 @@ describe('ContextPruner', () => {
 
       const fullContext: FullContext = {
         wizardState: createMinimalWizardState(),
-        turnPlan: createTurnPlan('advies'),
+        turnPlan: createTurnPlan('clarify'),
         behaviorProfile: createBehaviorProfile(),
         conversationHistory,
       };
@@ -632,7 +626,7 @@ describe('ContextPruner', () => {
 
       const fullContext: FullContext = {
         wizardState: createMinimalWizardState(),
-        turnPlan: createTurnPlan('patch'),
+        turnPlan: createTurnPlan('fill_data'),
         behaviorProfile: createBehaviorProfile(),
         conversationHistory: [],
         kbNuggets,
@@ -653,7 +647,7 @@ describe('ContextPruner', () => {
 
       const fullContext: FullContext = {
         wizardState: createMinimalWizardState(),
-        turnPlan: createTurnPlan('patch'),
+        turnPlan: createTurnPlan('fill_data'),
         behaviorProfile: createBehaviorProfile(),
         conversationHistory: [],
         kbNuggets,
@@ -676,7 +670,7 @@ describe('ContextPruner', () => {
 
       const fullContext: FullContext = {
         wizardState: createMinimalWizardState(),
-        turnPlan: createTurnPlan('patch'),
+        turnPlan: createTurnPlan('fill_data'),
         behaviorProfile: createBehaviorProfile(),
         conversationHistory: [],
         customerExamples,
@@ -702,7 +696,7 @@ describe('ContextPruner', () => {
 
       const fullContext: FullContext = {
         wizardState: createMinimalWizardState(),
-        turnPlan: createTurnPlan('conflict_resolution'),
+        turnPlan: createTurnPlan('surface_risks'),
         behaviorProfile: createBehaviorProfile(),
         conversationHistory: [],
         systemConflicts: conflicts,
@@ -726,7 +720,7 @@ describe('ContextPruner', () => {
 
       const fullContext: FullContext = {
         wizardState: createMinimalWizardState(),
-        turnPlan: createTurnPlan('probe'),
+        turnPlan: createTurnPlan('anticipate_and_guide'),
         behaviorProfile: createBehaviorProfile(),
         conversationHistory: [],
         anticipationGuidance,
@@ -850,7 +844,7 @@ describe('ContextPruner', () => {
             budget: { budgetTotaal: 200000 },
           },
         },
-        turnPlan: createTurnPlan('probe'),
+        turnPlan: createTurnPlan('anticipate_and_guide'),
         behaviorProfile: createBehaviorProfile(),
         conversationHistory: Array.from({ length: 10 }, (_, i) =>
           createConversationTurn(i % 2 === 0 ? 'user' : 'assistant', `Message ${i}`)
@@ -875,7 +869,7 @@ describe('ContextPruner', () => {
             budget: { budgetTotaal: 200000 },
           },
         },
-        turnPlan: createTurnPlan('patch'),
+        turnPlan: createTurnPlan('fill_data'),
         behaviorProfile: createBehaviorProfile(),
         conversationHistory: [],
         kbNuggets: Array.from({ length: 10 }, (_, i) => ({
@@ -912,7 +906,7 @@ describe('ContextPruner', () => {
             },
           },
         },
-        turnPlan: createTurnPlan('conflict_resolution'),
+        turnPlan: createTurnPlan('surface_risks'),
         behaviorProfile: createBehaviorProfile(),
         conversationHistory: [],
         systemConflicts: [
