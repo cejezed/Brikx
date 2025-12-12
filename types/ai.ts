@@ -276,11 +276,13 @@ export interface ChapterOpeningResponse {
  * Contains draft text, patches, and metadata.
  */
 export interface OrchestratorResult {
+  status: 'success' | 'parse_error' | 'llm_error';  // Explicit status for AnswerGuard
   draftResponse: string;
   patches: any[];                         // Will be PatchEvent[] from project.ts
   confidence: number;
   tokensUsed: number;
   action?: 'reset' | 'undo';             // Special actions
+  parseError?: string;                    // Details when status='parse_error'
 }
 
 // ============================================================================

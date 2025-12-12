@@ -90,6 +90,7 @@ describe('ResponseOrchestrator', () => {
       });
 
       expect(result).toBeDefined();
+      expect(result.status).toBe('success'); // Successful parse
       expect(result.draftResponse).toBe(mockLLMResponse.reply);
       expect(result.patches).toEqual([]);
       expect(result.tokensUsed).toBeGreaterThan(0);
@@ -230,7 +231,7 @@ describe('ResponseOrchestrator', () => {
   // ============================================================================
 
   describe('error handling', () => {
-    it('handles LLM timeout gracefully', async () => {
+    it('CRITICAL: returns llm_error status for LLM failures', async () => {
       const query = 'Test query';
       const turnPlan = createTurnPlan();
       const prunedContext = createPrunedContext();
@@ -244,13 +245,14 @@ describe('ResponseOrchestrator', () => {
         prunedContext,
       });
 
-      expect(result).toBeDefined();
+      // CRITICAL: LLM errors distinct from parse errors
+      expect(result.status).toBe('llm_error');
       expect(result.draftResponse).toContain('kan uw vraag op dit moment niet volledig verwerken');
       expect(result.patches).toEqual([]);
       expect(result.confidence).toBe(0);
     });
 
-    it('handles invalid JSON response from LLM', async () => {
+    it('CRITICAL: returns parse_error status for invalid JSON (hard-fail)', async () => {
       const query = 'Test query';
       const turnPlan = createTurnPlan();
       const prunedContext = createPrunedContext();
@@ -264,18 +266,21 @@ describe('ResponseOrchestrator', () => {
         prunedContext,
       });
 
-      expect(result).toBeDefined();
-      expect(result.draftResponse).toContain('kan uw vraag op dit moment niet volledig verwerken');
+      // CRITICAL: Must return explicit parse_error status for AnswerGuard
+      expect(result.status).toBe('parse_error');
+      expect(result.parseError).toContain('JSON parse failed');
       expect(result.confidence).toBe(0);
+      expect(result.patches).toHaveLength(0);
     });
 
-    it('handles empty LLM response', async () => {
+    it('CRITICAL: returns parse_error status for invalid schema (hard-fail)', async () => {
       const query = 'Test query';
       const turnPlan = createTurnPlan();
       const prunedContext = createPrunedContext();
 
       const { ProModel } = await import('@/lib/ai/ProModel');
-      vi.mocked(ProModel.generateResponse).mockResolvedValue(''); // Empty response
+      // Valid JSON but invalid schema (missing reply field)
+      vi.mocked(ProModel.generateResponse).mockResolvedValue('');
 
       const result = await orchestrator.generate({
         query,
@@ -283,8 +288,10 @@ describe('ResponseOrchestrator', () => {
         prunedContext,
       });
 
-      expect(result).toBeDefined();
-      expect(result.draftResponse).toBeTruthy(); // Should have fallback message
+      // CRITICAL: Schema validation failure = parse_error
+      expect(result.status).toBe('parse_error');
+      expect(result.parseError).toBeDefined();
+      expect(result.confidence).toBe(0);
     });
 
     it('validates patches are valid before returning', async () => {

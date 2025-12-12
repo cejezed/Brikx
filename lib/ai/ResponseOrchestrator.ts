@@ -87,7 +87,22 @@ export class ResponseOrchestrator {
       const llmResult = await this.callLLM(turnPlan.goal, prompt, prunedContext);
 
       // Step 4: Parse response
-      const candidate = this.parseResponse(llmResult.response);
+      const parseResult = this.parseResponse(llmResult.response);
+
+      // CRITICAL CHECK #5: Hard-fail on parse errors (for AnswerGuard retry)
+      if (!parseResult.success) {
+        console.error('[ResponseOrchestrator] Parse error:', parseResult.error);
+        return {
+          status: 'parse_error',
+          draftResponse: this.getFallbackMessage(turnPlan.goal),
+          patches: [],
+          confidence: 0,
+          tokensUsed: llmResult.tokensUsed,
+          parseError: parseResult.error,
+        };
+      }
+
+      const candidate = parseResult.data;
 
       // CRITICAL CHECK #1: Enforce allowPatches
       let finalPatches = candidate.patches || [];
@@ -109,6 +124,7 @@ export class ResponseOrchestrator {
 
       // Step 6: Return result
       return {
+        status: 'success',
         draftResponse: candidate.reply || this.getFallbackMessage(turnPlan.goal),
         patches: finalPatches,
         confidence,
@@ -357,33 +373,48 @@ ${conflictDescriptions}
 
   /**
    * Parse LLM response JSON.
+   * Returns { success: true, data } or { success: false, error }
    * @private
    */
-  private parseResponse(response: string): CandidateResponse {
+  private parseResponse(response: string): { success: true; data: CandidateResponse } | { success: false; error: string } {
     try {
       // Clean markdown artifacts
       const cleaned = response.replace(/```json/gi, '').replace(/```/g, '').trim();
 
       const parsed = JSON.parse(cleaned);
 
-      // Validate basic structure
+      // Validate basic structure (schema validation)
       if (typeof parsed.reply !== 'string') {
-        throw new Error('Invalid response: missing reply field');
+        return {
+          success: false,
+          error: 'Invalid schema: missing or invalid reply field (expected string)',
+        };
       }
 
+      if (parsed.patches && !Array.isArray(parsed.patches)) {
+        return {
+          success: false,
+          error: 'Invalid schema: patches must be an array',
+        };
+      }
+
+      // Successful parse
       return {
-        reply: parsed.reply,
-        patches: parsed.patches || [],
-        usedTriggerIds: parsed.usedTriggerIds || [],
-        usedExampleIds: parsed.usedExampleIds || [],
-        usedNuggetIds: parsed.usedNuggetIds || [],
+        success: true,
+        data: {
+          reply: parsed.reply,
+          patches: parsed.patches || [],
+          usedTriggerIds: parsed.usedTriggerIds || [],
+          usedExampleIds: parsed.usedExampleIds || [],
+          usedNuggetIds: parsed.usedNuggetIds || [],
+        },
       };
     } catch (error) {
-      console.error('[ResponseOrchestrator.parseResponse] JSON parse error:', error);
-      // Return fallback structure
+      const errorMessage = error instanceof Error ? error.message : 'Unknown JSON parse error';
+      console.error('[ResponseOrchestrator.parseResponse] JSON parse error:', errorMessage);
       return {
-        reply: '',
-        patches: [],
+        success: false,
+        error: `JSON parse failed: ${errorMessage}`,
       };
     }
   }
@@ -489,11 +520,12 @@ ${conflictDescriptions}
   }
 
   /**
-   * Get error fallback result.
+   * Get error fallback result (for LLM errors, not parse errors).
    * @private
    */
   private getErrorFallback(): OrchestratorResult {
     return {
+      status: 'llm_error',
       draftResponse:
         'Ik kan uw vraag op dit moment niet volledig verwerken. Laten we het eenvoudig houden: kunt u uw vraag anders formuleren?',
       patches: [],
