@@ -132,6 +132,48 @@ export default function Step1ProjectEssentials({ data, onChange }: Step1Props) {
           })}
         </div>
       </div>
+
+      {/* Budget Range */}
+      <div className="space-y-3">
+        <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          Budget Indicatie
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { value: '€100k - €250k' as const, label: '€100k - €250k' },
+            { value: '€250k - €500k' as const, label: '€250k - €500k' },
+            { value: '€500k - €1M' as const, label: '€500k - €1M' },
+            { value: '€1M+' as const, label: '€1M+' },
+          ].map((option) => {
+            const isActive = data.budgetRange === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => onChange({ budgetRange: option.value })}
+                className={[
+                  "px-6 py-3 rounded-xl text-sm font-bold border-2 transition-all backdrop-blur-sm",
+                  isActive
+                    ? "bg-brikx-500 border-brikx-500 text-white shadow-lg shadow-brikx-500/30 transform scale-105"
+                    : "bg-white/40 text-slate-600 border-white/50 hover:border-brikx-400 hover:text-brikx-600 hover:bg-white/80 shadow-sm dark:bg-white/5 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10",
+                ].join(" ")}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+          Een globale indicatie is voldoende. Dit helpt ons uw project beter te adviseren.
+        </p>
+        <textarea
+          value={data.budgetOpmerking}
+          onChange={(e) => onChange({ budgetOpmerking: e.target.value })}
+          placeholder="Eventuele toelichting bij budget..."
+          rows={2}
+          className="glass-input w-full text-sm"
+        />
+      </div>
     </div>
   );
 }

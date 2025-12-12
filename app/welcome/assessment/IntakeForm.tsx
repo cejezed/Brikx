@@ -118,12 +118,6 @@ export default function IntakeForm() {
 
       <div className="max-w-3xl mx-auto relative z-10">
         {/* Progress Header */}
-        <ProgressHeader
-          currentStep={currentStep}
-          totalSteps={3}
-          stepTitles={STEP_TITLES}
-        />
-
         {/* Step Content */}
         <div className="bg-white/40 border-white/40 shadow-2xl shadow-slate-400/20 backdrop-blur-[60px] dark:bg-slate-900/40 dark:border-white/10 dark:shadow-black/50 rounded-lg sm:rounded-2xl border-2 p-4 sm:p-8 mb-4 sm:mb-6">
           {currentStep === 1 && (

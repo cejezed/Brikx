@@ -106,15 +106,15 @@ export function isStep1Valid(data: IntakeFormData): boolean {
   return (
     data.projectType !== null &&
     (data.locatieOnbekend || data.locatie.trim().length > 0) &&
-    data.sqMeters > 0
+    data.sqMeters > 0 &&
+    data.budgetRange !== null
   );
 }
 
 export function isStep2Valid(data: IntakeFormData): boolean {
   return (
     data.urgency !== null &&
-    data.ervaring !== null &&
-    data.budgetRange !== null
+    data.ervaring !== null
   );
 }
 
