@@ -15,7 +15,7 @@ import Footer from '@/components/Footer'
 export default function Home() {
   return (
     <main className="min-h-screen">
-       <Header />
+      <Header />
       {/* Hero is #home + #login/#start in het formulier zelf */}
       <HeroWithForm />
       <section id="voordelen" className="scroll-mt-14"></section>
@@ -37,9 +37,34 @@ export default function Home() {
         <FAQ />
       </section>
 
-    
-   
+
+
       <Footer />
+
+      {/* JSON-LD Structured Data for SoftwareApplication */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "Brikx",
+            "applicationCategory": "DesignApplication",
+            "operatingSystem": "Web",
+            "offers": {
+              "@type": "Offer",
+              "price": "0.00",
+              "priceCurrency": "EUR"
+            },
+            "description": "De slimme assistent voor elk (ver)bouwproject. Van kavel tot sleuteloverdracht.",
+            "aggregateRating": {
+              "@type": "AggregateRating",
+              "ratingValue": "4.8",
+              "ratingCount": "120"
+            }
+          }),
+        }}
+      />
     </main>
   )
 }

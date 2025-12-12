@@ -5,6 +5,7 @@ import BrikxHeaderLanding from "@/components/BrikxHeaderLanding";
 import Footer from "@/components/Footer";
 
 import FAQClient from "./FAQClient";
+import { FAQ_ITEMS } from "./faq-data";
 
 export const metadata: Metadata = {
   title: "Veelgestelde vragen – Brikx",
@@ -45,6 +46,25 @@ export default function FAQPage() {
 
       {/* Footer */}
       <Footer />
+
+      {/* JSON-LD Structured Data for FAQPage */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: FAQ_ITEMS.map((item) => ({
+              "@type": "Question",
+              name: item.question,
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: item.answer,
+              },
+            })),
+          }),
+        }}
+      />
     </main>
   );
 }

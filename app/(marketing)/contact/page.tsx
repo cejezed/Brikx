@@ -34,7 +34,7 @@ export default function ContactPage() {
       <BrikxHero />
 
       <main className="bg-[#e7f3f4] rounded-b-[30px] shadow-[0_10px_30px_rgba(0,0,0,0.06)] relative w-full mx-auto max-w-[1552px] px-6 md:px-10 lg:px-20 py-16 md:py-24 space-y-20">
-      
+
 
         {/* 4 blokken */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10">
@@ -102,7 +102,7 @@ export default function ContactPage() {
             </p>
             <ul className="list-disc pl-6 text-[#35515a] space-y-1 mb-4">
               <li>
-               <a
+                <a
                   href="mailto:info@brikxai.nl"
                   className="hover:underline text-[#0d3d4d]"
                 > <strong>De Startpunt-Sessie</strong></a> – een werksessie om uw PvE
@@ -116,7 +116,7 @@ export default function ContactPage() {
                 op juridische, technische en financiële risico’s.
               </li>
             </ul>
-           
+
           </div>
 
           {/* Blok 4 */}
@@ -142,13 +142,38 @@ export default function ContactPage() {
                 </a>
               </li>
               <li>Loenen aan de Vecht (NL)</li>
-             
+
             </ul>
           </div>
         </section>
       </main>
 
       <Footer />
+
+      {/* JSON-LD Structured Data for ContactPage */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "ContactPage",
+            "name": "Contact & Advies – Brikx",
+            "description": "Neem contact op met Brikx voor vragen over uw (ver)bouwproject.",
+            "url": "https://www.brikx.nl/contact",
+            "mainEntity": {
+              "@type": "Organization",
+              "name": "Brikx",
+              "email": "info@brikxai.nl",
+              "url": "https://www.brikx.nl",
+              "contactPoint": {
+                "@type": "ContactPoint",
+                "email": "info@brikxai.nl",
+                "contactType": "customer service"
+              }
+            }
+          }),
+        }}
+      />
     </div>
   );
 }

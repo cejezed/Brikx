@@ -13,7 +13,7 @@ export default function Footer({ className = "" }: FooterProps) {
     <footer className={`w-full bg-white mt-8 md:mt-12 ${className}`} aria-labelledby="footer-heading">
       <h2 id="footer-heading" className="sr-only">Footer</h2>
 
-    
+
       <div className="mx-auto max-w-[1600px] px-16 md:px-20 lg:px-6">
 
         {/* Gekleurde footer 'kaart' met afgeronde BOVENkant */}
@@ -72,7 +72,7 @@ export default function Footer({ className = "" }: FooterProps) {
               </div>
             </div>
 
-           
+
 
             {/* Divider */}
             <div className="mt-10 h-px w-full bg-white/15" />
@@ -103,10 +103,9 @@ export default function Footer({ className = "" }: FooterProps) {
                 "@type": "Organization",
                 name: "Brikx",
                 url: "https://www.brikx.nl",
-                email: "hello@brikx.nl",
-                telephone: "+31612345678",
-                address: { "@type": "PostalAddress", addressLocality: "Naaldwijk", addressCountry: "NL" },
-                sameAs: ["https://www.linkedin.com","https://www.instagram.com","https://www.youtube.com"],
+                email: "info@brikxai.nl",
+                address: { "@type": "PostalAddress", addressLocality: "Loenen aan de Vecht", addressCountry: "NL" },
+                sameAs: ["https://www.linkedin.com", "https://www.instagram.com", "https://www.youtube.com"],
               }),
             }}
           />

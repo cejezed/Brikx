@@ -2,7 +2,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import BrikxHero from "@/components/BrikxHeroOver";
-import Header from "@/components/Header";          
+import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 
@@ -24,29 +24,29 @@ export default function AboutPage() {
     <div className="bg-white text-neutral-900">
       {/* Header */}
       <Header />
-     <BrikxHero/>
+      <BrikxHero />
 
- 
+
 
       {/* Main content */}
-     <main className="bg-[#e7f3f4] rounded-b-[30px] shadow-[0_10px_30px_rgba(0,0,0,0.16)] relative w-full mx-auto max-w-[1552px] px-6 md:px-10 lg:px-20 py-16 md:py-24 space-y-20" >
+      <main className="bg-[#e7f3f4] rounded-b-[30px] shadow-[0_10px_30px_rgba(0,0,0,0.16)] relative w-full mx-auto max-w-[1552px] px-6 md:px-10 lg:px-20 py-16 md:py-24 space-y-20" >
         {/* Sectie 1 – Herkenbare pijn */}
         <section aria-labelledby="pain-title" id="verhaal">
           <div className="grid grid-cols-1 gap-10 md:grid-cols-12 md:items-start">
             <div className="md:col-span-7">
               <h2 className="text-4xl lg:text-5xl font-bold text-[#0d3d4d] mb-4">De herkenbare pijn</h2>
               <p className="text-xl text-[#35515a]">Een droomhuis bouwen of verbouwen. Het zou een van de mooiste
-                  projecten in een mensenleven moeten zijn. Toch zie ik in mijn
-                  praktijk al meer dan 20 jaar hetzelfde gebeuren: de droom
-                  wordt overschaduwd door stress. Een overvloed aan keuzes, de
-                  angst voor onverwachte kosten en de onzekerheid of u wel de
-                  juiste beslissingen neemt.<br></br>
+                projecten in een mensenleven moeten zijn. Toch zie ik in mijn
+                praktijk al meer dan 20 jaar hetzelfde gebeuren: de droom
+                wordt overschaduwd door stress. Een overvloed aan keuzes, de
+                angst voor onverwachte kosten en de onzekerheid of u wel de
+                juiste beslissingen neemt.<br></br>
 
-                  Het resultaat? Kostbare fouten, frustrerende misverstanden en
-                  dromen die vastlopen in de complexiteit van het proces. En
-                  elke keer dacht ik: <em>dit moet anders kunnen. Dit kan beter.</em>
-                </p>
-              
+                Het resultaat? Kostbare fouten, frustrerende misverstanden en
+                dromen die vastlopen in de complexiteit van het proces. En
+                elke keer dacht ik: <em>dit moet anders kunnen. Dit kan beter.</em>
+              </p>
+
             </div>
             <div className="md:col-span-5">
               <div className="relative overflow-hidden rounded-2xl border border-neutral-200 bg-white p-6 shadow-[0_10px_30px_rgba(0,0,0,0.16)]">
@@ -82,14 +82,14 @@ export default function AboutPage() {
               </div>
             </div>
             <div className="md:col-span-7 ">
-               <h2 className="text-4xl lg:text-5xl font-bold text-primary mb-4">
-           Wie is de architect achter Brikx?
-          </h2>
+              <h2 className="text-4xl lg:text-5xl font-bold text-primary mb-4">
+                Wie is de architect achter Brikx?
+              </h2>
               <h2
                 id="founder-title"
                 className="text-2xl font-bold md:text-3xl text-neutral-900"
               >
-                
+
               </h2>
               <div className="text-xl text-[#35515a]">
                 <p>
@@ -112,26 +112,26 @@ export default function AboutPage() {
 
         {/* Sectie 3 – Geboorte van Brikx */}
         <section aria-labelledby="birth-title" id="geboorte">
-  {/* smalle, links uitgelijnde sectie binnen de 1500px page container */}
-  <div className="max-w-[900px]">
-    <h2 className="text-4xl lg:text-5xl font-bold text-[#0d3d4d] mb-4 text-left">
-      De geboorte van Brikx
-    </h2>
-    <div className="text-xl text-[#35515a] space-y-4 text-left">
-      <p>
-        Wat als ik mijn twintig jaar ervaring, honderden gesprekken en
-        duizenden vragen kon distilleren tot één toegankelijke tool? Niet
-        om te leren bouwen, maar om u te leren <em>denken als een architect</em>.
-      </p>
-      <p>
-        Zo is <strong>Brikx</strong> ontstaan: een slimme, digitale
-        assistent die u stap voor stap begeleidt. Het is de professionele
-        voorbereiding die ik voor iedere klant doe — nu toegankelijk voor
-        iedereen.
-      </p>
-    </div>
-  </div>
-</section>
+          {/* smalle, links uitgelijnde sectie binnen de 1500px page container */}
+          <div className="max-w-[900px]">
+            <h2 className="text-4xl lg:text-5xl font-bold text-[#0d3d4d] mb-4 text-left">
+              De geboorte van Brikx
+            </h2>
+            <div className="text-xl text-[#35515a] space-y-4 text-left">
+              <p>
+                Wat als ik mijn twintig jaar ervaring, honderden gesprekken en
+                duizenden vragen kon distilleren tot één toegankelijke tool? Niet
+                om te leren bouwen, maar om u te leren <em>denken als een architect</em>.
+              </p>
+              <p>
+                Zo is <strong>Brikx</strong> ontstaan: een slimme, digitale
+                assistent die u stap voor stap begeleidt. Het is de professionele
+                voorbereiding die ik voor iedere klant doe — nu toegankelijk voor
+                iedereen.
+              </p>
+            </div>
+          </div>
+        </section>
 
         {/* Sectie 4 – Filosofie (bullet cards) */}
         <section aria-labelledby="philosophy-title" id="filosofie">
@@ -230,6 +230,31 @@ export default function AboutPage() {
 
       {/* Footer */}
       <Footer />
+
+      {/* JSON-LD Structured Data for AboutPage */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "AboutPage",
+            "name": "Over ons – Brikx",
+            "description": "Het verhaal achter Brikx en oprichter Jules Zwijsen.",
+            "url": "https://www.brikx.nl/over",
+            "mainEntity": {
+              "@type": "Organization",
+              "name": "Brikx",
+              "founder": {
+                "@type": "Person",
+                "name": "Jules Zwijsen",
+                "jobTitle": "Architect & Oprichter"
+              },
+              "foundingDate": "2024",
+              "description": "Digitale (ver)bouwassistent gebaseerd op 20 jaar architectervaring."
+            }
+          }),
+        }}
+      />
     </div>
   );
 }

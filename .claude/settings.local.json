@@ -4,7 +4,12 @@
       "Bash(git add:*)",
       "Bash(git push:*)",
       "Bash(git commit -m \"$(cat <<''EOF''\nfix: Start Intake button nu gaat direct naar assessment\n\n- handleStartIntake reset nu eerst alle wizard state\n- Navigeert daarna naar /welcome/assessment i.p.v. /?intake=true\n- Zorgt voor clean intake start zonder oude data\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(npm run:*)",
+      "Bash(npx vitest:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfeat(ai): Implement FieldWatcher & FeedbackQueue (Week 1, Day 3)\n\nImplements field change detection and debounced trigger delivery for AI Intelligence Layer v3.1\n\nChanges:\n- Created lib/ai/FieldWatcher.ts:\n  * detectFieldTriggers(): Deep-compares WizardState changes\n  * CRITICAL: Only triggers when source === \"user\" (prevents infinite loops)\n  * Maps field paths to correct chapters\n  * Confidence scoring for changes\n  * Deduplication by fieldPath\n\n- Created lib/ai/FeedbackQueue.ts:\n  * add(): Buffers incoming field triggers\n  * flush(): Delivers top 2 most recent triggers\n  * 800ms debounce prevents rapid-fire AI responses\n  * Deduplicates by fieldPath (keeps last value)\n  * onFlush() callback pattern\n\n- Created comprehensive test suites:\n  * __tests__/ai/FieldWatcher.test.ts (7 test suites, 15 tests)\n  * __tests__/ai/FeedbackQueue.test.ts (7 test suites, 18 tests)\n  * Test-first development approach per BUILD_START_GUIDE.md\n\nKey Features:\n- Loop prevention: source tracking ensures AI changes don''t trigger AI responses\n- Debouncing: 800ms wait prevents spam during rapid field changes\n- Smart deduplication: Only reacts to final value after rapid changes\n- Performance: Deep comparison with recursion limits\n- Type-safe: Works with actual v3.5 WizardState structure\n\nTypeScript: ✅ All type-checks passing\nTests: 📝 33 tests ready for execution\nLine Count: FieldWatcher.ts (237 lines), FeedbackQueue.ts (116 lines)\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git commit:*)"
     ]
   }
 }
