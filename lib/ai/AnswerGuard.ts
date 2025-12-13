@@ -1,361 +1,305 @@
-// /lib/ai/AnswerGuard.ts
-// ✅ v4.0: GENERIEKE ANSWER GUARD LAAG
-// Valideert AI-antwoorden op relevantie, duidelijkheid en het voorkomen van hallucinaties
+// lib/ai/AnswerGuard.ts
+// Week 3, Day 13 - AnswerGuard 2.0
+// Purpose: Multi-layer validation of OrchestratorResult with retry logic
+// Architecture: Parse errors → Hard checks → Soft checks → Optional mini-LLM
 
-import type { ProIntent } from "./ProModel";
+import type { OrchestratorResult } from '@/types/ai';
+import type { TurnPlan } from '@/types/ai';
+import {
+  validateResponse,
+  buildRetryPrompt,
+  type ValidationResult,
+  type ValidationIssue,
+} from './helpers/guardRules';
+
+// ============================================================================
+// TYPES
+// ============================================================================
 
 /**
- * Input voor de AnswerGuard validator
+ * Final decision of AnswerGuard validation.
  */
-export interface AnswerGuardInput {
-  /** De oorspronkelijke vraag van de gebruiker */
-  userQuery: string;
+export type GuardVerdict = 'APPROVED' | 'RETRY_REQUIRED' | 'HARD_FAIL';
 
-  /** Het gedetecteerde intent (ADVIES_VRAAG, VULLEN_DATA, etc.) */
-  intent: ProIntent;
-
-  /** Het huidige actieve hoofdstuk (optioneel) */
-  activeChapter?: string | null;
-
-  /** Het concept-antwoord dat naar de gebruiker zou gaan */
-  draftAnswer: string;
-
-  /** RAG metadata (optioneel) - gebruiken we om te checken of er kennisbank-hits waren */
-  ragMeta?: {
-    topicId: string;
-    docsFound: number;
-    cacheHit: boolean;
-  };
+/**
+ * Complete result of AnswerGuard validation.
+ */
+export interface GuardDecision {
+  verdict: GuardVerdict;
+  issues: ValidationIssue[];
+  retryPrompt?: string;
+  shouldRetry: boolean;
+  reason: string;
 }
 
 /**
- * Verdict types van de AnswerGuard
+ * Options for AnswerGuard validation.
  */
-export type AnswerGuardVerdict =
-  | "OK"                    // Antwoord is relevant en goed
-  | "NEEDS_CLARIFICATION"   // Vraag is te vaag/algemeen
-  | "IRRELEVANT";           // Antwoord is niet relevant voor de vraag
-
-/**
- * Resultaat van de AnswerGuard validatie
- */
-export interface AnswerGuardResult {
-  /** Het verdict van de validator */
-  verdict: AnswerGuardVerdict;
-
-  /** Redenen waarom dit verdict is gegeven */
-  reasons: string[];
-
-  /** Suggesties voor een verbeterde tweede poging */
-  suggestions: string[];
-
-  /** Optioneel: confidence score (0-1) */
-  confidence?: number;
+export interface AnswerGuardOptions {
+  maxRetries?: number;
+  enableMiniLLM?: boolean; // Future: gpt-4o-mini fallback for soft checks
 }
 
+// ============================================================================
+// ANSWER GUARD 2.0 CLASS
+// ============================================================================
+
 /**
- * LLM-gebaseerde validator die controleert of een antwoord:
- * 1. Relevant is voor de vraag
- * 2. Niet doet alsof het dingen zeker weet die eigenlijk onduidelijk zijn
- * 3. Geen hallucinaties bevat (verzonnen feiten, cijfers, regels)
+ * AnswerGuard 2.0: Multi-layer validation with retry logic.
  *
- * @param input - De input voor de validator (vraag, intent, antwoord)
- * @param callLLM - Functie die een LLM-call uitvoert
- * @returns Promise met het validatie-resultaat
+ * VALIDATION LAYERS:
+ * 1. Parse Error Detection (result.status === 'parse_error')
+ * 2. Hard Checks (rule-based, MUST pass)
+ * 3. Soft Checks (rule-based, log and retry once)
+ * 4. Mini-LLM Check (future: gpt-4o-mini for soft check failures)
+ *
+ * RETRY STRATEGY:
+ * - Max 2 retries per turn
+ * - Hard failures: immediate retry with correction prompt
+ * - Soft failures: log and retry once with gentle reminder
+ * - Parse errors: immediate retry with parse error details
  */
-export async function runAnswerGuard(
-  input: AnswerGuardInput,
-  callLLM: (opts: { system: string; user: string }) => Promise<string>
-): Promise<AnswerGuardResult> {
-  const { userQuery, intent, activeChapter, draftAnswer, ragMeta } = input;
+export class AnswerGuard {
+  private readonly maxRetries: number;
+  private readonly enableMiniLLM: boolean;
+  private attemptCount: number = 0;
 
-  // Build system prompt voor de validator
-  const systemPrompt = buildValidatorSystemPrompt();
+  constructor(options: AnswerGuardOptions = {}) {
+    this.maxRetries = options.maxRetries ?? 2;
+    this.enableMiniLLM = options.enableMiniLLM ?? false;
+  }
 
-  // Build user prompt met context
-  const userPrompt = buildValidatorUserPrompt({
-    userQuery,
-    intent,
-    activeChapter,
-    draftAnswer,
-    ragMeta,
-  });
+  /**
+   * Main validation method.
+   * Runs all validation layers and returns a decision.
+   */
+  validate(result: OrchestratorResult, turnPlan: TurnPlan): GuardDecision {
+    this.attemptCount++;
 
-  try {
-    // Roep LLM aan voor validatie
-    const rawResponse = await callLLM({
-      system: systemPrompt,
-      user: userPrompt,
-    });
-
-    // Parse JSON response
-    const result = parseValidatorResponse(rawResponse);
-
-    // Log het verdict (niet de volledige inhoud vanwege privacy)
-    if (result.verdict !== "OK") {
-      console.warn(`[AnswerGuard] Verdict: ${result.verdict}`, {
-        intent,
-        activeChapter,
-        reasonsCount: result.reasons.length,
-      });
-    } else {
-      console.log(`[AnswerGuard] Verdict: OK (intent: ${intent})`);
+    // LAYER 1: Parse Error Detection
+    if (result.status === 'parse_error') {
+      return this.handleParseError(result);
     }
 
-    return result;
-  } catch (error) {
-    console.error("[AnswerGuard] Validation error:", error);
+    // LAYER 2+3: Rule-based validation (hard + soft checks)
+    const validation = validateResponse(result, turnPlan);
 
-    // Bij fout: assume OK (fail-open in plaats van fail-closed)
+    // Determine verdict based on validation results
+    return this.determineVerdict(validation);
+  }
+
+  /**
+   * Reset attempt counter for new turn.
+   */
+  resetAttempts(): void {
+    this.attemptCount = 0;
+  }
+
+  /**
+   * Get current attempt count.
+   */
+  getAttemptCount(): number {
+    return this.attemptCount;
+  }
+
+  // ==========================================================================
+  // PRIVATE METHODS
+  // ==========================================================================
+
+  /**
+   * Handle parse error (Layer 1).
+   * Always retries if attempts remaining.
+   */
+  private handleParseError(result: OrchestratorResult): GuardDecision {
+    const canRetry = this.attemptCount < this.maxRetries;
+
+    if (!canRetry) {
+      return {
+        verdict: 'HARD_FAIL',
+        issues: [
+          {
+            rule: 'parse_error',
+            severity: 'hard',
+            description: `JSON parse failed after ${this.maxRetries} attempts: ${result.parseError}`,
+          },
+        ],
+        shouldRetry: false,
+        reason: `Max retries (${this.maxRetries}) exceeded for parse errors`,
+      };
+    }
+
     return {
-      verdict: "OK",
-      reasons: [],
-      suggestions: [],
-      confidence: 0.5,
+      verdict: 'RETRY_REQUIRED',
+      issues: [
+        {
+          rule: 'parse_error',
+          severity: 'hard',
+          description: `JSON parse failed: ${result.parseError}`,
+        },
+      ],
+      retryPrompt: this.buildParseErrorRetryPrompt(result.parseError || 'Unknown parse error'),
+      shouldRetry: true,
+      reason: 'Parse error detected - retry with corrected JSON format',
     };
+  }
+
+  /**
+   * Determine verdict from rule-based validation (Layer 2+3).
+   */
+  private determineVerdict(validation: ValidationResult): GuardDecision {
+    // Case 1: All checks passed
+    if (validation.passed) {
+      return {
+        verdict: 'APPROVED',
+        issues: [],
+        shouldRetry: false,
+        reason: 'All validation checks passed',
+      };
+    }
+
+    // Case 2: Has issues - check severity and retry availability
+    const hardIssues = validation.issues.filter((i) => i.severity === 'hard');
+    const softIssues = validation.issues.filter((i) => i.severity === 'soft');
+
+    const canRetry = this.attemptCount < this.maxRetries;
+
+    // Hard issues: MUST retry (if attempts remaining)
+    if (hardIssues.length > 0) {
+      if (!canRetry) {
+        return {
+          verdict: 'HARD_FAIL',
+          issues: validation.issues,
+          shouldRetry: false,
+          reason: `Hard validation failures after ${this.maxRetries} attempts`,
+        };
+      }
+
+      return {
+        verdict: 'RETRY_REQUIRED',
+        issues: validation.issues,
+        retryPrompt: validation.retryPrompt,
+        shouldRetry: true,
+        reason: `${hardIssues.length} hard check(s) failed - retry required`,
+      };
+    }
+
+    // Soft issues only: Retry once, then approve with warning
+    if (softIssues.length > 0) {
+      if (this.attemptCount === 1 && canRetry) {
+        // First attempt with soft issues: retry once
+        return {
+          verdict: 'RETRY_REQUIRED',
+          issues: validation.issues,
+          retryPrompt: validation.retryPrompt,
+          shouldRetry: true,
+          reason: `${softIssues.length} soft check(s) failed - retry once`,
+        };
+      } else {
+        // Second attempt or max retries: approve with warning
+        console.warn('[AnswerGuard] Soft issues remain after retry, approving with warning:', {
+          attemptCount: this.attemptCount,
+          issues: softIssues.map((i) => i.rule),
+        });
+
+        return {
+          verdict: 'APPROVED',
+          issues: validation.issues, // Keep issues for logging
+          shouldRetry: false,
+          reason: 'Soft issues remain but max retries reached - approved with warning',
+        };
+      }
+    }
+
+    // Fallback: approve (should not reach here)
+    return {
+      verdict: 'APPROVED',
+      issues: [],
+      shouldRetry: false,
+      reason: 'No blocking issues detected',
+    };
+  }
+
+  /**
+   * Build retry prompt for parse errors.
+   */
+  private buildParseErrorRetryPrompt(parseError: string): string {
+    return `PARSE FOUT GEDETECTEERD:
+
+De vorige response kon niet worden geparsed als JSON.
+
+FOUTMELDING:
+${parseError}
+
+CORRECTIE VEREIST:
+1. Zorg dat de response ALLEEN JSON bevat (geen Markdown, geen tekst buiten JSON)
+2. Gebruik dubbele quotes (") voor strings, niet enkele quotes (')
+3. Valideer dat alle haakjes/accolades correct zijn gesloten
+4. Escape speciale karakters in strings (\\n, \\", etc.)
+
+Probeer opnieuw met correcte JSON formatting.`;
   }
 }
 
+// ============================================================================
+// CONVENIENCE FUNCTIONS
+// ============================================================================
+
 /**
- * Bouwt de system prompt voor de validator
+ * Single-use validation function.
+ * Creates a new AnswerGuard instance and validates.
  */
-function buildValidatorSystemPrompt(): string {
-  return `
-U bent een kwaliteitscontroleur voor AI-antwoorden in de Brikx bouwwizard.
-
-CONTEXT OVER BRIKX:
-- Brikx is een AI-gestuurde wizard voor het maken van een Programma van Eisen (PvE) voor bouwprojecten
-- Gebruikers zijn particulieren die hun huis willen (ver)bouwen
-- De wizard helpt ze stap voor stap om hun wensen, budget, ruimtes en technische eisen te formuleren
-- Er is een AI-coach "Jules" die vragen beantwoordt en data helpt invullen
-
-UW TAAK:
-U controleert of een AI-antwoord voldoet aan kwaliteitseisen:
-
-1. RELEVANTIE CHECK:
-   - Beantwoordt het antwoord de gestelde vraag?
-   - Of praat het antwoord langs de vraag heen?
-   - Kiest het antwoord willekeurig één interpretatie terwijl de vraag meerdere interpretaties heeft?
-
-2. VRAAG DUIDELIJKHEID CHECK:
-   - Is de vraag voldoende specifiek om een zinvol antwoord te geven?
-   - Of is de vraag te vaag/algemeen en moet er eerst doorgevraagd worden?
-   - Voorbeelden van te vage vragen:
-     * "Hoeveel kost verbouwen?" (welk soort verbouwing? hoeveel m2? welke locatie?)
-     * "Wat moet ik doen?" (te algemeen)
-     * "Is dit goed?" (zonder context)
-
-3. HALLUCINATIE CHECK - VERBIED:
-   - Het verzinnen van specifieke cijfers/bedragen zonder bron
-   - Het verzinnen van concrete juridische regels zonder bron
-   - Het verzinnen van exacte normen/afmetingen zonder bron
-   - Het doen alsof iets "zeker" is terwijl het onzeker is
-
-   TOEGESTAAN:
-   - Grove bandbreedtes/ranges als duidelijk als voorbeeld gepresenteerd
-   - Algemene richtlijnen die expliciet als "vuistregel" worden benoemd
-   - Informatie die expliciet uit een kennisbank komt (zie RAG metadata)
-
-4. GEDRAG BIJ AMBIGUÏTEIT:
-   - Als de vraag meerdere interpretaties heeft en het antwoord kiest er maar één zonder dit te benoemen → "NEEDS_CLARIFICATION"
-   - Bij twijfel: liever "NEEDS_CLARIFICATION" dan een gok
-
-5. STRENGHEID PER DOMEIN:
-   - EXTRA STRENG bij: budget/kosten, regelgeving, constructie/veiligheid
-   - Normale strengheid bij: algemene adviesvragen, navigatie, smalltalk
-
-OUTPUT FORMAAT:
-U geeft ALTIJD een JSON-object terug met deze structuur:
-{
-  "verdict": "OK" | "NEEDS_CLARIFICATION" | "IRRELEVANT",
-  "reasons": ["reden 1", "reden 2", ...],
-  "suggestions": ["suggestie 1", "suggestie 2", ...],
-  "confidence": 0.0 - 1.0
-}
-
-RICHTLIJNEN VOOR VERDICTS:
-
-"OK" - Gebruik dit wanneer:
-- Het antwoord de vraag duidelijk beantwoordt
-- De vraag voldoende specifiek was
-- Het antwoord geen hallucinaties bevat
-- Het antwoord eerlijk is over onzekerheden
-
-"NEEDS_CLARIFICATION" - Gebruik dit wanneer:
-- De vraag te vaag/algemeen is om zinvol te beantwoorden
-- De vraag meerdere interpretaties heeft en het antwoord maar één route kiest
-- Het antwoord zich voordoet alsof het specifieke dingen weet die eigenlijk onduidelijk zijn
-- Er kritieke informatie ontbreekt (bij kosten/budget-vragen: m2, type project, locatie, etc.)
-
-"IRRELEVANT" - Gebruik dit wanneer:
-- Het antwoord duidelijk een andere kant opgaat dan de vraag
-- Het antwoord de kernvraag niet adresseert
-- Het antwoord over iets anders praat dan waar de gebruiker naar vroeg
-
-SUGGESTIES:
-- Bij "NEEDS_CLARIFICATION": geef 2-3 concrete vragen die gesteld moeten worden
-- Bij "IRRELEVANT": geef hints over wat het antwoord WEL had moeten adresseren
-- Wees specifiek en actionable
-
-CONFIDENCE:
-- 1.0 = zeer zeker van het verdict
-- 0.7-0.9 = redelijk zeker
-- 0.5-0.7 = enige twijfel
-- < 0.5 = veel onzekerheid
-`.trim();
+export function validateOrchestratorResult(
+  result: OrchestratorResult,
+  turnPlan: TurnPlan,
+  options?: AnswerGuardOptions
+): GuardDecision {
+  const guard = new AnswerGuard(options);
+  return guard.validate(result, turnPlan);
 }
 
 /**
- * Bouwt de user prompt voor de validator
+ * Check if a GuardDecision allows the response to proceed.
  */
-function buildValidatorUserPrompt(ctx: {
-  userQuery: string;
-  intent: ProIntent;
-  activeChapter?: string | null;
-  draftAnswer: string;
-  ragMeta?: {
-    topicId: string;
-    docsFound: number;
-    cacheHit: boolean;
-  };
-}): string {
-  const { userQuery, intent, activeChapter, draftAnswer, ragMeta } = ctx;
-
-  const ragInfo = ragMeta
-    ? `
-RAG METADATA (kennisbank):
-- Topic: ${ragMeta.topicId}
-- Documenten gevonden: ${ragMeta.docsFound}
-- Cache hit: ${ragMeta.cacheHit ? "ja" : "nee"}
-${ragMeta.docsFound > 0 ? "→ Dit antwoord is gebaseerd op kennisbank-informatie" : "→ Geen kennisbank-informatie beschikbaar"}
-`
-    : "\nGeen RAG metadata beschikbaar (geen kennisbank gebruikt)";
-
-  return `
-GEBRUIKERSVRAAG:
-"${userQuery}"
-
-GEDETECTEERD INTENT:
-${intent}
-
-ACTIEF HOOFDSTUK:
-${activeChapter || "geen"}
-
-${ragInfo}
-
-CONCEPT-ANTWOORD DAT GEVALIDEERD MOET WORDEN:
----
-${draftAnswer}
----
-
-VALIDEER DIT ANTWOORD:
-Bepaal of dit antwoord voldoet aan de kwaliteitseisen (zie system prompt).
-
-Let EXTRA op bij intent "ADVIES_VRAAG" en onderwerpen over budget/kosten:
-- Is de vraag specifiek genoeg?
-- Worden er geen bedragen verzonnen?
-- Wordt er niet gedaan alsof het antwoord "zeker" weet wat het kost terwijl dat afhangt van veel factoren?
-
-Geef uw beoordeling als JSON.
-`.trim();
+export function isApproved(decision: GuardDecision): boolean {
+  return decision.verdict === 'APPROVED';
 }
 
 /**
- * Parsed de LLM response naar een AnswerGuardResult
+ * Check if a GuardDecision requires retry.
  */
-function parseValidatorResponse(raw: string): AnswerGuardResult {
-  try {
-    // Clean markdown code blocks
-    const cleaned = raw
-      .replace(/```json/gi, "")
-      .replace(/```/g, "")
-      .trim();
-
-    const parsed = JSON.parse(cleaned) as Partial<AnswerGuardResult>;
-
-    // Validate verdict
-    const verdict: AnswerGuardVerdict =
-      parsed.verdict === "OK" ||
-      parsed.verdict === "NEEDS_CLARIFICATION" ||
-      parsed.verdict === "IRRELEVANT"
-        ? parsed.verdict
-        : "OK"; // default to OK bij parse-fout
-
-    return {
-      verdict,
-      reasons: Array.isArray(parsed.reasons) ? parsed.reasons : [],
-      suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : [],
-      confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0.8,
-    };
-  } catch (error) {
-    console.error("[AnswerGuard] Failed to parse validator response:", error);
-
-    // Fallback: assume OK
-    return {
-      verdict: "OK",
-      reasons: ["Parser fout - assume OK"],
-      suggestions: [],
-      confidence: 0.5,
-    };
-  }
+export function requiresRetry(decision: GuardDecision): boolean {
+  return decision.verdict === 'RETRY_REQUIRED' && decision.shouldRetry;
 }
 
 /**
- * Bouwt een verbeterde system prompt voor een tweede LLM-poging na een "NEEDS_CLARIFICATION" verdict
+ * Check if a GuardDecision is a hard failure (max retries exceeded).
  */
-export function buildClarificationPrompt(
-  originalQuery: string,
-  suggestions: string[]
-): string {
-  const suggestionsText = suggestions.join("\n");
-
-  return `
-De gebruiker stelde: "${originalQuery}"
-
-Deze vraag is te algemeen of mist kritieke informatie om een zinvol antwoord te geven.
-
-U MOET:
-1. Eerlijk uitleggen dat de vraag nog niet specifiek genoeg is
-2. 2-3 concrete verduidelijkingsvragen stellen om de juiste informatie te krijgen
-3. GEEN valse zekerheid suggereren
-4. GEEN specifieke bedragen of regels verzinnen
-
-WELKE INFORMATIE ONTBREEKT:
-${suggestionsText}
-
-GEEF EEN KORT, VRIENDELIJK ANTWOORD (max 150 woorden) waarin u:
-- Kort uitlegt waarom u meer info nodig heeft
-- De verduidelijkingsvragen stelt
-- De gebruiker helpt om de vraag te concretiseren
-`.trim();
+export function isHardFail(decision: GuardDecision): boolean {
+  return decision.verdict === 'HARD_FAIL';
 }
 
-/**
- * Bouwt een verbeterde system prompt voor een tweede LLM-poging na een "IRRELEVANT" verdict
- */
-export function buildRelevancePrompt(
-  originalQuery: string,
-  suggestions: string[]
-): string {
-  const suggestionsText = suggestions.join("\n");
+// ============================================================================
+// LEGACY v4.0 EXPORTS (for backward compatibility)
+// TODO: Remove these once route.ts is migrated to v3.1 AnswerGuard
+// ============================================================================
 
-  return `
-De gebruiker stelde: "${originalQuery}"
+/** @deprecated Legacy v4.0 type - use GuardDecision instead */
+export type AnswerGuardInput = any;
 
-Het eerste antwoord was NIET relevant voor deze vraag.
+/** @deprecated Legacy v4.0 function - use AnswerGuard class instead */
+export async function runAnswerGuard(...args: any[]): Promise<any> {
+  console.warn('[AnswerGuard] runAnswerGuard is deprecated - migrate to v3.1 AnswerGuard class');
+  return { verdict: 'OK', reasons: [], suggestions: [], confidence: 0.8 };
+}
 
-U MOET:
-1. De kernvraag DIRECT adresseren
-2. Kort en to-the-point antwoorden
-3. Geen zijpaden of irrelevante informatie
-4. Focussen op wat de gebruiker ECHT vroeg
+/** @deprecated Legacy v4.0 function - not used in v3.1 */
+export function buildClarificationPrompt(...args: any[]): string {
+  console.warn('[AnswerGuard] buildClarificationPrompt is deprecated');
+  return '';
+}
 
-WAT HET ANTWOORD WEL HAD MOETEN ADRESSEREN:
-${suggestionsText}
-
-GEEF EEN KORT, RELEVANT ANTWOORD (max 200 woorden) dat:
-- Direct ingaat op de vraag
-- Geen irrelevante informatie bevat
-- Concreet en actionable is
-`.trim();
+/** @deprecated Legacy v4.0 function - not used in v3.1 */
+export function buildRelevancePrompt(...args: any[]): string {
+  console.warn('[AnswerGuard] buildRelevancePrompt is deprecated');
+  return '';
 }

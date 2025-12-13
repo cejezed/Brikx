@@ -23,7 +23,7 @@ import { validateChapter } from "@/lib/wizard/CHAPTER_SCHEMAS";
 // ✅ v3.x: META_TOOLING helpers
 import { getToolHelp, getOnboardingMessage } from "@/lib/ai/toolHelp";
 import { detectMetaTooling } from "@/lib/ai/metaDetection";
-// ✅ v4.0: ANSWER GUARD
+// ✅ v4.0: ANSWER GUARD (TODO: Migrate to v3.1 AnswerGuard class)
 import {
   runAnswerGuard,
   buildClarificationPrompt,
