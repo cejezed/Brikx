@@ -1,231 +1,464 @@
-// lib/server/pdf.tsx
-// ✅ v3.14: MoSCoW priorities in Wensen sectie
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import {
   formatWishPriorityLabel,
   formatWishCategoryLabel,
-  getPriorityColor
+  getPriorityColor,
 } from "@/lib/pve/wishPriority";
 
-const styles = StyleSheet.create({
-  document: {},
-  page: { padding: 32, fontSize: 11, lineHeight: 1.5 },
-  block: { marginBottom: 16 },
-  section: { marginBottom: 12 },
-  h1: { fontSize: 18, fontWeight: "bold", marginBottom: 8 },
-  h2: { fontSize: 14, fontWeight: "bold", marginBottom: 6, marginTop: 8 },
-  p: { marginBottom: 4, lineHeight: 1.3, textAlign: "justify" as const },
-  bullet: { marginLeft: 12, marginBottom: 3 },
-  label: { fontSize: 10, fontWeight: "bold", marginTop: 6 },
-  value: { fontSize: 11, marginBottom: 4 },
-  // ✅ v3.14: MoSCoW Wensen tabel styles
-  wishTableHeader: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: "#CBD5E1",
-    paddingVertical: 4,
-    marginBottom: 4,
-    backgroundColor: "#F8FAFC",
-  },
-  wishTableRow: {
-    flexDirection: "row",
-    paddingVertical: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E2E8F0",
-  },
-  wishColPriority: {
-    width: "24%",
-    fontSize: 9,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-  },
-  wishColCategory: {
-    width: "18%",
-    fontSize: 9,
-    color: "#64748B",
-  },
-  wishColText: {
-    width: "58%",
-    fontSize: 10,
-    color: "#1E293B",
-  },
-});
+type ChapterAnswers = Record<string, any>;
 
 export type PveDocumentProps = {
-  chapterAnswers?: Record<string, any>;
+  chapterAnswers?: ChapterAnswers;
   triage?: Record<string, any>;
   projectName?: string;
 };
 
-/**
- * PveDocument - Returns a <Document> component for PDF rendering
- * This is a simple function that returns JSX, which renderToBuffer can accept
- */
+type Wish = {
+  text: string;
+  category?: string;
+  priority?: string;
+};
+
+type Room = {
+  name?: string;
+  count?: number;
+  area?: number;
+  notes?: string;
+};
+
+type Risk = {
+  type?: string;
+  description?: string;
+  consequence?: string;
+  mitigation?: string;
+};
+
+const styles = StyleSheet.create({
+  page: {
+    padding: 28,
+    fontSize: 10,
+    lineHeight: 1.35,
+    color: "#0f172a",
+    fontWeight: 400,
+  },
+  h1: { fontSize: 22, fontWeight: 800, marginBottom: 6 },
+  h2: {
+    fontSize: 14,
+    fontWeight: 700,
+    marginBottom: 8,
+    marginTop: 12,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  h3: { fontSize: 11, fontWeight: 700, marginBottom: 4 },
+  p: { marginBottom: 6 },
+  small: { fontSize: 9, color: "#475569" },
+  row: { flexDirection: "row", justifyContent: "space-between" },
+  card: {
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 6,
+    padding: 10,
+    marginBottom: 8,
+  },
+  badge: {
+    fontSize: 9,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 4,
+    backgroundColor: "#e2e8f0",
+    color: "#0f172a",
+  },
+  sectionBox: {
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  chip: {
+    fontSize: 8,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    color: "#0ea5e9",
+  },
+  muted: { color: "#64748b" },
+  tableHeader: {
+    flexDirection: "row",
+    backgroundColor: "#0f172a",
+    color: "#fff",
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+  },
+  tableRow: {
+    flexDirection: "row",
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e2e8f0",
+  },
+  col: { paddingRight: 6 },
+});
+
+const formatCurrency = (value?: number) => {
+  if (typeof value !== "number") return "";
+  return `€ ${value.toLocaleString("nl-NL")}`;
+};
+
+const formatRange = (range?: number[]) => {
+  if (!Array.isArray(range) || range.length < 2) return "";
+  return `${formatCurrency(range[0])} - ${formatCurrency(range[1])}`;
+};
+
+const safeString = (v: any) => (typeof v === "string" ? v : "");
+
+const extractWishes = (raw: any): Wish[] => {
+  if (!raw?.wishes || !Array.isArray(raw.wishes)) return [];
+  return raw.wishes.map((w: any) => {
+    if (typeof w === "string") return { text: w };
+    return {
+      text:
+        safeString(w?.text) ||
+        safeString(w?.description) ||
+        safeString((w as any)?.wish) ||
+        String(w ?? ""),
+      category: safeString(w?.category),
+      priority: safeString(w?.priority),
+    };
+  });
+};
+
+const extractRooms = (raw: any): Room[] => {
+  const list = Array.isArray(raw?.rooms) ? raw.rooms : [];
+  return list.map((r: any) => ({
+    name: safeString(r?.name) || safeString(r?.title),
+    count: typeof r?.count === "number" ? r.count : 1,
+    area:
+      typeof r?.m2 === "number"
+        ? r.m2
+        : typeof r?.area === "number"
+          ? r.area
+          : undefined,
+    notes: safeString(r?.notes) || safeString(r?.description),
+  }));
+};
+
+const extractRisks = (raw: any): Risk[] => {
+  if (!raw?.risks || !Array.isArray(raw.risks)) return [];
+  return raw.risks.map((r: any) => ({
+    type: safeString(r?.type) || safeString(r?.label),
+    description: safeString(r?.description) || safeString(r?.text),
+    consequence: safeString(r?.consequence) || safeString(r?.impact),
+    mitigation: safeString(r?.mitigation) || safeString(r?.action),
+  }));
+};
+
+function WishRow({ wish }: { wish: Wish }) {
+  const colors = getPriorityColor(wish.priority);
+  return (
+    <View style={styles.tableRow}>
+      <View
+        style={[
+          styles.col,
+          {
+            width: "18%",
+            backgroundColor: colors.bg,
+            paddingVertical: 4,
+            paddingHorizontal: 6,
+          },
+        ]}
+      >
+        <Text style={{ fontSize: 9, color: colors.text, fontWeight: 700 }}>
+          {formatWishPriorityLabel(wish.priority)}
+        </Text>
+      </View>
+      <View style={[styles.col, { width: "20%" }]}>
+        <Text style={[styles.small, { fontWeight: 700 }]}>
+          {formatWishCategoryLabel(wish.category)}
+        </Text>
+      </View>
+      <View style={{ width: "62%" }}>
+        <Text>{wish.text}</Text>
+      </View>
+    </View>
+  );
+}
+
 export function PveDocument({
   chapterAnswers = {},
   triage = {},
   projectName = "Mijn Project",
 }: PveDocumentProps) {
   const basis = chapterAnswers.basis || {};
-  const ruimtes = chapterAnswers.ruimtes || {};
-  const wensen = chapterAnswers.wensen || {};
   const budget = chapterAnswers.budget || {};
+  const ruimtes = extractRooms(chapterAnswers.ruimtes);
+  const wishes = extractWishes(chapterAnswers.wensen);
   const techniek = chapterAnswers.techniek || {};
+  const duurzaam = chapterAnswers.duurzaam || {};
+  const risico = extractRisks(chapterAnswers.risico);
+
+  const budgetRange = formatRange(budget.bandbreedte);
+  const budgetTotal =
+    typeof budget.budgetTotaal === "number"
+      ? formatCurrency(budget.budgetTotaal)
+      : "";
+  const hasBudget =
+    budgetRange || budgetTotal || budget.eigenInbreng || budget.contingency || budget.notes;
+
+  const projectType = triage?.projectType || basis.projectType;
+  const date = new Date().toLocaleDateString("nl-NL");
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
-        {/* Title */}
-        <View style={styles.block}>
-          <Text style={styles.h1}>Programma van Eisen (PvE)</Text>
-          <Text style={styles.p}>{projectName}</Text>
-        </View>
-
-        {/* Basis Info */}
-        <View style={styles.section}>
-          <Text style={styles.h2}>Projectgegevens</Text>
-          {basis.projectNaam && (
-            <View>
-              <Text style={styles.label}>Projectnaam</Text>
-              <Text style={styles.value}>{basis.projectNaam}</Text>
+      <Page size="A4" style={styles.page} wrap>
+        {/* Cover */}
+        <View
+          style={{
+            marginBottom: 12,
+            borderBottomWidth: 2,
+            borderBottomColor: "#0f172a",
+            paddingBottom: 10,
+          }}
+        >
+          <Text style={styles.chip}>Architectuurdossier</Text>
+          <Text style={[styles.h1, { marginTop: 6 }]}>Programma van Eisen</Text>
+          <Text style={{ fontSize: 12, color: "#0ea5e9", fontWeight: 700 }}>
+            {projectName}
+          </Text>
+          <View style={{ marginTop: 10 }}>
+            <View style={styles.row}>
+              <Text style={styles.small}>Projecttype</Text>
+              <Text style={styles.small}>{projectType || "Niet opgegeven"}</Text>
             </View>
-          )}
-          {basis.locatie && (
-            <View>
-              <Text style={styles.label}>Locatie</Text>
-              <Text style={styles.value}>{basis.locatie}</Text>
+            <View style={styles.row}>
+              <Text style={styles.small}>Locatie</Text>
+              <Text style={styles.small}>{basis.locatie || "Niet opgegeven"}</Text>
             </View>
-          )}
-          {triage?.projectType && (
-            <View>
-              <Text style={styles.label}>Projecttype</Text>
-              <Text style={styles.value}>{triage.projectType}</Text>
+            <View style={styles.row}>
+              <Text style={styles.small}>Datum</Text>
+              <Text style={styles.small}>{date}</Text>
             </View>
-          )}
-        </View>
-
-        {/* Ruimtes */}
-        {ruimtes && Object.keys(ruimtes).length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.h2}>Ruimten</Text>
-            {Array.isArray(ruimtes.rooms) && ruimtes.rooms.length > 0 ? (
-              ruimtes.rooms.map((room: any, idx: number) => (
-                <View key={idx} style={styles.block}>
-                  <Text style={styles.label}>
-                    {room.name || `Ruimte ${idx + 1}`}
-                  </Text>
-                  {room.m2 && (
-                    <Text style={styles.value}>
-                      Oppervlakte: {room.m2} m²
-                    </Text>
-                  )}
-                  {room.wishes &&
-                    Array.isArray(room.wishes) &&
-                    room.wishes.length > 0 && (
-                      <View>
-                        <Text style={styles.label}>Wensen:</Text>
-                        {room.wishes.map((wish: string, widx: number) => (
-                          <View key={widx} style={styles.bullet}>
-                            <Text style={styles.p}>• {wish}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    )}
-                </View>
-              ))
-            ) : (
-              <Text style={styles.p}>Geen ruimten gespecificeerd.</Text>
-            )}
           </View>
-        )}
+        </View>
 
-        {/* Wensen met MoSCoW prioriteiten */}
-        {wensen?.wishes &&
-          Array.isArray(wensen.wishes) &&
-          wensen.wishes.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.h2}>Wensen & Prioriteiten (MoSCoW)</Text>
-
-              {/* Table header */}
-              <View style={styles.wishTableHeader}>
-                <Text style={styles.wishColPriority}>Prioriteit</Text>
-                <Text style={styles.wishColCategory}>Categorie</Text>
-                <Text style={styles.wishColText}>Beschrijving</Text>
-              </View>
-
-              {/* Table rows */}
-              {wensen.wishes.map((wish: any, idx: number) => {
-                const priority = typeof wish === 'object' ? wish?.priority : undefined;
-                const category = typeof wish === 'object' ? wish?.category : undefined;
-                const text = typeof wish === 'string' ? wish : wish?.text || String(wish);
-                const colors = getPriorityColor(priority);
-
-                return (
-                  <View key={idx} style={styles.wishTableRow}>
-                    <View style={[styles.wishColPriority, { backgroundColor: colors.bg }]}>
-                      <Text style={{ color: colors.text, fontSize: 9 }}>
-                        {formatWishPriorityLabel(priority)}
-                      </Text>
-                    </View>
-                    <Text style={styles.wishColCategory}>
-                      {formatWishCategoryLabel(category)}
-                    </Text>
-                    <Text style={styles.wishColText}>{text}</Text>
-                  </View>
-                );
-              })}
+        {/* Projectcontext */}
+        <Text style={styles.h2}>01. Projectcontext</Text>
+        <View style={styles.sectionBox}>
+          <Text style={styles.p}>
+            {basis.toelichting || "Geen beschrijving ingevuld."}
+          </Text>
+          <View style={[styles.row, { marginTop: 6 }]}>
+            <View style={{ width: "48%" }}>
+              <Text style={styles.small}>Ervaring</Text>
+              <Text>{basis.ervaring || "Onbekend"}</Text>
             </View>
-          )}
+            <View style={{ width: "48%" }}>
+              <Text style={styles.small}>Planning</Text>
+              <Text>{basis.urgency || "Onbekend"}</Text>
+            </View>
+          </View>
+        </View>
 
-        {/* Budget */}
-        {budget && Object.keys(budget).length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.h2}>Budget</Text>
-            {budget.klasse && (
-              <View>
-                <Text style={styles.label}>Budgetklasse</Text>
-                <Text style={styles.value}>{budget.klasse}</Text>
+        {/* Ambities / Wensen samenvatting */}
+        <Text style={styles.h2}>02. Uitgangspunten & Ambities</Text>
+        <View style={styles.sectionBox}>
+          <Text style={styles.h3}>Persoonlijk / gezin</Text>
+          <Text style={styles.small}>Belangrijkste wensen samengevat</Text>
+          {wishes.length === 0 && (
+            <Text style={[styles.p, styles.muted]}>Nog geen wensen ingevuld.</Text>
+          )}
+          {wishes.slice(0, 4).map((w, idx) => (
+            <Text key={idx} style={styles.p}>
+              • {w.text}
+            </Text>
+          ))}
+        </View>
+
+        {/* Ruimtelijk programma */}
+        <Text style={styles.h2}>03. Ruimtelijk Programma</Text>
+        {ruimtes.length === 0 ? (
+          <Text style={[styles.p, styles.muted]}>Geen ruimtes ingevuld.</Text>
+        ) : (
+          <View
+            style={{
+              borderWidth: 1,
+              borderColor: "#e2e8f0",
+              borderRadius: 6,
+              marginBottom: 12,
+            }}
+          >
+            <View style={styles.tableHeader}>
+              <View style={[styles.col, { width: "38%" }]}>
+                <Text style={{ fontSize: 9, fontWeight: 700 }}>Ruimte</Text>
               </View>
-            )}
-            {budget.amount && (
-              <View>
-                <Text style={styles.label}>Budgetbedrag</Text>
-                <Text style={styles.value}>
-                  € {budget.amount.toLocaleString("nl-NL")}
+              <View style={[styles.col, { width: "14%" }]}>
+                <Text style={{ fontSize: 9, fontWeight: 700, textAlign: "center" }}>
+                  Aantal
                 </Text>
               </View>
-            )}
+              <View style={[styles.col, { width: "18%" }]}>
+                <Text style={{ fontSize: 9, fontWeight: 700, textAlign: "right" }}>
+                  Opp. (m2)
+                </Text>
+              </View>
+              <View style={{ width: "30%" }}>
+                <Text style={{ fontSize: 9, fontWeight: 700 }}>Bijzonderheden</Text>
+              </View>
+            </View>
+            {ruimtes.map((room, idx) => (
+              <View key={idx} style={styles.tableRow}>
+                <View style={[styles.col, { width: "38%" }]}>
+                  <Text style={{ fontWeight: 700 }}>
+                    {room.name || `Ruimte ${idx + 1}`}
+                  </Text>
+                </View>
+                <View style={[styles.col, { width: "14%" }]}>
+                  <Text style={{ textAlign: "center" }}>{room.count ?? 1}</Text>
+                </View>
+                <View style={[styles.col, { width: "18%" }]}>
+                  <Text style={{ textAlign: "right" }}>
+                    {room.area ? `${room.area}` : "-"}
+                  </Text>
+                </View>
+                <View style={{ width: "30%" }}>
+                  <Text style={styles.small}>{room.notes || "-"}</Text>
+                </View>
+              </View>
+            ))}
           </View>
         )}
 
-        {/* Techniek */}
-        {techniek && Object.keys(techniek).length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.h2}>Technische Eisen</Text>
-            {techniek.isolatie && (
-              <View>
-                <Text style={styles.label}>Isolatie</Text>
-                <Text style={styles.value}>{techniek.isolatie}</Text>
+        {/* Wensen */}
+        <Text style={styles.h2}>04. Functionele Wensen (MoSCoW)</Text>
+        {wishes.length === 0 ? (
+          <Text style={[styles.p, styles.muted]}>Nog geen wensen ingevuld.</Text>
+        ) : (
+          <View
+            style={{
+              borderWidth: 1,
+              borderColor: "#e2e8f0",
+              borderRadius: 6,
+              marginBottom: 12,
+            }}
+          >
+            <View style={styles.tableHeader}>
+              <View style={[styles.col, { width: "18%" }]}>
+                <Text style={{ fontSize: 9, fontWeight: 700 }}>Prioriteit</Text>
               </View>
-            )}
-            {techniek.ventilation && (
-              <View>
-                <Text style={styles.label}>Ventilatie</Text>
-                <Text style={styles.value}>{techniek.ventilation}</Text>
+              <View style={[styles.col, { width: "20%" }]}>
+                <Text style={{ fontSize: 9, fontWeight: 700 }}>Categorie</Text>
               </View>
-            )}
-            {techniek.heating && (
-              <View>
-                <Text style={styles.label}>Verwarming</Text>
-                <Text style={styles.value}>{techniek.heating}</Text>
+              <View style={{ width: "62%" }}>
+                <Text style={{ fontSize: 9, fontWeight: 700 }}>Beschrijving</Text>
               </View>
-            )}
+            </View>
+            {wishes.map((wish, idx) => (
+              <WishRow key={idx} wish={wish} />
+            ))}
           </View>
         )}
+
+        {/* Budget */}
+        <Text style={styles.h2}>05. Budget & Randvoorwaarden</Text>
+        {hasBudget ? (
+          <View style={styles.card}>
+            {budgetTotal && (
+              <View style={{ marginBottom: 4 }}>
+                <Text style={styles.small}>Totaalbudget</Text>
+                <Text style={{ fontSize: 16, fontWeight: 800 }}>{budgetTotal}</Text>
+              </View>
+            )}
+            {budgetRange && (
+              <View style={{ marginBottom: 4 }}>
+                <Text style={styles.small}>Bandbreedte</Text>
+                <Text>{budgetRange}</Text>
+              </View>
+            )}
+            {budget.eigenInbreng && (
+              <Text style={styles.p}>
+                Eigen inbreng: {formatCurrency(budget.eigenInbreng)}
+              </Text>
+            )}
+            {budget.contingency && (
+              <Text style={styles.p}>
+                Buffer: {formatCurrency(budget.contingency)}
+              </Text>
+            )}
+            {budget.notes && <Text style={styles.p}>{budget.notes}</Text>}
+          </View>
+        ) : (
+          <Text style={[styles.p, styles.muted]}>Nog geen budget ingevuld.</Text>
+        )}
+
+        {/* Techniek & Duurzaamheid */}
+        <Text style={styles.h2}>06. Techniek & Duurzaamheid</Text>
+        <View style={styles.sectionBox}>
+          {Object.keys(techniek).length === 0 &&
+            Object.keys(duurzaam).length === 0 && (
+              <Text style={[styles.p, styles.muted]}>
+                Nog geen techniek/duurzaam ingevuld.
+              </Text>
+            )}
+          {Object.keys(techniek).length > 0 && (
+            <View style={{ marginBottom: 8 }}>
+              <Text style={styles.h3}>Techniek</Text>
+              {Object.entries(techniek).map(([k, v]) => (
+                <Text key={k} style={styles.p}>
+                  • {k}: {String(v)}
+                </Text>
+              ))}
+            </View>
+          )}
+          {Object.keys(duurzaam).length > 0 && (
+            <View>
+              <Text style={styles.h3}>Duurzaamheid</Text>
+              {Object.entries(duurzaam).map(([k, v]) => (
+                <Text key={k} style={styles.p}>
+                  • {k}: {String(v)}
+                </Text>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Risico's */}
+        <Text style={styles.h2}>07. Risico's & Aandachtspunten</Text>
+        {risico.length === 0 ? (
+          <Text style={[styles.p, styles.muted]}>Geen risico's ingevuld.</Text>
+        ) : (
+          risico.map((r, idx) => (
+            <View key={idx} style={styles.card}>
+              <View style={styles.row}>
+                <Text style={{ fontWeight: 700 }}>{r.type || "Risico"}</Text>
+                <Text style={styles.badge}>Risico</Text>
+              </View>
+              <Text style={styles.p}>{r.description}</Text>
+              {r.consequence && (
+                <Text style={styles.small}>Gevolg: {r.consequence}</Text>
+              )}
+              {r.mitigation && (
+                <Text style={styles.small}>Mitigatie: {r.mitigation}</Text>
+              )}
+            </View>
+          ))
+        )}
+
+        {/* Vervolg */}
+        <Text style={styles.h2}>08. Samenvatting & Vervolg</Text>
+        <View style={styles.card}>
+          <Text style={styles.p}>
+            Dit document vormt de basis voor het PvE. Gebruik het als
+            vertrekpunt voor schetsontwerp, raming en vergunning. Update
+            regelmatig naarmate keuzes concreter worden.
+          </Text>
+          <Text style={[styles.small, { marginTop: 4 }]}>
+            Disclaimer: indicatief; geen rechten aan te ontlenen.
+          </Text>
+        </View>
       </Page>
     </Document>
   );
 }
 
-// Alias for backward compatibility
+// Backwards compat
 export const PveContent = PveDocument;

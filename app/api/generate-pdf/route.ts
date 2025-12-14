@@ -21,6 +21,12 @@ export async function POST(req: Request) {
       projectName = "Mijn Project",
     } = body ?? {};
 
+    const filenameBase =
+      typeof projectName === "string" && projectName.trim()
+        ? projectName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
+        : "project";
+    const filename = `pve-${filenameBase || "project"}.pdf`;
+
     // Render the PveDocument component directly
     const pdfBuffer = await renderToBuffer(
       PveDocument({
@@ -38,7 +44,7 @@ export async function POST(req: Request) {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": 'inline; filename="pve.pdf"',
+        "Content-Disposition": `attachment; filename=\"${filename}\"`,
         "Cache-Control": "no-store",
       },
     });
