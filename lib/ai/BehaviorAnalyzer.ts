@@ -21,6 +21,12 @@ import type {
  * Performance: Analyzes last 10 turns only for speed
  */
 export class BehaviorAnalyzer {
+  private readonly CONFUSED_THRESHOLD = 2;
+  private readonly CONFUSED_REGEXES: RegExp[] = [
+    /\b(kun je|kan je)\b.*\b(uitleggen|toelichten|verhelderen|clarifiëren)\b/i,
+    /\b(ik snap( het)? niet|onduidelijk|begrijp ik niet)\b/i,
+  ];
+
   /**
    * Analyze conversation history and return behavior profile.
    *
@@ -64,6 +70,8 @@ export class BehaviorAnalyzer {
    * @private
    */
   private detectSignals(userTurns: ConversationTurn[]): BehaviorSignals {
+    const userText = userTurns.map((t) => t.message).join(' ').toLowerCase();
+
     const overwhelmed = this.hasPattern(userTurns, [
       /te veel/i,
       /te complex/i,
@@ -72,7 +80,7 @@ export class BehaviorAnalyzer {
       /begrijp het niet/i,
     ], 2);
 
-    const confused = this.hasPattern(userTurns, [
+    const confusedScore = this.hasPattern(userTurns, [
       /weet niet/i,
       /snap/i,
       /begrijp/i,
@@ -80,7 +88,9 @@ export class BehaviorAnalyzer {
       /hoe zit dat/i,
       /kun je uitleggen/i,
       /wat is/i,
-    ], 3);
+    ], this.CONFUSED_THRESHOLD) ? this.CONFUSED_THRESHOLD : 0;
+    const confusedRegexHit = this.CONFUSED_REGEXES.some((r) => r.test(userText));
+    const confused = confusedRegexHit || confusedScore >= this.CONFUSED_THRESHOLD;
 
     const impatient = this.hasPattern(userTurns, [
       /snel/i,

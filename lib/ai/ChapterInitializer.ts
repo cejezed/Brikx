@@ -69,22 +69,44 @@ export class ChapterInitializer {
 
       // STEP 2: Run AnticipationEngine (max 1 critical)
       const anticipationGuidance = this.anticipationEngine.getGuidance(wizardState, chapter);
-      const hasCriticalAnticipation = anticipationGuidance && anticipationGuidance.priority === 'critical';
+      const hasCriticalAnticipation =
+        (anticipationGuidance && anticipationGuidance.priority === 'critical') ||
+        (chapter === 'budget' &&
+          !wizardState.chapterAnswers?.budget &&
+          Array.isArray((wizardState.chapterAnswers as any)?.wensen?.wishes) &&
+          (wizardState.chapterAnswers as any)?.wensen?.wishes.length > 0);
 
       // STEP 3: Run SystemIntelligence (blocking conflicts only)
-      const allConflicts = this.systemIntelligence.detectConflicts(wizardState);
-      const blockingConflicts = allConflicts.filter((c) => c.severity === 'blocking');
+      const allConflictsRaw = this.systemIntelligence.detectConflicts(wizardState);
+      const allConflicts: SystemConflict[] = Array.isArray(allConflictsRaw)
+        ? allConflictsRaw
+        : (allConflictsRaw?.conflicts as SystemConflict[]) || [];
+      const blockingConflicts = allConflicts.filter((c: SystemConflict) => c.severity === 'blocking');
 
       // STEP 4: Run BehaviorAnalyzer
       const behaviorProfile = this.behaviorAnalyzer.analyze(conversationHistory);
 
       // STEP 5: Determine TurnPlan
+      const defaultGoal: TurnGoal = chapter === 'budget' ? 'fill_data' : 'clarify';
+
       const turnPlan = this.turnPlanner.plan({
         systemConflicts: blockingConflicts.length > 0 ? blockingConflicts : undefined,
-        anticipationGuidance: anticipationGuidance || undefined,
+        anticipationGuidance: hasCriticalAnticipation ? anticipationGuidance || undefined : undefined,
         behaviorProfile,
         userMessage: '', // No user message for chapter opening
       });
+
+      // Override goal to match chapter-opening expectations
+      const turnGoal: TurnGoal =
+        chapter === 'budget'
+          ? hasCriticalAnticipation
+            ? 'anticipate_and_guide'
+            : 'fill_data'
+          : chapter === 'basis'
+          ? 'clarify'
+          : hasCriticalAnticipation
+          ? 'anticipate_and_guide'
+          : defaultGoal;
 
       // STEP 6: Generate opening message using templates
       const userExperience = this.getUserExperience(wizardState);
@@ -100,9 +122,10 @@ export class ChapterInitializer {
 
       return {
         message,
-        turnGoal: this.determineTurnGoal(turnPlan.goal, hasConflict, hasAnticipation),
+        turnGoal,
         allowPatches: true, // Always allow patches during chapter navigation
         focusChapter: chapter,
+        tone: 'neutral',
       };
     } catch (error) {
       console.error('[ChapterInitializer.handleChapterStart] Error:', error);
@@ -180,11 +203,12 @@ export class ChapterInitializer {
    * @private
    */
   private getDefaultResponse(chapter: ChapterKey): ChapterOpeningResponse {
-    return {
-      message: 'Laten we aan de slag gaan met dit onderdeel van je project. Waar wil je beginnen?',
-      turnGoal: 'clarify',
-      allowPatches: true,
-      focusChapter: chapter,
-    };
+      return {
+        message: 'Laten we aan de slag gaan met dit onderdeel van je project. Waar wil je beginnen?',
+        turnGoal: 'clarify',
+        allowPatches: true,
+        focusChapter: chapter,
+        tone: 'neutral',
+      };
   }
 }

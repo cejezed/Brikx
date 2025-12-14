@@ -52,8 +52,9 @@ export async function POST(req: Request) {
       attachments: [
         {
           filename,
-          content: pdfBuffer.toString("base64"),
-          type: "application/pdf",
+          // Resend ondersteunt raw Buffer als content
+          content: pdfBuffer,
+          contentType: "application/pdf",
         },
       ],
     });

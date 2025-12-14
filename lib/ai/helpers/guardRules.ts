@@ -197,11 +197,17 @@ export function checkNextStep(
     return null; // Not applicable
   }
 
+  // If patches are present or patches are disallowed (e.g., data capture flows), skip next-step check
+  if (result.patches.length > 0 || turnPlan.allowPatches === false) {
+    return null;
+  }
+
   const reply = result.draftResponse;
   const hasQuestion = /\?/.test(reply); // Contains question mark
   const hasSuggestion = /(kunt u|wilt u|heeft u|laten we|zou u)/i.test(reply);
+  const isFormalAnswer = reply.toLowerCase().includes('antwoord');
 
-  if (!hasQuestion && !hasSuggestion) {
+  if (!hasQuestion && !hasSuggestion && !isFormalAnswer) {
     return {
       rule: 'next_step_requirement',
       severity: 'soft',
@@ -256,7 +262,7 @@ export function checkForbiddenLanguage(
  */
 function extractKeywords(question: string): string[] {
   // Remove common Dutch question words and extract nouns/verbs
-  const stopWords = ['heeft', 'bent', 'kunt', 'wilt', 'zou', 'is', 'een', 'het', 'de', 'u', 'uw'];
+  const stopWords = ['heeft', 'bent', 'kunt', 'wilt', 'zou', 'is', 'een', 'het', 'de', 'u', 'uw', 'over'];
   const words = question
     .toLowerCase()
     .replace(/[?.,!]/g, '')

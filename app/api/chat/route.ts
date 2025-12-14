@@ -23,6 +23,7 @@ import { validateChapter } from "@/lib/wizard/CHAPTER_SCHEMAS";
 // ✅ v3.x: META_TOOLING helpers
 import { getToolHelp, getOnboardingMessage } from "@/lib/ai/toolHelp";
 import { detectMetaTooling } from "@/lib/ai/metaDetection";
+import { ChapterInitializer } from "@/lib/ai/ChapterInitializer";
 // ✅ v4.0: ANSWER GUARD (TODO: Migrate to v3.1 AnswerGuard class)
 import {
   runAnswerGuard,
@@ -120,6 +121,7 @@ async function runAITriage(
     wizardState: ServerWizardState;
     clientFastIntent?: ChatRequest["clientFastIntent"];
     history?: ChatRequest["history"];
+    previousChapter?: ChapterKey | null;
   }
 ) {
   const { requestId, startTime, query, mode, history } = ctx;
@@ -140,8 +142,34 @@ async function runAITriage(
 
   const activeChapter = getActiveChapter(wizardState);
   const chapterFlow = getChapterFlow(wizardState);
+  const previousChapter = ctx.previousChapter ?? null;
 
   try {
+    // Chapter transition guard: trigger ChapterInitializer once, skip normal flow
+    if (previousChapter && previousChapter !== activeChapter) {
+      const initializer = new ChapterInitializer();
+      const initResponse = initializer.handleChapterStart(
+        activeChapter || "basis",
+        wizardState,
+        history as any[] || []
+      );
+
+      writer.writeEvent("metadata", {
+        intent: "CHAPTER_OPENING",
+        confidence: 1.0,
+        policy: "APPLY_OPTIMISTIC",
+        stateVersion: wizardState.stateVersion ?? 0,
+        activeChapter,
+      });
+      writer.writeEvent("stream", { text: initResponse.message });
+      writer.writeEvent("done", {
+        logId: requestId,
+        tokensUsed: 0,
+        latencyMs: Date.now() - startTime,
+      });
+      return;
+    }
+
     // ┌─────────────────────────────────────────────────────────
     // │ PRE-LAYER: META_TOOLING & ONBOARDING (v3.x)
     // └─────────────────────────────────────────────────────────
@@ -929,3 +957,6 @@ Spreek de gebruiker aan met "u".`,
     return "Kunt u uw vraag iets specifieker formuleren? Dan kan ik u beter helpen.";
   }
 }
+
+// Test helper export
+export { runAITriage };

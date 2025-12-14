@@ -18,6 +18,19 @@ import type { FieldTrigger } from '@/types/ai';
  */
 export class FieldWatcher {
   /**
+   * Detect the currently focused field based on recent conversation or state.
+   * Basic stub: returns null focus when not implemented.
+   */
+  detectFocus(_wizardState?: WizardState, _recentTurns?: any[]): { focusedField: string | null; confidence?: number; source?: 'user' | 'ai' | 'system'; timestamp?: number } {
+    return {
+      focusedField: null,
+      confidence: 0,
+      source: 'user',
+      timestamp: Date.now(),
+    };
+  }
+
+  /**
    * Detects field triggers from state changes.
    *
    * @param prevState - Previous wizard state

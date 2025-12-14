@@ -9,8 +9,9 @@ export async function POST(req: Request) {
     const { chapterAnswers = {}, triage = {}, projectName = "Mijn Project" } = body ?? {};
 
     const buffer = await renderPvePdfBuffer({ chapterAnswers, triage, projectName });
+    const uint8 = new Uint8Array(buffer);
 
-    return new NextResponse(buffer, {
+    return new NextResponse(uint8, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",

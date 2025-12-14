@@ -31,6 +31,32 @@ export class AnticipationEngine {
     this.rules = this.initializeRules();
   }
 
+  private computeLifestyleRelevance(flags: { hasChildren?: boolean; workFromHome?: boolean; activeCooking?: boolean }): string {
+    if (flags.hasChildren) return 'hasChildren';
+    if (flags.workFromHome) return 'workFromHome';
+    if (flags.activeCooking) return 'activeCooking';
+    return 'low';
+  }
+
+  /**
+   * Run anticipation for the given state/chapter.
+   * Returns guidance array + flags, matching orchestrator expectations.
+   */
+  run(
+    state: WizardState,
+    opts: { currentChapter?: ChapterKey | null; turnCount?: number } = {}
+  ): { shouldInterrupt: boolean; guidances: AnticipationGuidance[]; criticalMissing: string[] } {
+    const guidance = opts.currentChapter
+      ? this.getGuidance(state, opts.currentChapter)
+      : null;
+
+    return {
+      shouldInterrupt: !!guidance,
+      guidances: guidance ? [guidance] : [],
+      criticalMissing: [],
+    };
+  }
+
   /**
    * Get proactive guidance for the current state and chapter.
    *
@@ -181,6 +207,8 @@ export class AnticipationEngine {
           question: 'Omdat je kinderen hebt: denk je aan kindveilige details zoals trapbeveiliging, afgeronde hoeken, en veilige stopcontacten?',
           reasoning: 'Kindveiligheid is belangrijk bij gezinnen',
           relatedFields: ['ruimtes.kindveilig'],
+          lifestyleRelevance: 'hasChildren' as any,
+          triggers: ['hasChildren'],
         },
       },
 
@@ -199,6 +227,8 @@ export class AnticipationEngine {
           question: 'Je werkt thuis - heb je een aparte werkplek of kantoorruimte nodig? Dit kan invloed hebben op de indeling.',
           reasoning: 'Thuiswerken vereist dedicated ruimte',
           relatedFields: ['ruimtes.rooms'],
+          lifestyleRelevance: 'workFromHome' as any,
+          triggers: ['workFromHome'],
         },
       },
 
@@ -219,6 +249,8 @@ export class AnticipationEngine {
           question: 'Je kookt graag - overweeg je een ruime keuken met kookeiland of extra werkblad? Dit vraagt minimaal 12-15m².',
           reasoning: 'Actief koken vraagt ruime en functionele keuken',
           relatedFields: ['ruimtes.rooms'],
+          lifestyleRelevance: 'activeCooking' as any,
+          triggers: ['activeCooking'],
         },
       },
 

@@ -108,16 +108,12 @@ export async function orchestrateTurn(input: OrchestrateTurnInput): Promise<Turn
   // PHASE 1: MEMORY & CONTEXT
   // ==========================================================================
 
-  const conversationMemory = new ConversationMemory();
+  const conversationMemory = new ConversationMemory(userId, projectId);
   const fieldWatcher = new FieldWatcher();
   const feedbackQueue = new FeedbackQueue();
 
   // Load conversation history
-  const memory: ConversationMemoryResult = await conversationMemory.load({
-    userId,
-    projectId,
-    maxTurns: 10,
-  });
+  const memory: ConversationMemoryResult = await conversationMemory.load(10);
 
   // Detect field focus from recent conversation
   const fieldFocus = fieldWatcher.detectFocus(wizardState, memory.recent);
@@ -138,7 +134,7 @@ export async function orchestrateTurn(input: OrchestrateTurnInput): Promise<Turn
   // Run intelligence modules in parallel for performance
   const [behaviorResult, anticipationResult, conflictResult] = await Promise.allSettled([
     // Behavior analysis
-    new BehaviorAnalyzer().analyze(memory, wizardState),
+    new BehaviorAnalyzer().analyze(memory.recent),
 
     // Anticipation (skip if disabled or on explicit queries)
     skipAnticipation
@@ -150,30 +146,39 @@ export async function orchestrateTurn(input: OrchestrateTurnInput): Promise<Turn
 
     // Conflict detection (skip if disabled)
     skipConflictDetection
-      ? Promise.resolve({ conflicts: [], shouldBlock: false })
+      ? Promise.resolve({ conflicts: [], shouldBlock: false } as { conflicts: SystemConflict[]; shouldBlock: boolean })
       : new SystemIntelligence().detectConflicts(wizardState),
   ]);
 
   // Extract results (use defaults if any failed)
   const behaviorProfile: BehaviorProfile | undefined =
-    behaviorResult.status === 'fulfilled' ? behaviorResult.value : undefined;
+    behaviorResult.status === 'fulfilled' ? ((behaviorResult.value as unknown) as BehaviorProfile) : undefined;
 
   const anticipation =
     anticipationResult.status === 'fulfilled'
       ? anticipationResult.value
       : { shouldInterrupt: false, guidances: [], criticalMissing: [] };
 
-  const conflicts =
-    conflictResult.status === 'fulfilled'
-      ? conflictResult.value
-      : { conflicts: [], shouldBlock: false };
+  const conflictObj: { conflicts: SystemConflict[]; shouldBlock: boolean } = (() => {
+    if (conflictResult.status !== 'fulfilled') {
+      return { conflicts: [], shouldBlock: false };
+    }
+    const val = conflictResult.value as any;
+    if (Array.isArray(val)) {
+      return { conflicts: val, shouldBlock: !!(val as any).shouldBlock };
+    }
+    if (val && Array.isArray(val.conflicts)) {
+      return { conflicts: val.conflicts, shouldBlock: !!val.shouldBlock };
+    }
+    return { conflicts: [], shouldBlock: false };
+  })();
 
   console.log('[orchestrateTurn] Phase 2 complete: Intelligence', {
     behaviorProfile: behaviorProfile
       ? `${behaviorProfile.toneHint}/${behaviorProfile.speedPreference}`
       : 'none',
     anticipationCount: anticipation.guidances.length,
-    conflictCount: conflicts.conflicts.length,
+    conflictCount: conflictObj.conflicts.length,
   });
 
   // ==========================================================================
@@ -187,12 +192,16 @@ export async function orchestrateTurn(input: OrchestrateTurnInput): Promise<Turn
     query,
     wizardState,
     memory,
-    behaviorProfile,
+    behaviorProfile: behaviorProfile as BehaviorProfile,
     anticipation,
-    conflicts,
+    conflicts: conflictObj,
     feedbackQueue: feedbackResult,
     fieldFocus,
-  });
+    // Backwards compatible mapping for planner input
+    userMessage: query,
+    systemConflicts: conflictObj.conflicts,
+    anticipationGuidance: anticipation.guidances[0],
+  } as any);
 
   console.log('[orchestrateTurn] Phase 3 complete: Planning', {
     goal: turnPlan.goal,
@@ -209,9 +218,13 @@ export async function orchestrateTurn(input: OrchestrateTurnInput): Promise<Turn
 
   const prunedContext: PrunedContext = contextPruner.prune({
     wizardState,
+    turnPlan,
+    behaviorProfile: behaviorProfile as BehaviorProfile,
     conversationHistory: memory.recent,
     focusedField: fieldFocus.focusedField,
     focusedChapter: currentChapter || null,
+    systemConflicts: conflictObj.conflicts,
+    anticipationGuidance: anticipation.guidances,
     maxTokens: mode === 'PREVIEW' ? 4000 : 8000,
   });
 
@@ -236,11 +249,23 @@ export async function orchestrateTurn(input: OrchestrateTurnInput): Promise<Turn
     maxRetries: 2,
   });
 
+  // Enforce allowPatches guardrail: if disallowed, drop patches entirely
+  const normalizedPatches =
+    turnPlan.allowPatches === false ? [] : (finalResult.patches || []);
+
+  // Default requiresConfirmation to true when missing (indirect patching safeguard)
+  const patchesWithConfirmation =
+    normalizedPatches.map((p: any) =>
+      p && p.requiresConfirmation === undefined
+        ? { ...p, requiresConfirmation: true }
+        : p
+    );
+
   console.log('[orchestrateTurn] Phase 5 complete: Execution & Guard', {
     attempts: finalResult.metadata.attempts,
     guardVerdict: finalResult.metadata.guardVerdict,
     usedFallback: finalResult.metadata.usedFallback,
-    patchCount: finalResult.patches.length,
+    patchCount: patchesWithConfirmation.length,
   });
 
   // ==========================================================================
@@ -254,6 +279,8 @@ export async function orchestrateTurn(input: OrchestrateTurnInput): Promise<Turn
     role: 'user',
     message: query,
     wizardStateSnapshot: wizardState,
+    source: 'user',
+    timestamp: Date.now(),
   });
 
   await conversationMemory.addTurn({
@@ -263,7 +290,9 @@ export async function orchestrateTurn(input: OrchestrateTurnInput): Promise<Turn
     message: finalResult.response,
     wizardStateSnapshot: wizardState,
     triggersHandled: anticipation.guidances.map((g) => g.id),
-    patchesApplied: finalResult.patches,
+    patchesApplied: patchesWithConfirmation,
+    source: 'ai',
+    timestamp: Date.now(),
   });
 
   console.log('[orchestrateTurn] Turn complete - persisted to memory');
@@ -274,7 +303,7 @@ export async function orchestrateTurn(input: OrchestrateTurnInput): Promise<Turn
 
   return {
     response: finalResult.response,
-    patches: finalResult.patches,
+    patches: patchesWithConfirmation,
     metadata: {
       intent: turnPlan.goal, // Use turn goal as intent
       turnPlan,
@@ -284,7 +313,7 @@ export async function orchestrateTurn(input: OrchestrateTurnInput): Promise<Turn
       intelligenceTrace: {
         behavior: behaviorProfile,
         anticipation: anticipation.guidances,
-        conflicts: conflicts.conflicts,
+        conflicts: conflictObj.conflicts,
         contextPruned: prunedContext.pruneLog.length > 0,
         guardVerdict: finalResult.metadata.guardVerdict,
       },

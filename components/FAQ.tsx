@@ -15,7 +15,7 @@ const faqData: FAQItem[] = [
   },
   {
     question: "Wat als ik mijn wensen nog niet goed kan verwoorden?",
-    answer: "Dáár is Brikx juist voor. De AI-coach stelt slimme vragen die je zelf niet bedenkt - gebaseerd op 20 jaar architect-expertise. Je hoeft geen vakjargon te kennen. Upload foto's, maak een moodboard, en beschrijf het in je eigen woorden. De structuur komt vanzelf."
+    answer: "Dáár is Brikx juist voor. De AI-coach stelt slimme vragen die je zelf niet bedenkt - gebaseerd op 20 jaar architect-expertise. Je hoeft geen vakjargon te kennen. Beschrijf het in je eigen woorden. De structuur komt vanzelf."
   },
   {
     question: "Is mijn data veilig? Wat gebeurt er met mijn bouwplannen?",
@@ -23,20 +23,17 @@ const faqData: FAQItem[] = [
   },
   {
     question: "Hoe weet ik dat ik niets vergeet?",
-    answer: "De kennisbank bevat honderden valkuilen uit de praktijk: ventilatie na isolatie, funderingsproblemen, PFAS-kosten, netcongestie. Bij elk adres krijg je waarschuwingen voor locatie-specifieke risico's. Dingen die je zelf niet bedenkt, maar die €10.000+ kunnen schelen."
+    answer: "De kennisbank bevat honderden valkuilen uit de praktijk: ventilatie na isolatie, funderingsproblemen, netcongestie. Dingen die je zelf niet bedenkt, maar die €10.000+ kunnen schelen."
   },
   {
     question: "Kan een aannemer hier echt mee werken?",
-    answer: "Ja. Het PvE bevat alle essentiële informatie: wensen per ruimte, prioriteiten (MoSCoW), uploads en moodboard. Aannemers weten precies wat je wilt, wat verplicht is (Must), en wat optioneel (Could). Dit voorkomt de klassieke meerwerk-discussies."
+    answer: "Ja. Het PvE bevat alle essentiële informatie: wensen per ruimte, prioriteiten (MoSCoW) en moodboard. Aannemers weten precies wat je wilt, wat verplicht is (Must), en wat optioneel (Could). Dit voorkomt de klassieke meerwerk-discussies."
   },
   {
     question: "Wat als mijn project heel specifiek of ingewikkeld is?",
-    answer: "Dan is Brikx juist dé eerste stap. Hoe complexer het project, hoe belangrijker een compleet PvE. Voor monumenten, BOPA-procedures of bijzondere locaties geeft de kennisbank gerichte waarschuwingen. Daarna kun je met een architect verder - die waardeert de voorbereiding enorm."
+    answer: "Dan is Brikx juist dé eerste stap. Hoe complexer het project, hoe belangrijker een compleet PvE. Daarna kun je met een architect verder - die waardeert de voorbereiding enorm."
   },
-  {
-    question: "Is €9,95 niet verdacht goedkoop?",
-    answer: "We valideren een hypothese: willen mensen betalen voor een professioneel PvE? De prijs is laag om de drempel weg te nemen. Later kunnen we andere diensten toevoegen (marktplaats voor aannemers, ontwerp-AI). Maar de basis - een goed PvE - moet toegankelijk blijven."
-  }
+
 ]
 
 export default function FAQ() {

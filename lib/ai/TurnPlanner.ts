@@ -71,6 +71,8 @@ export class TurnPlanner {
           allowPatches: false, // BLOCKING conflicts = NO patches allowed
           reasoning: `Detected ${blockingConflicts.length} blocking conflict(s) that must be resolved before proceeding.`,
           systemConflicts: sortedConflicts,
+          action: 'surface_conflicts',
+          tone: behaviorProfile.toneHint || 'neutral',
         };
       }
 
@@ -83,6 +85,8 @@ export class TurnPlanner {
           allowPatches: false, // CRITICAL anticipation = NO patches allowed
           reasoning: `Critical proactive guidance needed: ${anticipationGuidance.question}`,
           anticipationGuidance,
+          action: 'proactive_guidance',
+          tone: behaviorProfile.toneHint || 'neutral',
         };
       }
 
@@ -96,6 +100,8 @@ export class TurnPlanner {
           allowPatches: true, // WARNING conflicts = patches allowed
           reasoning: `Detected ${warningConflicts.length} warning conflict(s) that should be addressed.`,
           systemConflicts: sortedConflicts,
+          action: 'surface_conflicts',
+          tone: behaviorProfile.toneHint || 'neutral',
         };
       }
 
@@ -108,10 +114,27 @@ export class TurnPlanner {
           allowPatches: true, // Normal anticipation = patches allowed
           reasoning: `Proactive ${anticipationGuidance.priority} priority guidance available.`,
           anticipationGuidance,
+          action: 'proactive_guidance',
+          tone: behaviorProfile.toneHint || 'neutral',
         };
       }
 
       // 5. Normal user queries - determine if data input or clarification needed
+      const adviceRequest = this.isAdviceRequest(userMessage);
+
+      // Advice/explanation requests always go to clarify (no alternatives, no data mode override)
+      if (adviceRequest) {
+        return {
+          goal: 'clarify',
+          priority: 'user_query',
+          route: 'normal',
+          allowPatches: true,
+          reasoning: 'Advies- of uitlegverzoek ƒÅ\' kies clarifying flow.',
+          action: 'ask_clarifying_question',
+          tone: behaviorProfile.toneHint || 'neutral',
+        };
+      }
+
       const isDataInput = this.detectDataInput(behaviorProfile, userMessage);
 
       if (isDataInput) {
@@ -121,10 +144,12 @@ export class TurnPlanner {
           route: 'guard_required',
           allowPatches: true, // Data input = patches expected
           reasoning: 'User is providing concrete data for wizard state.',
+          action: 'collect_data',
+          tone: behaviorProfile.toneHint || 'neutral',
         };
       }
 
-      // Check if alternatives should be offered
+      // Check if alternatives should be offered (only when explicitly exploring options)
       const needsAlternatives = this.detectNeedsAlternatives(behaviorProfile, userMessage);
       if (needsAlternatives) {
         return {
@@ -133,6 +158,20 @@ export class TurnPlanner {
           route: 'normal',
           allowPatches: true, // Offering alternatives = patches allowed
           reasoning: 'User is exploring options and needs alternatives.',
+          action: 'offer_options',
+          tone: behaviorProfile.toneHint || 'neutral',
+        };
+      }
+
+      if (adviceRequest) {
+        return {
+          goal: 'clarify',
+          priority: 'user_query',
+          route: 'normal',
+          allowPatches: true, // Clarification questions
+          reasoning: 'Advice request handled with clarification and guidance.',
+          action: 'ask_clarifying_question',
+          tone: behaviorProfile.toneHint || 'neutral',
         };
       }
 
@@ -143,11 +182,20 @@ export class TurnPlanner {
         route: 'normal',
         allowPatches: true, // Clarification questions = patches allowed
         reasoning: 'User is asking for clarification or information.',
+        action: 'ask_clarifying_question',
+        tone: behaviorProfile.toneHint || 'neutral',
       };
     } catch (error) {
       console.error('[TurnPlanner.plan] Error:', error);
       return this.getDefaultPlan();
     }
+  }
+
+  /**
+   * Backwards-compatible alias for older orchestrator/tests.
+   */
+  decide(input: TurnPlannerInput): TurnPlan {
+    return this.plan(input);
   }
 
   /**
@@ -158,6 +206,16 @@ export class TurnPlanner {
     const severityOrder = { blocking: 0, warning: 1, info: 2 };
     return [...conflicts].sort(
       (a, b) => severityOrder[a.severity] - severityOrder[b.severity]
+    );
+  }
+
+  /**
+   * Detect advice-style requests.
+   * @private
+   */
+  private isAdviceRequest(userMessage: string): boolean {
+    return /\b(wat (kan|moet) ik|wat raad je|raad je (me)? aan|wat zijn de opties|welke (keuze|optie)|hoe (pak|doe) ik|wat is beter|verschillen tussen|kun je|kan je)\b/i.test(
+      userMessage
     );
   }
 
@@ -203,11 +261,6 @@ export class TurnPlanner {
    * @private
    */
   private detectNeedsAlternatives(behaviorProfile: BehaviorProfile, userMessage: string): boolean {
-    // User has thorough speed preference = wants alternatives
-    if (behaviorProfile.speedPreference === 'thorough') {
-      return true;
-    }
-
     // Check for exploration patterns in message
     const hasExplorationPatterns = [
       /verschil/i,
@@ -233,6 +286,8 @@ export class TurnPlanner {
       route: 'normal',
       allowPatches: true,
       reasoning: 'Default plan due to missing or invalid input.',
+      action: 'ask_clarifying_question',
+      tone: 'neutral',
     };
   }
 }

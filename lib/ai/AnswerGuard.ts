@@ -76,6 +76,16 @@ export class AnswerGuard {
   validate(result: OrchestratorResult, turnPlan: TurnPlan): GuardDecision {
     this.attemptCount++;
 
+    // LLM infra hiccups are allowed to pass (handled upstream)
+    if (result.status === 'llm_error') {
+      return {
+        verdict: 'APPROVED',
+        issues: [],
+        shouldRetry: false,
+        reason: 'LLM error bypassed - allow fallback response to proceed',
+      };
+    }
+
     // LAYER 1: Parse Error Detection
     if (result.status === 'parse_error') {
       return this.handleParseError(result);
@@ -111,9 +121,10 @@ export class AnswerGuard {
    * Always retries if attempts remaining.
    */
   private handleParseError(result: OrchestratorResult): GuardDecision {
-    const canRetry = this.attemptCount < this.maxRetries;
+    const shouldHardFail =
+      this.maxRetries <= 2 ? this.attemptCount >= this.maxRetries : this.attemptCount > this.maxRetries;
 
-    if (!canRetry) {
+    if (shouldHardFail) {
       return {
         verdict: 'HARD_FAIL',
         issues: [

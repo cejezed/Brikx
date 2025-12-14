@@ -24,7 +24,7 @@ export class SystemIntelligence {
    * @param state - Current wizard state
    * @returns Array of detected conflicts (empty array if none or error)
    */
-  detectConflicts(state: WizardState): SystemConflict[] {
+  detectConflicts(state: WizardState): any {
     try {
       const conflicts: SystemConflict[] = [];
 

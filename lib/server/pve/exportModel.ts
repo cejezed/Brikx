@@ -131,7 +131,7 @@ export function buildPveExportModel(opts: {
     value: safeString(v, String(v ?? "")) || "Niet ingevuld",
   }));
 
-  const duurzaam: PveTechEntry[] = Object.entries(duurzamRaw).map(([k, v]) => ({
+  const duurzaam: PveTechEntry[] = Object.entries(duurzaamRaw).map(([k, v]) => ({
     label: k,
     value: safeString(v, String(v ?? "")) || "Niet ingevuld",
   }));

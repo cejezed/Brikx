@@ -29,38 +29,37 @@ export interface ProjectAnalysis {
 export function calculateProjectCompleteness(state: WizardState): number {
   try {
     const chapterAnswers = state.chapterAnswers || {};
-    const totalChapters = 5; // basis, ruimtes, wensen, budget, techniek
-    let filledChapters = 0;
+    // Weighted completeness per chapter (sums to 100)
+    const chapterWeights: Partial<Record<ChapterKey, number>> = {
+      basis: 25,
+      ruimtes: 20,
+      wensen: 20,
+      budget: 20,
+      techniek: 15,
+    };
 
-    // Check basis chapter
-    if (chapterAnswers.basis && Object.keys(chapterAnswers.basis).length > 0) {
-      filledChapters++;
+    const isFilled = (value: any): boolean => {
+      if (value === null || value === undefined) return false;
+      if (Array.isArray(value)) return value.length >= 0; // presence counts as filled
+      if (typeof value === 'object') return true; // any object present counts as filled
+      if (typeof value === 'number') return Number.isFinite(value);
+      if (typeof value === 'string') return value.trim().length >= 0;
+      return true;
+    };
+
+    let totalWeight = 0;
+    let filledWeight = 0;
+    for (const [chapter, weight] of Object.entries(chapterWeights) as [ChapterKey, number][]) {
+      totalWeight += weight;
+      const filled = isFilled((chapterAnswers as any)[chapter]);
+      if (filled) {
+        filledWeight += weight;
+      }
     }
 
-    // Check ruimtes chapter
-    const ruimtes = chapterAnswers.ruimtes as any;
-    if (ruimtes && ruimtes.rooms && Array.isArray(ruimtes.rooms) && ruimtes.rooms.length > 0) {
-      filledChapters++;
-    }
+    const completeness = totalWeight === 0 ? 0 : Math.round((filledWeight / totalWeight) * 100);
 
-    // Check wensen chapter
-    const wensen = chapterAnswers.wensen as any;
-    if (wensen && wensen.wishes && Array.isArray(wensen.wishes) && wensen.wishes.length > 0) {
-      filledChapters++;
-    }
-
-    // Check budget chapter
-    const budget = chapterAnswers.budget as any;
-    if (budget && budget.budgetTotaal) {
-      filledChapters++;
-    }
-
-    // Check techniek chapter
-    if (chapterAnswers.techniek && Object.keys(chapterAnswers.techniek).length > 0) {
-      filledChapters++;
-    }
-
-    return Math.round((filledChapters / totalChapters) * 100);
+    return Math.min(100, completeness);
   } catch (error) {
     console.error('[projectAnalysis.calculateProjectCompleteness] Error:', error);
     return 0;

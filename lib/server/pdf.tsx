@@ -154,7 +154,7 @@ const extractRisks = (raw: any): Risk[] => {
 };
 
 function WishRow({ wish }: { wish: Wish }) {
-  const colors = getPriorityColor(wish.priority);
+  const colors = getPriorityColor(wish.priority as any);
   return (
     <View style={styles.tableRow}>
       <View
@@ -169,12 +169,12 @@ function WishRow({ wish }: { wish: Wish }) {
         ]}
       >
         <Text style={{ fontSize: 9, color: colors.text, fontWeight: 700 }}>
-          {formatWishPriorityLabel(wish.priority)}
+          {formatWishPriorityLabel(wish.priority as any)}
         </Text>
       </View>
       <View style={[styles.col, { width: "20%" }]}>
         <Text style={[styles.small, { fontWeight: 700 }]}>
-          {formatWishCategoryLabel(wish.category)}
+          {formatWishCategoryLabel(wish.category as any)}
         </Text>
       </View>
       <View style={{ width: "62%" }}>

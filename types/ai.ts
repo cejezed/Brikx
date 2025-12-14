@@ -117,7 +117,8 @@ export interface AnticipationGuidance {
   question: string;            // The actual question to ask user
   reasoning: string;           // Why we're asking (internal)
   relatedFields: string[];     // Fields this guidance relates to
-  lifestyleRelevance?: keyof LifestyleProfile;
+  lifestyleRelevance?: keyof LifestyleProfile | string;
+  triggers?: string[];
 }
 
 /**
@@ -231,6 +232,8 @@ export interface TurnPlan {
   subActions?: string[];                  // NEW - for 'navigate', 'reset', etc.
   systemConflicts?: SystemConflict[];
   anticipationGuidance?: AnticipationGuidance;
+  action?: string;
+  tone?: string;
 }
 
 // ============================================================================
@@ -264,7 +267,7 @@ export interface ChapterOpeningResponse {
   turnGoal: TurnGoal;              // UPDATED to use TurnGoal
   allowPatches: boolean;
   focusChapter: ChapterKey;
-  // NO tone field - LLM determines tone
+  tone?: string;                   // Optional tone hint for chapter openings
 }
 
 // ============================================================================
