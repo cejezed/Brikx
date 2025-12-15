@@ -72,7 +72,52 @@ describe("ArchitectAutoTurnRunner wiring", () => {
     await vi.runAllTimersAsync();
 
     const msgs = useChatStore.getState().messages;
-    expect(msgs.some((m) => m.role === "architect" && m.content === "Auto msg")).toBe(true);
+    const architectMsg = msgs.find((m) => m.role === "architect");
+    expect(architectMsg).toBeDefined();
+    expect(architectMsg?.content).toMatch(/Context:/);
+    expect(architectMsg?.content).toMatch(/Inzicht:/);
+    expect(architectMsg?.content).toMatch(/Actie:/);
+  });
+
+  it("silence guard: multiple events in one change produce max 1 architect message until next user input", async () => {
+    vi.useFakeTimers();
+    const prev = createState({
+      currentChapter: "basis",
+      chapterAnswers: { budget: { budgetTotaal: 100000 } } as any,
+    });
+    const next = createState({
+      currentChapter: "budget",
+      chapterAnswers: { budget: { budgetTotaal: 120000 } } as any,
+    });
+
+    await handleUserStateChange(prev, next, {
+      mode: "user",
+      lastChangeSource: "user",
+      projectId: "p1",
+      userId: "u1",
+    });
+    await vi.advanceTimersByTimeAsync(800);
+
+    expect(useChatStore.getState().messages.filter((m) => m.role === "architect").length).toBe(1);
+
+    // Fire another idle event without new user change; should be blocked by awaitingUserInput
+    vi.advanceTimersByTime(31_000);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(useChatStore.getState().messages.filter((m) => m.role === "architect").length).toBe(1);
+
+    // Now new user change should allow next auto-turn
+    const next2 = createState({
+      currentChapter: "budget",
+      chapterAnswers: { budget: { budgetTotaal: 140000 } } as any,
+    });
+    await handleUserStateChange(next, next2, {
+      mode: "user",
+      lastChangeSource: "user",
+      projectId: "p1",
+      userId: "u1",
+    });
+    await vi.advanceTimersByTimeAsync(800);
+    expect(useChatStore.getState().messages.filter((m) => m.role === "architect").length).toBe(2);
   });
 
   it("AI/system changes do NOT trigger events", async () => {

@@ -26,9 +26,9 @@ describe("ArchitectEventQueue", () => {
   });
 
   it("debounces and flushes highest priority first", async () => {
-    const flushed: ArchitectEvent[] = [];
-    const queue = new ArchitectEventQueue("p1", (evt) => {
-      flushed.push(evt);
+    const flushed: Array<{ evt: ArchitectEvent; meta: any }> = [];
+    const queue = new ArchitectEventQueue("p1", (evt, meta) => {
+      flushed.push({ evt, meta });
     });
 
     queue.enqueue([
@@ -42,13 +42,15 @@ describe("ArchitectEventQueue", () => {
 
     await vi.advanceTimersByTimeAsync(100); // 800ms total >= debounce
     expect(flushed.length).toBe(1);
-    expect(flushed[0].id).toBe("high");
+    expect(flushed[0].evt.id).toBe("high");
+    expect(flushed[0].meta.enqueueTs).toBe(0);
+    expect(flushed[0].meta.flushTs).toBeGreaterThanOrEqual(750);
   });
 
   it("dedupes identical events within TTL", async () => {
-    const flushed: ArchitectEvent[] = [];
-    const queue = new ArchitectEventQueue("p1", (evt) => {
-      flushed.push(evt);
+    const flushed: Array<{ evt: ArchitectEvent; meta: any }> = [];
+    const queue = new ArchitectEventQueue("p1", (evt, meta) => {
+      flushed.push({ evt, meta });
     });
 
     const evt = baseEvent({ id: "dedupe", type: "budget_edited", priority: "medium", payload: { id: "b1" } });
@@ -68,9 +70,9 @@ describe("ArchitectEventQueue", () => {
   });
 
   it("enforces rate limit of 10s per project", async () => {
-    const flushed: ArchitectEvent[] = [];
-    const queue = new ArchitectEventQueue("p1", (evt) => {
-      flushed.push(evt);
+    const flushed: Array<{ evt: ArchitectEvent; meta: any }> = [];
+    const queue = new ArchitectEventQueue("p1", (evt, meta) => {
+      flushed.push({ evt, meta });
     });
 
     queue.enqueue([baseEvent({ id: "first", priority: "high" })]);

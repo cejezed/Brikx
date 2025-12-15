@@ -6,7 +6,8 @@ type Priority = "high" | "medium" | "low";
 
 const PRIORITY_ORDER: Priority[] = ["high", "medium", "low"];
 
-type FlushCallback = (evt: ArchitectEvent) => void | Promise<void>;
+export type FlushMeta = { enqueueTs: number; flushTs: number };
+type FlushCallback = (evt: ArchitectEvent, meta: FlushMeta) => void | Promise<void>;
 
 export class ArchitectEventQueue {
   private queue: ArchitectEvent[] = [];
@@ -14,6 +15,7 @@ export class ArchitectEventQueue {
   private isFlushing = false;
   private lastSentTs: number | null = null;
   private dedupeCache: Map<string, number> = new Map();
+  private enqueueTimestamps: Map<string, number> = new Map();
   private readonly dedupeTTL = 30_000; // 30s
   private readonly debounceMs = 750;
   private readonly rateMs = 10_000;
@@ -33,7 +35,9 @@ export class ArchitectEventQueue {
       if (lastSeen !== undefined && now - lastSeen < this.dedupeTTL) continue;
       this.dedupeCache.set(dedupeKey, now);
       // ensure project id is set for rate limiting
-      this.queue.push({ ...evt, projectId: evt.projectId ?? this.projectId });
+      const enriched = { ...evt, projectId: evt.projectId ?? this.projectId };
+      this.queue.push(enriched);
+      this.enqueueTimestamps.set(enriched.id, now);
     }
 
     this.scheduleFlush();
@@ -42,6 +46,7 @@ export class ArchitectEventQueue {
   reset() {
     this.queue = [];
     this.dedupeCache.clear();
+    this.enqueueTimestamps.clear();
     this.lastSentTs = null;
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer);
@@ -76,8 +81,10 @@ export class ArchitectEventQueue {
       }
       this.lastSentTs = now;
       if (this.onFlush) {
-        await this.onFlush(evt);
+        const enqueueTs = this.enqueueTimestamps.get(evt.id) ?? now;
+        await this.onFlush(evt, { enqueueTs, flushTs: now });
       }
+      this.enqueueTimestamps.delete(evt.id);
     } finally {
       this.isFlushing = false;
       if (this.queue.length > 0) {
