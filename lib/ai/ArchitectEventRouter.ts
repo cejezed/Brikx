@@ -1,7 +1,7 @@
 // ArchitectEventRouter v1.1 - route architect events to orchestrateTurn (auto-mode)
 
 import type { ArchitectEvent } from "./ArchitectTriggers";
-import { orchestrateTurn } from "./orchestrateTurn";
+import { orchestrateTurn, type OrchestrateTurnInput } from "./orchestrateTurn";
 import type { WizardState } from "@/types/project";
 import type { FlushMeta } from "./ArchitectEventQueue";
 
@@ -169,13 +169,13 @@ export class ArchitectEventRouter {
       return false;
     }
 
-    const baseInput = {
+    const baseInput: OrchestrateTurnInput = {
       query,
       wizardState: ctx.wizardState,
       projectId: ctx.projectId,
       userId: ctx.userId || "auto",
       currentChapter: evt.chapter,
-      mode: "PREMIUM",
+      mode: "PREMIUM" as const,
       interactionMode: "auto",
       triggerType,
       triggerId: evt.id,
