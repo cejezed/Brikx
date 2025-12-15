@@ -1,5 +1,5 @@
-import { chromium as playwrightChromium } from "playwright-core";
 import chromium from "@sparticuz/chromium";
+import { chromium as playwrightChromium, type Browser } from "playwright-core";
 import { PDFDocument } from "pdf-lib";
 import { buildPveExportModel, type PveExportModel } from "./exportModel";
 import { renderBodyHtml, renderCoverHtml, renderFooterTemplate, renderHeaderTemplate } from "./template";
@@ -10,12 +10,29 @@ export type RenderPdfInput = {
   projectName?: string;
 };
 
-async function renderWithChromium(html: string, opts: { headerTemplate?: string; footerTemplate?: string; withHeaderFooter?: boolean }) {
-  const browser = await playwrightChromium.launch({
+async function launchChromium(): Promise<Browser> {
+  const executablePath = await chromium.executablePath();
+  const headless = chromium.headless === "new" ? true : chromium.headless ?? true;
+  const launchOptions = {
     args: chromium.args,
-    executablePath: await chromium.executablePath(),
-    headless: true,
-  });
+    executablePath,
+    headless,
+  } as const;
+
+  try {
+    return await playwrightChromium.launch(launchOptions);
+  } catch (err) {
+    console.warn("[pve pdf] Sparticuz chromium launch failed, falling back to bundled playwright:", err);
+    // Fallback to default playwright chromium (useful in local/dev environments without bundled libs)
+    return playwrightChromium.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+    });
+  }
+}
+
+async function renderWithChromium(html: string, opts: { headerTemplate?: string; footerTemplate?: string; withHeaderFooter?: boolean }) {
+  const browser = await launchChromium();
 
   try {
     const page = await browser.newPage({

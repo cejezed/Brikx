@@ -29,6 +29,7 @@ import Techniek from "@/components/chapters/Techniek";
 import Duurzaamheid from "@/components/chapters/Duurzaamheid";
 import Risico from "@/components/chapters/Risico";
 import Preview from "@/components/chapters/Preview";
+import MobileWizardLayout from "@/components/mobile/MobileWizardLayout";
 
 // @protected WIZARD_F01_CHAPTER_FLOW
 // This DEFAULT_FLOW array defines the exact 7-chapter structure of the wizard.
@@ -66,6 +67,7 @@ const CHAPTER_COMPONENTS: Record<ChapterKey, React.ComponentType> = {
 };
 
 export default function WizardLayout() {
+  const [isMobile, setIsMobile] = useState(false);
   const projectMeta = useWizardState((s) => s.projectMeta);
   const basisData = useWizardState((s) => s.chapterAnswers.basis as BasisData | undefined);
   const currentChapter = useWizardState((s) => s.currentChapter);
@@ -85,6 +87,14 @@ export default function WizardLayout() {
 
   const { handleSave, isSaving, authLoading } = useSaveProject();
 
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
   // Init flow & startchapter één keer
   useEffect(() => {
     if (!chapterFlow || chapterFlow.length === 0) {
@@ -99,6 +109,10 @@ export default function WizardLayout() {
     () => showPreview ? Preview : (CHAPTER_COMPONENTS[activeChapter] ?? Basis),
     [activeChapter, showPreview]
   );
+
+  if (isMobile) {
+    return <MobileWizardLayout />;
+  }
 
   return (
     <div className="wizard-shell h-full min-h-0 w-full font-sans relative flex items-center justify-center transition-colors duration-500 bg-gradient-to-br from-slate-100 via-slate-200 to-slate-300 text-slate-900 dark:bg-gradient-to-br dark:from-[#1b273d] dark:via-[#243450] dark:to-[#2e4366] dark:text-slate-100 overflow-hidden">
