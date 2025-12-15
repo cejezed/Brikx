@@ -1,3 +1,4 @@
+// Update 2025-12-15: mobiele kaart ondersteunt nu Ruimtes met mini-lijst + inline editor (selecteer/bewerk/voeg toe/verwijder). Geen layout-wijzigingen buiten de kaart; schrijft direct naar useWizardState.
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -75,17 +76,22 @@ export default function ActiveWizardCard() {
     setOrigin("user");
     updateChapterData("ruimtes", (prev) => {
       const rooms = Array.isArray(prev.rooms) ? [...prev.rooms] : [];
-      const first: Room =
-        rooms[0] ?? { id: `room_${Date.now()}`, name: "", type: "custom", group: "Custom" };
+      const targetId = rooms[0]?.id;
+      const idx = rooms.findIndex((r) => r.id === targetId);
+      if (idx === -1) return prev;
+      const current = rooms[idx];
       const updated: Room = {
-        ...first,
-        [field]: field === "m2" ? (Number.isFinite(value as number) ? (value as number) : undefined) : value,
+        ...current,
+        [field]:
+          field === "m2"
+            ? Number.isFinite(value as number)
+              ? (value as number)
+              : value === ""
+              ? ""
+              : current.m2
+            : value,
       };
-      if (rooms.length === 0) {
-        rooms.push(updated);
-      } else {
-        rooms[0] = updated;
-      }
+      rooms[idx] = updated;
       return { ...prev, rooms };
     });
   };
@@ -148,6 +154,12 @@ export default function ActiveWizardCard() {
   // Renderers per chapter (max 3 velden)
   const renderFields = () => {
     switch (currentChapter) {
+      case "ruimtes": {
+        return <MobileRuimtesCard />;
+      }
+      case "wensen": {
+        return <MobileWensenCard />;
+      }
       case "basis": {
         const basis = (chapterAnswers as any).basis || {};
         return (
@@ -295,9 +307,10 @@ type FieldProps = {
   value: any;
   onChange: (e: any) => void;
   type?: "text" | "number";
+  inputStyle?: React.CSSProperties;
 };
 
-function LabeledInput({ label, value, onChange, type = "text" }: FieldProps) {
+function LabeledInput({ label, value, onChange, type = "text", inputStyle }: FieldProps) {
   return (
     <label className="flex flex-col gap-1">
       <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">{label}</span>
@@ -305,21 +318,35 @@ function LabeledInput({ label, value, onChange, type = "text" }: FieldProps) {
         type={type}
         value={value ?? ""}
         onChange={onChange}
+        style={inputStyle}
         className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 dark:border-white/10 dark:bg-slate-800 dark:text-white"
       />
     </label>
   );
 }
 
-function LabeledTextarea({ label, value, onChange }: { label: string; value: any; onChange: (e: TextEvent) => void }) {
+function LabeledTextarea({
+  label,
+  value,
+  onChange,
+  rows = 3,
+  inputStyle,
+}: {
+  label: string;
+  value: any;
+  onChange: (e: TextEvent) => void;
+  rows?: number;
+  inputStyle?: React.CSSProperties;
+}) {
   return (
     <label className="flex flex-col gap-1">
       <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">{label}</span>
       <textarea
         value={value ?? ""}
         onChange={onChange}
-        rows={3}
-        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 dark:border-white/10 dark:bg-slate-800 dark:text-white"
+        rows={rows}
+        style={inputStyle}
+        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 dark:border-white/10 dark:bg-slate-800 dark:text-white resize-none max-h-28"
       />
     </label>
   );
@@ -344,5 +371,320 @@ function LabeledSelect({ label, value, onChange, children }: SelectProps) {
         {children}
       </select>
     </label>
+  );
+}
+
+function MobileRuimtesCard() {
+  const chapterAnswers = useWizardState((s) => s.chapterAnswers);
+  const updateChapterData = useWizardState((s) => s.updateChapterData);
+  const rooms: Room[] = Array.isArray((chapterAnswers as any)?.ruimtes?.rooms)
+    ? (chapterAnswers as any).ruimtes.rooms
+    : [];
+  const [selectedId, setSelectedId] = useState<string | undefined>(() => rooms[0]?.id);
+
+  useEffect(() => {
+    if (!selectedId && rooms.length > 0) {
+      setSelectedId(rooms[0].id);
+      return;
+    }
+    if (selectedId && !rooms.find((r) => r.id === selectedId)) {
+      setSelectedId(rooms[0]?.id);
+    }
+  }, [rooms, selectedId]);
+
+  const selectedRoom = rooms.find((r) => r.id === selectedId) ?? rooms[0];
+
+  const addRoom = () => {
+    const newRoom: Room = {
+      id: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `room_${Date.now()}`,
+      name: "",
+      type: "overig",
+      group: "",
+      m2: "",
+      wensen: [],
+    };
+    updateChapterData("ruimtes", (prev) => {
+      const prevRooms = Array.isArray(prev.rooms) ? prev.rooms : [];
+      return { ...prev, rooms: [...prevRooms, newRoom] };
+    });
+    setSelectedId(newRoom.id);
+  };
+
+  const removeRoom = () => {
+    if (!selectedRoom) return;
+    updateChapterData("ruimtes", (prev) => {
+      const prevRooms = Array.isArray(prev.rooms) ? prev.rooms : [];
+      const filtered = prevRooms.filter((r) => r.id !== selectedRoom.id);
+      return { ...prev, rooms: filtered };
+    });
+    // selectie wordt in useEffect hersteld
+  };
+
+  const handleField =
+    (field: "name" | "m2") => (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = field === "m2" ? e.target.value : e.target.value;
+      updateChapterData("ruimtes", (prev) => {
+        const prevRooms = Array.isArray(prev.rooms) ? [...prev.rooms] : [];
+        const idx = prevRooms.findIndex((r) => r.id === selectedRoom?.id);
+        if (idx === -1 || !selectedRoom) return prev;
+        const updated: Room = {
+          ...prevRooms[idx],
+          [field]:
+            field === "m2"
+              ? value === ""
+                ? ""
+                : Number.isFinite(Number(value))
+                ? Number(value)
+                : prevRooms[idx].m2
+              : value,
+        };
+        prevRooms[idx] = updated;
+        return { ...prev, rooms: prevRooms };
+      });
+    };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">Ruimtes</p>
+          <h4 className="text-base font-bold text-slate-900 dark:text-white">Ruimtes ({rooms.length})</h4>
+        </div>
+        <button
+          onClick={addRoom}
+          className="px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-900 text-white shadow-sm active:scale-[0.99] dark:bg-white dark:text-slate-900"
+        >
+          + Ruimte toevoegen
+        </button>
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-slate-800/50">
+        {rooms.length === 0 ? (
+          <div className="p-3 text-sm text-slate-600 dark:text-slate-300">Nog geen ruimtes toegevoegd.</div>
+        ) : (
+          <ul className="max-h-[180px] overflow-hidden divide-y divide-slate-200 dark:divide-white/10">
+            {rooms.slice(0, 5).map((room) => {
+              const active = room.id === selectedRoom?.id;
+              return (
+                <li key={room.id}>
+                  <button
+                    onClick={() => setSelectedId(room.id)}
+                    className={[
+                      "w-full text-left px-3 py-2 flex items-center justify-between transition-colors",
+                      active
+                        ? "bg-white text-slate-900 dark:bg-slate-900 dark:text-white"
+                        : "text-slate-700 hover:bg-white/60 dark:text-slate-300 dark:hover:bg-slate-900/50",
+                    ].join(" ")}
+                  >
+                    <span className="text-sm font-semibold truncate">
+                      {room.name && room.name.trim().length > 0 ? room.name : "Ruimte zonder naam"}
+                    </span>
+                    {active && <span className="text-[10px] uppercase tracking-[0.2em] text-emerald-500">Actief</span>}
+                  </button>
+                </li>
+              );
+            })}
+            {rooms.length > 5 && (
+              <li>
+                <div className="px-3 py-2 text-[11px] text-slate-500 dark:text-slate-400">
+                  +{rooms.length - 5} meer… (zie Overzicht)
+                </div>
+              </li>
+            )}
+          </ul>
+        )}
+      </div>
+
+      {selectedRoom && (
+        <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-slate-900/60">
+          <LabeledInput
+            label="Belangrijkste ruimte"
+            value={selectedRoom.name || ""}
+            onChange={handleField("name")}
+            inputStyle={{ scrollMarginBottom: "160px" }}
+          />
+          <LabeledInput
+            label="Oppervlakte (m²)"
+            type="number"
+            value={selectedRoom.m2 ?? ""}
+            onChange={handleField("m2")}
+            inputStyle={{ scrollMarginBottom: "160px" }}
+          />
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] text-slate-500">Detailbewerking kan later in Ruimtes.</p>
+            <button
+              onClick={removeRoom}
+              className="text-[11px] font-semibold text-red-600 hover:text-red-700 dark:text-red-400"
+            >
+              Verwijderen
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MobileWensenCard() {
+  const chapterAnswers = useWizardState((s) => s.chapterAnswers);
+  const updateChapterData = useWizardState((s) => s.updateChapterData);
+  const wishes: Wish[] = Array.isArray((chapterAnswers as any)?.wensen?.wishes)
+    ? (chapterAnswers as any).wensen.wishes
+    : [];
+
+  const [selectedId, setSelectedId] = useState<string | undefined>(() => wishes[0]?.id);
+
+  useEffect(() => {
+    if (!selectedId && wishes.length > 0) {
+      setSelectedId(wishes[0].id);
+      return;
+    }
+    if (selectedId && !wishes.find((w) => w.id === selectedId)) {
+      setSelectedId(wishes[0]?.id);
+    }
+  }, [wishes, selectedId]);
+
+  const selectedWish = wishes.find((w) => w.id === selectedId) ?? wishes[0];
+
+  const addWish = () => {
+    const newWish: Wish = {
+      id: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `wish_${Date.now()}`,
+      text: "",
+      priority: "must",
+    };
+    updateChapterData("wensen", (prev) => {
+      const prevW = Array.isArray(prev.wishes) ? prev.wishes : [];
+      return { ...prev, wishes: [...prevW, newWish] };
+    });
+    setSelectedId(newWish.id);
+  };
+
+  const removeWish = () => {
+    if (!selectedWish) return;
+    updateChapterData("wensen", (prev) => {
+      const prevW = Array.isArray(prev.wishes) ? prev.wishes : [];
+      const filtered = prevW.filter((w) => w.id !== selectedWish.id);
+      return { ...prev, wishes: filtered };
+    });
+    // selectie valt terug via effect
+  };
+
+  const handleText = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    updateChapterData("wensen", (prev) => {
+      const prevW = Array.isArray(prev.wishes) ? [...prev.wishes] : [];
+      const idx = prevW.findIndex((w) => w.id === selectedWish?.id);
+      if (idx === -1 || !selectedWish) return prev;
+      prevW[idx] = { ...prevW[idx], text: value };
+      return { ...prev, wishes: prevW };
+    });
+  };
+
+  const handlePriority = (value: Wish["priority"]) => {
+    updateChapterData("wensen", (prev) => {
+      const prevW = Array.isArray(prev.wishes) ? [...prev.wishes] : [];
+      const idx = prevW.findIndex((w) => w.id === selectedWish?.id);
+      if (idx === -1 || !selectedWish) return prev;
+      prevW[idx] = { ...prevW[idx], priority: value };
+      return { ...prev, wishes: prevW };
+    });
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">Wensen</p>
+          <h4 className="text-base font-bold text-slate-900 dark:text-white">Wensen ({wishes.length})</h4>
+        </div>
+        <button
+          onClick={addWish}
+          className="px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-900 text-white shadow-sm active:scale-[0.99] dark:bg-white dark:text-slate-900"
+        >
+          + Wens toevoegen
+        </button>
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-slate-800/50">
+        {wishes.length === 0 ? (
+          <div className="p-3 text-sm text-slate-600 dark:text-slate-300">Nog geen wensen toegevoegd.</div>
+        ) : (
+          <ul className="max-h-[180px] overflow-hidden divide-y divide-slate-200 dark:divide-white/10">
+            {wishes.slice(0, 5).map((wish) => {
+              const active = wish.id === selectedWish?.id;
+              return (
+                <li key={wish.id}>
+                  <button
+                    onClick={() => setSelectedId(wish.id)}
+                    className={[
+                      "w-full text-left px-3 py-2 flex items-center justify-between transition-colors",
+                      active
+                        ? "bg-white text-slate-900 dark:bg-slate-900 dark:text-white"
+                        : "text-slate-700 hover:bg-white/60 dark:text-slate-300 dark:hover:bg-slate-900/50",
+                    ].join(" ")}
+                  >
+                    <span className="text-sm font-semibold truncate">
+                      {wish.text && wish.text.trim().length > 0 ? wish.text : "Wens zonder tekst"}
+                    </span>
+                    {active && <span className="text-[10px] uppercase tracking-[0.2em] text-emerald-500">Actief</span>}
+                  </button>
+                </li>
+              );
+            })}
+            {wishes.length > 5 && (
+              <li>
+                <div className="px-3 py-2 text-[11px] text-slate-500 dark:text-slate-400">
+                  +{wishes.length - 5} meer… (zie Overzicht)
+                </div>
+              </li>
+            )}
+          </ul>
+        )}
+      </div>
+
+          {selectedWish && (
+        <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-slate-900/60">
+          <LabeledTextarea
+            label="Wens"
+            value={selectedWish.text || ""}
+            onChange={handleText}
+            rows={3}
+            inputStyle={{ scrollMarginBottom: "160px" }}
+          />
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Prioriteit</span>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { value: "must", label: "Must-have" },
+                { value: "nice", label: "Nice-to-have" },
+                { value: "optional", label: "Optioneel" },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => handlePriority(opt.value as Wish["priority"])}
+                  className={[
+                    "px-2 py-2 rounded-lg text-[12px] font-semibold border transition-colors",
+                    selectedWish.priority === opt.value
+                      ? "border-emerald-400 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:border-emerald-400/50 dark:text-emerald-200"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-emerald-200 dark:border-white/10 dark:bg-slate-800 dark:text-slate-200",
+                  ].join(" ")}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] text-slate-500">Je kunt later meer wensen toevoegen.</p>
+            <button
+              onClick={removeWish}
+              className="text-[11px] font-semibold text-red-600 hover:text-red-700 dark:text-red-400"
+            >
+              Verwijderen
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

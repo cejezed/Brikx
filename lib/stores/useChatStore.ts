@@ -37,7 +37,7 @@ import type { ChapterKey, WizardState as CoreWizardState } from "@/types/project
 // Types
 // ============================================================================
 
-export type ChatRole = "user" | "assistant" | "system";
+export type ChatRole = "user" | "assistant" | "system" | "architect";
 
 export interface ChatMessage {
   id: string;
@@ -60,6 +60,7 @@ interface ChatStoreState {
 
   sendMessage: (query: string, mode?: "PREVIEW" | "PREMIUM") => Promise<void>;
   appendSystemMessage: (content: string) => void;
+  appendArchitectMessage: (content: string) => void;
   reset: () => void;
 }
 
@@ -140,6 +141,10 @@ export const useChatStore = create(
       appendSystemMessage: (content: string) =>
         set((state) => ({
           messages: [...state.messages, createMessage("system", content)],
+        })),
+      appendArchitectMessage: (content: string) =>
+        set((state) => ({
+          messages: [...state.messages, createMessage("architect", content)],
         })),
 
       // ====================================================================
@@ -271,7 +276,7 @@ export const useChatStore = create(
               case "patch": {
                 const patch = JSON.parse(dataRaw) as PatchEvent;
                 const { applyPatch, setFocusedField } = useWizardState.getState();
-                applyPatch(patch.chapter, patch.delta);
+                applyPatch(patch.chapter, patch.delta, "ai");
 
                 // ✅ v3.6: Focus het ingevulde veld zodat de gebruiker ziet wat er is aangepast
                 if (patch.delta?.path) {
@@ -287,7 +292,7 @@ export const useChatStore = create(
 
                 if (nav?.chapter) {
                   const { goToChapter } = useWizardState.getState();
-                  goToChapter(nav.chapter as ChapterKey);
+                  goToChapter(nav.chapter as ChapterKey, "ai");
                 }
                 return;
               }

@@ -17,6 +17,16 @@ const REQUIRED_FIELDS: Record<ChapterKey, string[]> = {
   risico: ["risks"],
 };
 
+const CHAPTER_WEIGHTS: Record<ChapterKey, number> = {
+  basis: 20,
+  ruimtes: 20,
+  wensen: 15,
+  budget: 20,
+  techniek: 10,
+  duurzaam: 10,
+  risico: 5,
+};
+
 function hasValue(value: any): boolean {
   if (value == null) return false;
   if (typeof value === "string") return value.trim().length > 0;
@@ -31,6 +41,17 @@ export function computeChapterProgress(
   chapter: ChapterKey,
   answers: Partial<ChapterDataMap>
 ): ChapterProgress {
+  // Special handling for ruimtes: minimaal 2 benoemde ruimtes voor "complete"
+  if (chapter === "ruimtes") {
+    const data = (answers as any)?.ruimtes;
+    const rooms = Array.isArray(data?.rooms) ? data.rooms : [];
+    const namedCount = rooms.filter((r: any) => r?.name && String(r.name).trim().length > 0).length;
+    if (rooms.length === 0) return { status: "empty", completion: 0 };
+    if (namedCount >= 2) return { status: "complete", completion: 100 };
+    const completion = Math.min(80, Math.max(20, Math.round((namedCount / 2) * 80))); // partial boost
+    return { status: "partial", completion };
+  }
+
   const required = REQUIRED_FIELDS[chapter] ?? [];
   if (required.length === 0) return { status: "empty", completion: 0 };
 
@@ -55,7 +76,14 @@ export function computeChapterProgress(
 
 export function computeGlobalProgress(answers: Partial<ChapterDataMap>): number {
   const chapters: ChapterKey[] = ["basis", "ruimtes", "wensen", "budget", "techniek", "duurzaam", "risico"];
-  const total = chapters.length;
-  const sum = chapters.reduce((acc, ch) => acc + computeChapterProgress(ch, answers).completion, 0);
-  return Math.max(0, Math.min(100, Math.round(sum / total)));
+  const totalWeight = chapters.reduce((acc, ch) => acc + (CHAPTER_WEIGHTS[ch] ?? 0), 0);
+
+  const weightedSum = chapters.reduce((acc, ch) => {
+    const comp = computeChapterProgress(ch, answers).completion;
+    const w = CHAPTER_WEIGHTS[ch] ?? 0;
+    return acc + (comp * w) / 100;
+  }, 0);
+
+  const pct = totalWeight > 0 ? (weightedSum / totalWeight) * 100 : 0;
+  return Math.max(0, Math.min(100, Math.round(pct)));
 }

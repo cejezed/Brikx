@@ -18,6 +18,7 @@ import type {
   WizardState as CoreWizardState,
 } from "@/types/project";
 import { validateChapter } from "@/lib/wizard/CHAPTER_SCHEMAS";
+import { handleUserStateChange } from "@/lib/ai/ArchitectAutoTurnRunner";
 
 type WizardState = CoreWizardState;
 type FocusKey = `${string}:${string}`;
@@ -35,15 +36,15 @@ type StateSnapshot = {
 interface WizardActions {
   // Navigatie & flow
   setChapterFlow: (flow: ChapterKey[]) => void;
-  setCurrentChapter: (chapter: ChapterKey) => void;
-  goToChapter: (chapter: ChapterKey) => void;
+  setCurrentChapter: (chapter: ChapterKey, source?: "user" | "ai" | "system") => void;
+  goToChapter: (chapter: ChapterKey, source?: "user" | "ai" | "system") => void;
 
   // Data-mutaties
   updateChapterData: <K extends ChapterKey>(
     chapter: K,
     updater: (prev: ChapterData<K>) => ChapterData<K>
   ) => void;
-  applyPatch: (chapter: ChapterKey, delta: PatchDelta) => void;
+  applyPatch: (chapter: ChapterKey, delta: PatchDelta, source?: "user" | "ai" | "system") => void;
 
   // UI-helpers
   setFocusedField: (key: FocusKey | null) => void;
@@ -85,6 +86,17 @@ const VALID_CHAPTERS: ChapterKey[] = [
   "duurzaam",
   "risico",
 ];
+
+const snapshotState = (state: WizardStore): WizardState => ({
+  stateVersion: state.stateVersion,
+  chapterAnswers: state.chapterAnswers,
+  chapterFlow: state.chapterFlow,
+  currentChapter: state.currentChapter,
+  focusedField: state.focusedField,
+  showExportModal: state.showExportModal,
+  mode: (state as any).mode ?? "PREVIEW",
+  triage: (state as any).triage,
+});
 
 // Delta-transformer (flat paths)
 function transformWithDelta(
@@ -142,25 +154,47 @@ export const useWizardState = create<WizardStore>()(
           chapterFlow: Array.isArray(flow) ? flow : [],
         })),
 
-      setCurrentChapter: (chapter) =>
-        set((state) => ({
-          currentChapter: chapter,
-          stateVersion: state.stateVersion + 1,
-        })),
-
-      goToChapter: (chapter) => {
-        const { chapterFlow } = get();
-        if (!Array.isArray(chapterFlow) || !chapterFlow.includes(chapter)) {
-          console.warn(`[WizardState] Navigating to non-flow chapter: ${chapter}`);
-        }
+      setCurrentChapter: (chapter, source: "user" | "ai" | "system" = "user") => {
+        const prev = snapshotState(get() as WizardStore);
         set((state) => ({
           currentChapter: chapter,
           stateVersion: state.stateVersion + 1,
         }));
+        const next = snapshotState(get() as WizardStore);
+        if (source === "user") {
+          void handleUserStateChange(prev, next, {
+            mode: "user",
+            lastChangeSource: "user",
+            projectId: (next as any).projectMeta?.projectId,
+            userId: (next as any).projectMeta?.userId,
+          });
+        }
+      },
+
+      goToChapter: (chapter, source: "user" | "ai" | "system" = "user") => {
+        const { chapterFlow } = get();
+        if (!Array.isArray(chapterFlow) || !chapterFlow.includes(chapter)) {
+          console.warn(`[WizardState] Navigating to non-flow chapter: ${chapter}`);
+        }
+        const prev = snapshotState(get() as WizardStore);
+        set((state) => ({
+          currentChapter: chapter,
+          stateVersion: state.stateVersion + 1,
+        }));
+        const next = snapshotState(get() as WizardStore);
+        if (source === "user") {
+          void handleUserStateChange(prev, next, {
+            mode: "user",
+            lastChangeSource: "user",
+            projectId: (next as any).projectMeta?.projectId,
+            userId: (next as any).projectMeta?.userId,
+          });
+        }
       },
 
       // DATA-UPDATER ----------------------------------------------------------
-      updateChapterData: (chapter, updater) =>
+      updateChapterData: (chapter, updater) => {
+        const prevSnap = snapshotState(get() as WizardStore);
         set((state) => {
           const prev =
             (state.chapterAnswers[chapter] as ChapterData<typeof chapter>) ||
@@ -179,11 +213,20 @@ export const useWizardState = create<WizardStore>()(
             },
             stateVersion: state.stateVersion + 1,
           };
-        }),
+        });
+        const nextSnap = snapshotState(get() as WizardStore);
+        void handleUserStateChange(prevSnap, nextSnap, {
+          mode: "user",
+          lastChangeSource: "user",
+          projectId: (nextSnap as any).projectMeta?.projectId,
+          userId: (nextSnap as any).projectMeta?.userId,
+        });
+      },
 
       // PATCH-HANDLER ---------------------------------------------------------
       // ✅ v3.7: Slaat snapshot op voor undo functionaliteit
-      applyPatch: (chapter, delta) =>
+      applyPatch: (chapter, delta, source: "user" | "ai" | "system" = "user") => {
+        const prevSnap = snapshotState(get() as WizardStore);
         set((state) => {
           const prev = (state.chapterAnswers[chapter] as Record<string, any>) || {};
           const next = transformWithDelta(prev, delta);
@@ -207,7 +250,17 @@ export const useWizardState = create<WizardStore>()(
             stateVersion: state.stateVersion + 1,
             _lastSnapshot: snapshot,
           };
-        }),
+        });
+        if (source === "user") {
+          const nextSnap = snapshotState(get() as WizardStore);
+          void handleUserStateChange(prevSnap, nextSnap, {
+            mode: "user",
+            lastChangeSource: "user",
+          projectId: (nextSnap as any).projectMeta?.projectId,
+          userId: (nextSnap as any).projectMeta?.userId,
+        });
+      }
+    },
 
       // UI-HELPERS ------------------------------------------------------------
       setFocusedField: (key) =>

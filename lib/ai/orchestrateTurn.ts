@@ -33,11 +33,20 @@ import { FallbackStrategy, type FinalTurnResult } from './FallbackStrategy';
  */
 export interface OrchestrateTurnInput {
   query: string;
-  wizardState: WizardState;
-  userId: string;
-  projectId: string;
+ wizardState: WizardState;
+ userId: string;
+ projectId: string;
   currentChapter?: ChapterKey;
   mode?: 'PREVIEW' | 'PREMIUM';
+  interactionMode?: 'user' | 'auto';
+  triggerType?:
+    | 'chapter_start'
+    | 'chapter_completed'
+    | 'budget_change'
+    | 'room_added'
+    | 'risk_increased'
+    | 'wizard_idle';
+  triggerId?: string;
   skipAnticipation?: boolean;
   skipConflictDetection?: boolean;
 }
@@ -102,6 +111,8 @@ export async function orchestrateTurn(input: OrchestrateTurnInput): Promise<Turn
     userId,
     currentChapter,
     mode,
+    interactionMode: input.interactionMode ?? 'user',
+    triggerType: input.triggerType,
   });
 
   // ==========================================================================
@@ -251,7 +262,9 @@ export async function orchestrateTurn(input: OrchestrateTurnInput): Promise<Turn
 
   // Enforce allowPatches guardrail: if disallowed, drop patches entirely
   const normalizedPatches =
-    turnPlan.allowPatches === false ? [] : (finalResult.patches || []);
+    turnPlan.allowPatches === false || input.interactionMode === 'auto'
+      ? []
+      : (finalResult.patches || []);
 
   // Default requiresConfirmation to true when missing (indirect patching safeguard)
   const patchesWithConfirmation =
