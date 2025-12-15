@@ -7,7 +7,11 @@ import TypingIndicator from "@/components/common/TypingIndicator";
 
 type MsgRole = "user" | "assistant";
 
-export default function ChatFeed() {
+type Props = {
+  className?: string;
+};
+
+export default function ChatFeed({ className }: Props) {
   const messages = useChatStore((s) => s.messages);
   const isStreaming = useChatStore((s) => s.isStreaming);
   const error = useChatStore((s) => s.error);
@@ -25,7 +29,10 @@ export default function ChatFeed() {
   return (
     <div
       ref={containerRef}
-      className="w-full h-full overflow-y-auto custom-scrollbar space-y-5 px-3 py-4 bg-white/70 dark:bg-slate-900/60 rounded-2xl border border-white/50 shadow-sm dark:border-white/10"
+      className={[
+        "w-full h-full overflow-y-auto custom-scrollbar space-y-5 px-3 py-4 bg-white/70 dark:bg-slate-900/60 rounded-2xl border border-white/50 shadow-sm dark:border-white/10",
+        className || "",
+      ].join(" ")}
     >
       {messages
         .filter((m) => m.role !== "system")
