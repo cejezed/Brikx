@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import ChecklistModal from '@/components/ChecklistModal'
 import { useWizardState } from '@/lib/stores/useWizardState'
+import { getWizardRedirectPath } from '@/lib/redirectHelper'
 
 export default function HeroWithForm() {
   // State voor het 'Wat wil je doen?' formulier
@@ -38,11 +39,11 @@ export default function HeroWithForm() {
     if (hasExistingProject) {
       console.log('Redirecting to wizard (returning user)')
       // Returning user -> go directly to wizard
-      window.location.href = '/wizard'
+      window.location.href = getWizardRedirectPath('/wizard')
     } else {
       console.log('Redirecting to assessment (new user)')
       // New user -> go to intake assessment
-      window.location.href = '/welcome/assessment'
+      window.location.href = getWizardRedirectPath('/welcome/assessment')
     }
   }
 
@@ -76,7 +77,7 @@ export default function HeroWithForm() {
       alert('Het is helaas niet gelukt de aanvraag te verwerken.')
     }
   }
-  
+
   // useEffect voor smooth scrolling en escape-key functionaliteit
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => ev.key === 'Escape' && isModalOpen && handleCloseModal()
@@ -187,21 +188,19 @@ export default function HeroWithForm() {
               <div className="grid grid-cols-2 gap-3 mb-5">
                 <button
                   onClick={() => setProjectType('nieuwbouw')}
-                  className={`py-4 rounded-xl text-[18px] font-medium transition-all duration-300 cursor-pointer ${
-                    projectType === 'nieuwbouw'
-                      ? 'border-2 border-[#4169e1] bg-[#4169e1] text-white'
-                      : 'border-2 border-[#e0e0e0] bg-white text-[#333] hover:border-[#4db8ba]'
-                  }`}
+                  className={`py-4 rounded-xl text-[18px] font-medium transition-all duration-300 cursor-pointer ${projectType === 'nieuwbouw'
+                    ? 'border-2 border-[#4169e1] bg-[#4169e1] text-white'
+                    : 'border-2 border-[#e0e0e0] bg-white text-[#333] hover:border-[#4db8ba]'
+                    }`}
                 >
                   🏠 Nieuwbouw
                 </button>
                 <button
                   onClick={() => setProjectType('verbouwing')}
-                  className={`py-4 rounded-xl text-[18px] font-medium transition-all duration-300 cursor-pointer ${
-                    projectType === 'verbouwing'
-                      ? 'border-2 border-[#4169e1] bg-[#4169e1] text-white'
-                      : 'border-2 border-[#e0e0e0] bg-white text-[#333] hover:border-[#4db8ba]'
-                  }`}
+                  className={`py-4 rounded-xl text-[18px] font-medium transition-all duration-300 cursor-pointer ${projectType === 'verbouwing'
+                    ? 'border-2 border-[#4169e1] bg-[#4169e1] text-white'
+                    : 'border-2 border-[#e0e0e0] bg-white text-[#333] hover:border-[#4db8ba]'
+                    }`}
                 >
                   🔨 Verbouwing
                 </button>
@@ -225,9 +224,8 @@ export default function HeroWithForm() {
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 disabled={noLocation}
-                className={`w-full px-4 py-3 border border-[#ddd] rounded-lg text-[18px] mb-3 box-border focus:outline-none focus:ring-2 focus:ring-[#4db8ba] focus:border-[#4db8ba] transition-all ${
-                  noLocation ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''
-                }`}
+                className={`w-full px-4 py-3 border border-[#ddd] rounded-lg text-[18px] mb-3 box-border focus:outline-none focus:ring-2 focus:ring-[#4db8ba] focus:border-[#4db8ba] transition-all ${noLocation ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''
+                  }`}
               />
               <label className="flex items-center gap-3 mb-4 cursor-pointer group">
                 <input
@@ -248,11 +246,10 @@ export default function HeroWithForm() {
               <button
                 onClick={handleSubmit}
                 disabled={!noLocation && !location.trim()}
-                className={`w-full py-4 text-white border-none rounded-lg text-[19px] font-semibold transition-all duration-300 ${
-                  noLocation || location.trim()
-                    ? 'bg-[#4db8ba] hover:bg-[#3da7a9] hover:shadow-lg cursor-pointer'
-                    : 'bg-[#d1d5db] cursor-not-allowed opacity-50'
-                }`}
+                className={`w-full py-4 text-white border-none rounded-lg text-[19px] font-semibold transition-all duration-300 ${noLocation || location.trim()
+                  ? 'bg-[#4db8ba] hover:bg-[#3da7a9] hover:shadow-lg cursor-pointer'
+                  : 'bg-[#d1d5db] cursor-not-allowed opacity-50'
+                  }`}
               >
                 {noLocation ? 'Start Zoekprofiel →' : 'Start Gratis in 2 Minuten →'}
               </button>

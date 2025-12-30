@@ -2,28 +2,33 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 export function middleware(req: NextRequest) {
-  const { pathname, hostname } = req.nextUrl;
+  const { pathname, searchParams } = req.nextUrl;
 
-  // Only gate wizard routes; allow everything else
-  if (!pathname.startsWith("/wizard")) return NextResponse.next();
+  // Check if we should gate this route
+  const isWizardRoute = pathname.startsWith("/wizard");
+  const isWelcomeRoute = pathname.startsWith("/welcome");
 
-  const isLocal =
-    hostname === "localhost" ||
-    hostname === "127.0.0.1" ||
-    hostname === "[::1]";
-  const wizardOpen = process.env.NEXT_PUBLIC_WIZARD_OPEN === "true";
-  const allow = isLocal || wizardOpen || process.env.NODE_ENV !== "production";
+  if (!isWizardRoute && !isWelcomeRoute) return NextResponse.next();
 
-  if (!allow) {
-    const url = req.nextUrl.clone();
-    url.pathname = "/wizard-info";
-    url.search = "";
-    return NextResponse.redirect(url, 302);
+  // Test mode access
+  const hasTestParam = searchParams.get('test') === 'true';
+  const hasTestCookie = req.cookies.get('brikx_test_access')?.value === 'true';
+
+  if (hasTestParam || hasTestCookie) {
+    const response = NextResponse.next();
+    if (hasTestParam && !hasTestCookie) {
+      response.cookies.set('brikx_test_access', 'true', { maxAge: 60 * 60 * 24 * 7 }); // 1 week
+    }
+    return response;
   }
 
-  return NextResponse.next();
+  // Redirect to maintenance page
+  const url = req.nextUrl.clone();
+  url.pathname = "/onderhoud";
+  url.search = "";
+  return NextResponse.redirect(url, 307);
 }
 
 export const config = {
-  matcher: ["/wizard/:path*"],
+  matcher: ["/wizard/:path*", "/welcome/:path*"],
 };

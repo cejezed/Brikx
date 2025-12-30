@@ -4,6 +4,7 @@ import { useState, useEffect, ReactNode } from 'react'
 import { ImgHTMLAttributes, AnchorHTMLAttributes } from 'react'
 import { useIsPremium } from '@/lib/stores/useAccountStore' // v3.x: Fase 5
 import { useWizardState } from '@/lib/stores/useWizardState'
+import { getWizardRedirectPath } from '@/lib/redirectHelper'
 
 // Placeholder voor next/image
 const Image = (props: ImgHTMLAttributes<HTMLImageElement>) => <img {...props} />
@@ -30,9 +31,9 @@ export default function Header({ className = '' }: { className?: string }) {
       basisData.projectNaam.trim().length > 0
 
     if (hasExistingProject) {
-      window.location.href = '/wizard'
+      window.location.href = getWizardRedirectPath('/wizard')
     } else {
-      window.location.href = '/welcome/assessment'
+      window.location.href = getWizardRedirectPath('/welcome/assessment')
     }
   }
 

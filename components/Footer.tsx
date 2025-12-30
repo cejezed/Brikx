@@ -1,6 +1,9 @@
 /* components/Footer.tsx */
+'use client'
+
 import React from "react";
 import packageJson from "../package.json";
+import { getWizardRedirectPath } from '@/lib/redirectHelper'
 
 type FooterProps = { className?: string };
 
@@ -29,7 +32,7 @@ export default function Footer({ className = "" }: FooterProps) {
                   <li><a className="hover:text-white transition" href="/#werkwijze">Hoe het werkt</a></li>
                   <li><a className="hover:text-white transition" href="/#prijzen">Prijzen</a></li>
                   <li><a className="hover:text-white transition" href="/kennisbank">Checklists & Gidsen</a></li>
-                  <li><a className="hover:text-white transition" href="/wizard">Start Gratis PvE</a></li>
+                  <li><a className="hover:text-white transition" href={getWizardRedirectPath("/wizard")}>Start Gratis PvE</a></li>
                 </ul>
               </nav>
 

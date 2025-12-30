@@ -1,10 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
+import { getWizardRedirectPath } from '@/lib/redirectHelper'
 
 export default function Hero() {
   return (
     // VOLLEDIG FLUSH: geen extra witruimte
-   <section id="home" className="bg-white m-0 p-0">
+    <section id="home" className="bg-white m-0 p-0">
       {/* alleen responsive tweaks voor de hero zelf */}
       <style
         dangerouslySetInnerHTML={{
@@ -23,39 +24,39 @@ export default function Hero() {
 
         {/* HERO — geen rounded, geen overflow-hidden */}
         <div
-          className="px-10 pt-[8px] pb-[14px] min-h-[260px] bg-gradient-to-r from-[#082b3f] to-[#1c7d86]" 
+          className="px-10 pt-[8px] pb-[14px] min-h-[260px] bg-gradient-to-r from-[#082b3f] to-[#1c7d86]"
         >
           <div className="hero-content-text max-w-[50%] text-white">
-  <h1 className="text-[clamp(2.625rem,1.5rem+3vw,4rem)] leading-[1.15] mb-3 font-bold">
-    Het Verhaal Achter Brikx
-  </h1>
-  <p className="text-[clamp(1.25rem,1rem+0.5vw,1.5rem)] leading-relaxed mb-6 opacity-95">
-    van architectenfrustratie tot uw digitale gids, Gebouwd op twintig jaar praktijkervaring – ontworpen om u rust, structuur en vertrouwen te geven bij elke (ver)bouwstap.
-  </p>
+            <h1 className="text-[clamp(2.625rem,1.5rem+3vw,4rem)] leading-[1.15] mb-3 font-bold">
+              Het Verhaal Achter Brikx
+            </h1>
+            <p className="text-[clamp(1.25rem,1rem+0.5vw,1.5rem)] leading-relaxed mb-6 opacity-95">
+              van architectenfrustratie tot uw digitale gids, Gebouwd op twintig jaar praktijkervaring – ontworpen om u rust, structuur en vertrouwen te geven bij elke (ver)bouwstap.
+            </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 max-w-[520px]">
               <Link
-                href="/wizard"
+                href={getWizardRedirectPath("/wizard")}
                 className="w-full inline-flex items-center justify-center bg-[#43D38D] hover:bg-[#3bc47d] text-white px-8 py-4 rounded-[50px] no-underline text-xl font-semibold transition-all duration-300 hover:shadow-[0_12px_28px_rgba(67,211,141,0.5)] hover:-translate-y-1"
               >
                 Start Gratis →
               </Link>
 
-              
+
             </div>
           </div>
 
-         
+
           {/* Hero illustratie rechts */}
-         <div className="hero-image-large absolute right-5 top-5 w-[45%] max-w-[700px] z-[1]">
-  <Image
-    src="/images/Achtergrond over ons.png"
-    alt="Bouw Infographic"
-    width={700}
-    height={460}
-    className="w-full h-auto object-contain"
-    priority
-  />
+          <div className="hero-image-large absolute right-5 top-5 w-[45%] max-w-[700px] z-[1]">
+            <Image
+              src="/images/Achtergrond over ons.png"
+              alt="Bouw Infographic"
+              width={700}
+              height={460}
+              className="w-full h-auto object-contain"
+              priority
+            />
           </div>
         </div>
       </div>

@@ -1,5 +1,7 @@
 'use client'
 
+import { getWizardRedirectPath } from '@/lib/redirectHelper'
+
 const steps = [
   {
     number: "1",
@@ -35,7 +37,7 @@ export default function HowItWorks() {
   return (
     <section className="bg-gradient-to-b from-white to-gray-50 py-16">
       <div className="max-w-7xl mx-auto px-6">
-        
+
         {/* Section Header */}
         <div className="text-center mb-12">
           <h2 className="text-4xl lg:text-5xl font-bold text-primary mb-4">
@@ -49,7 +51,7 @@ export default function HowItWorks() {
         {/* 4 Steps Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           {steps.map((step, index) => (
-            <div 
+            <div
               key={index}
               className="relative bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all border border-gray-100 hover:-translate-y-1"
             >
@@ -95,7 +97,10 @@ export default function HowItWorks() {
           <p className="text-[19px] text-gray-700 mb-4 leading-relaxed">
             Neem de tijd om alles zorgvuldig in te vullen. Een compleet PvE voorkomt €10K+ aan fouten.
           </p>
-          <button className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-white rounded-full font-semibold text-lg hover:bg-primary/90 transition-colors shadow-lg hover:shadow-xl">
+          <button
+            onClick={() => window.location.href = getWizardRedirectPath('/welcome/assessment')}
+            className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-white rounded-full font-semibold text-lg hover:bg-primary/90 transition-colors shadow-lg hover:shadow-xl cursor-pointer"
+          >
             Start Gratis →
           </button>
           <p className="text-[13px] text-gray-600 mt-3">

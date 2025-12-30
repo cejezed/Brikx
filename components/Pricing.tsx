@@ -1,12 +1,13 @@
 'use client'
 
 import { Check, X } from 'lucide-react'
+import { getWizardRedirectPath } from '@/lib/redirectHelper'
 
 export default function Pricing() {
   return (
     <section className="py-20 bg-gradient-to-br from-[#E9F7F4] via-white to-[#E9F7F4]">
       <div className="max-w-7xl mx-auto px-6">
-        
+
         <div className="text-center mb-16">
           <h2 className="text-4xl lg:text-5xl font-bold text-primary mb-4">
             Beta Prijzen
@@ -17,13 +18,13 @@ export default function Pricing() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-          
+
           {/* Gratis Plan */}
           <div className="bg-white border-2 border-gray-200 rounded-3xl p-8 hover:shadow-xl transition-shadow" h-full>
             <h3 className="text-2xl font-bold text-primary mb-4" >
               Gratis Preview
             </h3>
-            
+
             <div className="mb-6">
               <div className="text-5xl font-bold text-primary mb-2">€0</div>
               <p className="text-gray-500">Altijd gratis</p>
@@ -48,18 +49,21 @@ export default function Pricing() {
               </li>
             </ul>
 
-           <button className="w-full bg-accent hover:bg-primary text-white py-4 rounded-xl font-semibold transition-all hover:-translate-y-1">
+            <button
+              onClick={() => window.location.href = getWizardRedirectPath('/welcome/assessment')}
+              className="w-full bg-accent hover:bg-primary text-white py-4 rounded-xl font-semibold transition-all hover:-translate-y-1 cursor-pointer"
+            >
               Start Gratis
             </button>
           </div>
 
           {/* Beta Premium */}
           <div className="h-full bg-white border-3 border-accent rounded-3xl p-8 relative hover:shadow-2xl transition-shadow transform lg:scale-105">
-            
+
             <h3 className="text-2xl font-bold text-primary mb-4">
               Beta Premium, help ons verbeteren en ontvang gratis het volledige rapport!
             </h3>
-            
+
             <div className="mb-6">
               <div className="text-5xl font-bold text-accent mb-2">€0</div>
               <p className="text-gray-500">
@@ -90,14 +94,17 @@ export default function Pricing() {
               </li>
             </ul>
 
-            <button className="w-full bg-accent hover:bg-primary text-white py-4 rounded-xl font-semibold transition-all hover:-translate-y-1">
+            <button
+              onClick={() => window.location.href = getWizardRedirectPath('/welcome/assessment')}
+              className="w-full bg-accent hover:bg-primary text-white py-4 rounded-xl font-semibold transition-all hover:-translate-y-1 cursor-pointer"
+            >
               Word Beta Tester
             </button>
           </div>
 
         </div>
 
-      
+
 
       </div>
     </section>
