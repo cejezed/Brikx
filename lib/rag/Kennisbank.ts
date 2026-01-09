@@ -3,7 +3,8 @@
 // Uses OpenAI embeddings + Supabase pgvector for semantic similarity
 
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
-import type { RAGDoc } from "@/types/project";
+import type { RAGDoc, ChapterKey } from "@/types/project";
+import type { CustomerExample } from "@/lib/insights/types";
 
 // ============================================================================
 // Types
@@ -25,8 +26,9 @@ export type { RAGDoc };
 export interface RagResult {
   topicId: string;
   docs: RAGDoc[];
+  examples?: CustomerExample[]; // ✅ v4.1: Toegevoegd voor chat-context
   cacheHit: boolean;
-  searchType?: "semantic" | "keyword"; // ✅ v3.9: Track which search was used
+  searchType?: "semantic" | "keyword";
 }
 
 export interface QueryOptions {
@@ -103,7 +105,17 @@ export class Kennisbank {
     }
 
     // Fallback to keyword search
-    return this.keywordQuery(query, { chapter, limit });
+    const result = await this.keywordQuery(query, { chapter, limit });
+
+    // ✅ v4.1: Voeg customer examples toe aan ALLE resultaten (indien beschikbaar)
+    try {
+      const examples = await this.queryExamples(query, { chapter: chapter as ChapterKey, limit: 3 });
+      result.examples = examples;
+    } catch (e) {
+      console.error("[Kennisbank] Failed to fetch examples for chat:", e);
+    }
+
+    return result;
   }
 
   /**
@@ -387,6 +399,35 @@ export class Kennisbank {
 
       return data as KnowledgeItem[];
     } catch {
+      return [];
+    }
+  }
+
+  /**
+   * ✅ v4.1: Query customer examples via vector similarity
+   */
+  static async queryExamples(
+    query: string,
+    options: { chapter?: ChapterKey; limit?: number } = {}
+  ): Promise<CustomerExample[]> {
+    const { limit = 3 } = options;
+
+    try {
+      // Gebruik interne embedding generator
+      const embedding = await this.generateEmbedding(query);
+
+      if (!embedding) return [];
+
+      const { data, error } = await supabaseAdmin.rpc('match_customer_examples', {
+        query_embedding: embedding,
+        match_threshold: 0.7,
+        match_count: limit,
+      });
+
+      if (error) throw error;
+      return (data || []) as CustomerExample[];
+    } catch (err) {
+      console.error("[Kennisbank.queryExamples] Error:", err);
       return [];
     }
   }

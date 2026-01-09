@@ -96,6 +96,7 @@ const snapshotState = (state: WizardStore): WizardState => ({
   showExportModal: state.showExportModal,
   mode: (state as any).mode ?? "PREVIEW",
   triage: (state as any).triage,
+  chatSession: state.chatSession,
 });
 
 // Delta-transformer (flat paths)
@@ -147,6 +148,7 @@ export const useWizardState = create<WizardStore>()(
       showExportModal: false,
       mode: "PREVIEW",
       triage: undefined,
+      chatSession: { turnCount: 0 },
 
       // FLOW -----------------------------------------------------------------
       setChapterFlow: (flow) =>
@@ -256,11 +258,11 @@ export const useWizardState = create<WizardStore>()(
           void handleUserStateChange(prevSnap, nextSnap, {
             mode: "user",
             lastChangeSource: "user",
-          projectId: (nextSnap as any).projectMeta?.projectId,
-          userId: (nextSnap as any).projectMeta?.userId,
-        });
-      }
-    },
+            projectId: (nextSnap as any).projectMeta?.projectId,
+            userId: (nextSnap as any).projectMeta?.userId,
+          });
+        }
+      },
 
       // UI-HELPERS ------------------------------------------------------------
       setFocusedField: (key) =>
@@ -354,6 +356,7 @@ export const useWizardState = create<WizardStore>()(
           showExportModal: false,
           mode: "PREVIEW",
           triage: undefined,
+          chatSession: { turnCount: 0 },
           _lastSnapshot: undefined,
         })),
 
@@ -391,6 +394,7 @@ export const useWizardState = create<WizardStore>()(
         showExportModal: state.showExportModal ?? false,
         mode: state.mode ?? "PREVIEW",
         triage: state.triage ?? undefined,
+        chatSession: state.chatSession ?? { turnCount: 0 },
       }),
     }
   )

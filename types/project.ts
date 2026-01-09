@@ -448,6 +448,42 @@ export type ProjectMeta = {
 };
 
 // ============================================================================
+// CHAT SESSION & INTENT MODEL (v2.0)
+// ============================================================================
+
+export type ConversationObligation = {
+  id: string;
+  topic: string;               // bv. "Ventilatie bij doorbraak"
+  reason: string;              // waarom relevant
+  createdAtTurn: number;
+  mustAddressByTurn: number;   // createdAtTurn + 3
+  status: 'open' | 'addressed' | 'dropped';
+  evidence?: {                // optioneel: welke KB nugget / conflict triggerde dit
+    source: 'kb' | 'heuristic' | 'user';
+    refId?: string;
+  };
+};
+
+export type ProjectIntentModel = {
+  northStar: string; // 1-2 zinnen in mensentaal
+  locked: {
+    projectType?: 'nieuwbouw' | 'verbouwing' | 'aanbouw' | 'bijgebouw' | 'renovatie' | 'onbekend';
+    primaryGoal?: string;      // bv. "keuken-eetkamer relatie verbeteren"
+    topPriorities: string[];   // max 3
+  };
+  assumptions: Array<{ text: string; confidence: 0.2 | 0.5 | 0.8 }>;
+  openQuestions: Array<{ id: string; question: string; why: string }>; // max 3
+  tensions: Array<{ label: string; cause: string; risk: 'low' | 'med' | 'high' }>;
+  lastUpdatedTurn: number;
+};
+
+export type ChatSession = {
+  turnCount: number;
+  pim?: ProjectIntentModel;
+  obligations?: ConversationObligation[];
+};
+
+// ============================================================================
 // WIZARD STATE
 // ============================================================================
 
@@ -464,6 +500,7 @@ export type WizardState = {
   focusedField?: string | null;
   showExportModal?: boolean;
   mode?: "PREVIEW" | "PREMIUM";
+  chatSession?: ChatSession; // ✅ v2.0: Chat intelligence state
 };
 
 // ============================================================================

@@ -343,6 +343,22 @@ export const useChatStore = create(
                 return;
               }
 
+              case "chat_session": {
+                // ✅ v2.0: Sync chat session intelligence (PIM, Obligations)
+                const session = JSON.parse(dataRaw);
+                console.log("[Chat SSE] Chat session update received:", session);
+                const { chatSession: currentSession } = useWizardState.getState();
+
+                // Update wizard state with new session info
+                useWizardState.setState({
+                  chatSession: {
+                    ...currentSession,
+                    ...session
+                  }
+                });
+                return;
+              }
+
               case "stream": {
                 const stream = JSON.parse(dataRaw) as StreamEvent;
 

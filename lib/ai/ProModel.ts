@@ -11,13 +11,14 @@ import type {
   ChapterKey,
   PatchDelta,
   PatchEvent,
-  GeneratePatchResult, // ✅ v3.3: Correct geïmporteerd
+  ProjectIntentModel,
   BasisData,
-  BudgetData, // ✅ v3.17
-  WensenData, // ✅ v3.17
-  ProjectMeta, // ✅ v3.5: Nieuwe import
-  RAGDoc, // ✅ v3.8: Gecentraliseerd naar types/project.ts
+  BudgetData,
+  WensenData,
+  ProjectMeta,
+  RAGDoc,
 } from "@/types/project";
+import type { CustomerExample } from "@/lib/insights/types";
 // @protected RISK_F02_LIFESTYLE_RISK
 // Lifestyle risk analysis integration - imports lifestyle profile derivation functions.
 // DO NOT REMOVE these imports without updating config/features.registry.json.
@@ -57,13 +58,22 @@ export interface ClassifyResult {
 }
 
 // ⚠️ FIX: Dit lokale type is VERWIJDERD omdat het nu wordt geïmporteerd.
-// export interface GeneratePatchResult { ... }
+export type GeneratePatchResult = {
+  action?: "none" | "reset" | "undo";
+  patches: PatchEvent[];
+  followUpQuestion?: string;
+  tokensUsed?: number;
+  newObligation?: { topic: string; reason: string } | null;
+  addressedObligationId?: string | null;
+  pimUpdate?: Partial<ProjectIntentModel> | null;
+};
 
 // ✅ v3.8: RAGDoc is nu geïmporteerd uit @/types/project (Grondwet)
 
 export interface RAGContext {
   topicId: string;
   docs: RAGDoc[];
+  examples?: CustomerExample[];
   cacheHit: boolean;
 }
 
@@ -120,7 +130,7 @@ function deriveContext(wizardState: WizardState): {
 // @protected CHAT_F07_PROMPT_SYSTEM
 // This function builds the core system prompt for AI chat interactions with the wizard.
 // DO NOT REMOVE or significantly alter without updating config/features.registry.json and check-features.sh.
-function buildSystemPrompt(wizardState: WizardState): string {
+export function buildSystemPrompt(wizardState: WizardState): string {
   const { projectName, projectType, activeChapter } = deriveContext(wizardState);
 
   // ✅ v3.6: Bouw een overzicht van wat er AL is ingevuld (uit chapterAnswers)
@@ -165,9 +175,9 @@ function buildSystemPrompt(wizardState: WizardState): string {
       .map((w: any, idx: number) => {
         const prioLabel = w.priority === "must" ? " [MUST-HAVE]"
           : w.priority === "nice" ? " [NICE-TO-HAVE]"
-          : w.priority === "optional" ? " [OPTIONEEL]"
-          : w.priority === "wont" ? " [WON'T-HAVE / ABSOLUUT NIET]"
-          : "";
+            : w.priority === "optional" ? " [OPTIONEEL]"
+              : w.priority === "wont" ? " [WON'T-HAVE / ABSOLUUT NIET]"
+                : "";
         if (w.priority === "must") mustHaveCount++;
         else if (w.priority === "nice") niceToHaveCount++;
         else if (w.priority === "optional") optionalCount++;
@@ -199,11 +209,38 @@ function buildSystemPrompt(wizardState: WizardState): string {
   return `
 U bent "Jules", de vaste digitale bouwcoach van Brikx.
 
+CONVERSATION STYLE CONTRACT (STRICT):
+1. TONE: ALTIJD "u" en "uw". Warm, menselijk, relationeel. Geen systeemtaal (vermijd woorden als "module", "veld", "stap", "input").
+2. TEMPLATE PER BEURT:
+   - 1 zin erkenning/reflectie (echo de kern van wat de gebruiker zegt).
+   - 1 verdiepende vraag (specifiek per onderwerp).
+   - Optioneel: 1 micro-suggestie (max 1 zin) vanuit architect-expertise.
+3. VERBODEN:
+   - Beginnen met een keuzelijst of opties.
+   - Lijstjes als standaard antwoord (gebruik lopende zinnen).
+   - Meer dan 1 vraag tegelijk stellen.
+4. "DAAR KOM IK OP TERUG": Alleen gebruiken als u ook een "obligation" noteert voor de toekomst.
+
 UW PERSOONLIJKHEID:
-- U bent vriendelijk, behulpzaam en geduldig
-- U stelt NOOIT onlogische of niet-relevante vragen
-- U volgt ALTIJD het onderwerp dat de gebruiker aansnijdt
-- U bent een coach die LUISTERT, niet een formulier dat velden afvinkt
+- U bent een coach die LUISTERT, niet een formulier dat velden afvinkt.
+- Reageer op de emotie/intentie achter de vraag (bijv. bij "wat moet ik doen" reageert u relationeel: "Dat is heel normaal. Kunt u mij vertellen wat er nu het meest knelt?").
+
+PROJECT INTENT MODEL (PIM):
+${JSON.stringify(wizardState.chatSession?.pim || {}, null, 2)}
+
+OPINIONATED COACH (STRICT):
+${wizardState.chatSession?.pim?.tensions && wizardState.chatSession.pim.tensions.length > 0
+      ? `ER ZIJN SPANNINGEN DETECTEERD:
+${wizardState.chatSession.pim.tensions.map(t => `- [${t.risk.toUpperCase()}] ${t.cause}`).join('\n')}
+REGELS VOOR SPANNING:
+1. Benoem de spanning als "advocaat van de duivel".
+2. Presenteer het als een keuze: "Ik zie een spanning tussen X en Y. Zullen we samen kijken wat het zwaarst weegt?"
+3. Wees transparant over de risico's zonder een oordeel te vellen.`
+      : "Geen technische spanningen gedetecteerd. Blijf in luisterende, faciliterende coach-modus."
+    }
+
+OPEN OBLIGATIONS (MOET U ADRESSEREN):
+${JSON.stringify(wizardState.chatSession?.obligations?.filter(o => o.status === 'open') || [], null, 2)}
 
 PROJECTCONTEXT (alleen ter informatie, NIET om automatisch naar te vragen):
 - Projectnaam: ${projectName}
@@ -321,7 +358,8 @@ BELANGRIJKE REGELS:
    - U bent een bouwcoach die HELPT, niet een formulier dat velden afvinkt.
    - Stel NOOIT technische vragen (isolatie, ventilatie, verwarming) tenzij de gebruiker er ZELF over begint of expliciet om vraagt.
    - Als de gebruiker iets invult (bv. budget), bevestig dat en vraag of ze ergens hulp bij willen. Stel GEEN automatische vervolgvraag over een totaal ander onderwerp.
-   - Bij onduidelijke invoer ("ja", "help", "ok"), vraag WAT de gebruiker wil doen, niet naar een specifiek technisch veld.
+   - Bij onduidelijke invoer ("ja", "help", "ok"), vraag WAT de gebruiker wilt doen, niet naar een specifiek technisch veld.
+   - Als de gebruiker vraagt "wat moet ik doen?", geef een menselijk antwoord: "Dat is heel begrijpelijk, er komt ook veel op u af. Waar ligt momenteel voor u de grootste uitdaging in huis?"
 7. LOGISCHE GESPREKSFLOW:
    - Volg het onderwerp van de gebruiker. Als ze over budget praten, blijf bij budget-gerelateerde zaken.
    - Spring NIET naar technische details (isolatie, ventilatie) tenzij relevant voor het gesprek.
@@ -452,7 +490,10 @@ OUTPUTFORMAAT (ENKEL DIT JSON-OBJECT, GEEN EXTRA TEKST):
       }
     }
   ],
-  "followUpQuestion": "Korte vervolgvraag in het Nederlands, u-vorm, of lege string"
+  "followUpQuestion": "Korte menselijke reactie + 1 vraag",
+  "newObligation": { "topic": "...", "reason": "..." } | null,
+  "addressedObligationId": "uuid" | null,
+  "pimUpdate": { "northStar": "...", "locked": { ... } } | null
 }
 
 SPECIALE ACTIES:
@@ -860,6 +901,9 @@ function safeParsePatchesResult(raw: string): GeneratePatchResult {
       action,
       patches: Array.isArray(parsed.patches) ? parsed.patches : [],
       followUpQuestion: parsed.followUpQuestion ?? "",
+      newObligation: parsed.newObligation ?? null,
+      addressedObligationId: parsed.addressedObligationId ?? null,
+      pimUpdate: parsed.pimUpdate ?? null,
     };
   } catch (e) {
     console.warn("[ProModel] Kon LLM-output niet parsen als JSON:", e);
@@ -904,8 +948,15 @@ async function summarizeRAG(
 
   // Format RAG docs for LLM context
   const ragContext = picked
-    .map((d, i) => `[Bron ${i + 1}]: ${d.text}`)
+    .map((d, i) => `[Bron ${i + 1} - Kennisbank]: ${d.text}`)
     .join("\n\n");
+
+  // ✅ v4.1: Format Customer Examples for LLM context
+  const examplesContext = ctx.examples && ctx.examples.length > 0
+    ? "\n\nERVARINGEN VAN ANDERE KLANTEN:\n" + ctx.examples.map((ex: CustomerExample, i: number) =>
+      `[Voorbeeld ${i + 1}]: "${ex.userQuery}" -> Architectonisch advies: ${ex.interpretation?.designImplications?.join(", ") || "Geen details"}`
+    ).join("\n")
+    : "";
 
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -960,12 +1011,14 @@ STIJL:
 
 ACHTERGROND INFORMATIE:
 ${ragContext}
+${examplesContext}
 
 GEEF EEN ANTWOORD DAT:
 1. De twee routes (architect-eerst vs constructeur-eerst) BEIDE benoemt als opties
 2. Concrete kostenindicaties geeft voor beide routes
 3. Vergunningskosten apart benoemt
-4. EINDIGT met een vraag over de zekerheid van hun wens (oriëntatie vs definitief plan)`,
+4. Gebruik maakt van de "ERVARINGEN VAN ANDERE KLANTEN" om uw advies te onderbouwen (bijv. "Andere klanten met een vergelijkbare wens kozen vaak voor...")
+5. EINDIGT met een vraag over de zekerheid van hun wens (oriëntatie vs definitief plan)`,
           },
         ],
         temperature: 0.5,

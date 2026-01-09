@@ -7,7 +7,7 @@ export default function FounderBanner() {
         
         {/* Section Title */}
         <div className="text-center mb-12">
-          <h2 className="text-4xl lg:text-5xl font-bold text-primary mb-4">
+          <h2 className="text-4xl lg:text-5xl font-bold text-[#0d3d4d] mb-4">
             De Architect Achter Brikx
           </h2>
           <p className="text-xl text-gray-600">
@@ -35,8 +35,8 @@ export default function FounderBanner() {
               </div>
               
               {/* Credentials Badge */}
-              <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-white px-6 py-3 rounded-full shadow-lg border-2 border-accent">
-                <p className="text-sm font-semibold text-primary whitespace-nowrap">
+              <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-white px-6 py-3 rounded-full shadow-lg border-2 border-[#43D38D]">
+                <p className="text-sm font-semibold text-[#0d3d4d] whitespace-nowrap">
                   20 jaar · 100+ projecten
                 </p>
               </div>
@@ -49,35 +49,35 @@ export default function FounderBanner() {
             {/* Main Quote - Large and Prominent */}
             <blockquote className="relative">
               {/* Quote marks decoration */}
-              <span className="absolute -top-4 -left-2 text-6xl text-accent/20 font-serif leading-none">"</span>
-              
-              <p className="text-2xl lg:text-3xl text-gray-800 font-medium leading-relaxed italic relative z-10">
+              <span className="absolute -top-4 -left-2 text-6xl text-[#43D38D]/20 font-serif leading-none">"</span>
+
+              <p className="text-2xl lg:text-3xl text-[#1f2937] font-medium leading-relaxed italic relative z-10">
                 Veel mensen vinden het een grote stap om direct een architect in te schakelen. Dus beginnen ze zonder goede voorbereiding.
               </p>
-              
-              <p className="text-2xl lg:text-3xl text-gray-800 font-medium leading-relaxed italic mt-4">
+
+              <p className="text-2xl lg:text-3xl text-[#1f2937] font-medium leading-relaxed italic mt-4">
                 Dat leidt tot fouten die duizenden euro's kosten. Na 20 jaar en 100+ projecten weet ik: de grootste schade wordt aangericht vóór de eerste offerte.
               </p>
-              
-              <p className="text-2xl lg:text-3xl text-primary font-bold mt-6">
+
+              <p className="text-2xl lg:text-3xl text-[#0d3d4d] font-bold mt-6">
                 Daarom Brikx. Professionele voorbereiding, zonder drempel.
               </p>
             </blockquote>
             
             {/* Founder Details */}
             <div className="pt-6 border-t-2 border-gray-200">
-              <h3 className="text-2xl font-bold text-primary mb-2">
+              <h3 className="text-2xl font-bold text-[#0d3d4d] mb-2">
                 Jules Zwijsen
               </h3>
               <p className="text-lg text-gray-600 mb-2">
                 Architect · Oprichter Brikx
               </p>
               <p className="text-lg text-gray-700">
-                <a 
-                  href="https://www.zwijsen.net" 
-                  target="_blank" 
+                <a
+                  href="https://www.zwijsen.net"
+                  target="_blank"
                   rel="noopener noreferrer"
-                  className="font-semibold hover:text-primary transition-colors underline decoration-accent/50 hover:decoration-accent"
+                  className="font-semibold hover:text-[#0d3d4d] transition-colors underline decoration-[#43D38D]/50 hover:decoration-[#43D38D]"
                 >
                   Architectenbureau Jules Zwijsen
                 </a>
@@ -90,11 +90,11 @@ export default function FounderBanner() {
             {/* Trust Indicators */}
             <div className="flex flex-wrap gap-4 pt-4">
               <div className="flex items-center gap-2 text-gray-600">
-                <span className="text-accent text-xl">✓</span>
+                <span className="text-[#43D38D] text-xl">✓</span>
                 <span className="text-sm">Erkend architect</span>
               </div>
               <div className="flex items-center gap-2 text-gray-600">
-                <span className="text-accent text-xl">✓</span>
+                <span className="text-[#43D38D] text-xl">✓</span>
                 <span className="text-sm">Specialist nieuwbouw, verbouw en renovatie</span>
               </div>
             </div>

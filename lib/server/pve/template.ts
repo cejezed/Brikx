@@ -39,16 +39,16 @@ const renderRooms = (rooms: PveRoom[]) => {
       </thead>
       <tbody>
         ${rooms
-          .map(
-            (r) => `
+      .map(
+        (r) => `
           <tr>
             <td><strong>${escapeHtml(r.name)}</strong></td>
             <td class="center">${r.count ?? 1}</td>
             <td class="right">${typeof r.area === "number" ? r.area : "-"}</td>
             <td class="muted">${escapeHtml(r.notes || "Niet ingevuld")}</td>
           </tr>`
-          )
-          .join("")}
+      )
+      .join("")}
       </tbody>
     </table>
   `;
@@ -69,15 +69,15 @@ const renderWishes = (wishes: PveWish[]) => {
       </thead>
       <tbody>
         ${wishes
-          .map(
-            (w) => `
+      .map(
+        (w) => `
             <tr>
               <td>${escapeHtml(w.priority || "Niet ingevuld")}</td>
               <td>${escapeHtml(w.category || "Niet ingevuld")}</td>
               <td>${escapeHtml(w.text)}</td>
             </tr>`
-          )
-          .join("")}
+      )
+      .join("")}
       </tbody>
     </table>
   `;
@@ -88,14 +88,14 @@ const renderTech = (entries: PveTechEntry[]) => {
   return `
     <div class="pill-grid">
       ${entries
-        .map(
-          (e) => `
+      .map(
+        (e) => `
           <div class="pill">
             <div class="pill-label">${escapeHtml(e.label)}</div>
             <div class="pill-value">${escapeHtml(e.value)}</div>
           </div>`
-        )
-        .join("")}
+      )
+      .join("")}
     </div>
   `;
 };
@@ -154,7 +154,7 @@ const baseStyles = `
   .budget { background: #0f172a; color: #e2e8f0; border-color: #0f172a; }
   .budget-highlight { font-size: 22px; font-weight: 800; color: #67e8f9; margin: 4px 0; }
   .next-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
-  .page { padding: 0 0 12px 0; }
+  .page { padding: 0 48px 12px 48px; }
 `;
 
 export function renderCoverHtml(model: PveExportModel): string {
@@ -275,13 +275,13 @@ export function renderBodyHtml(model: PveExportModel): string {
     <h2>08. Vervolgstappen</h2>
     <div class="next-steps">
       ${model.nextSteps
-        .map(
-          (step) => `
+      .map(
+        (step) => `
         <div class="card">
           <p>${escapeHtml(step)}</p>
         </div>`
-        )
-        .join("")}
+      )
+      .join("")}
     </div>
   </section>
 </body>
@@ -291,10 +291,34 @@ export function renderBodyHtml(model: PveExportModel): string {
 export function renderHeaderTemplate(model: PveExportModel): string {
   return `
   <style>
-    .pdf-header { font-family: Arial, sans-serif; font-size: 10px; color: #0f172a; width: 100%; padding: 0 24px; }
-    .pdf-header .row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding: 6px 0; }
-    .pdf-header img { width: 80px; height: 24px; }
-    .title { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+    * { box-sizing: border-box; }
+    .pdf-header { 
+      font-family: Arial, sans-serif; 
+      font-size: 10px; 
+      color: #0f172a; 
+      width: 100%; 
+      padding: 0 48px;
+    }
+    .pdf-header .row { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      border-bottom: 1px solid #e2e8f0; 
+      padding: 10px 0; 
+      width: 100%;
+    }
+    .pdf-header img { width: 80px; height: 24px; flex-shrink: 0; }
+    .title { 
+      font-weight: 700; 
+      font-size: 10px; 
+      text-transform: uppercase; 
+      letter-spacing: 0.05em; 
+      margin-left: 20px;
+      text-align: right;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
   </style>
   <div class="pdf-header">
     <div class="row">
@@ -307,13 +331,29 @@ export function renderHeaderTemplate(model: PveExportModel): string {
 export function renderFooterTemplate(): string {
   return `
   <style>
-    .pdf-footer { font-family: Arial, sans-serif; font-size: 9px; color: #475569; width: 100%; padding: 0 24px; }
-    .pdf-footer .row { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding: 6px 0; }
+    * { box-sizing: border-box; }
+    .pdf-footer { 
+      font-family: Arial, sans-serif; 
+      font-size: 9px; 
+      color: #71717a; 
+      width: 100%; 
+      padding: 0 48px;
+    }
+    .pdf-footer .row { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      border-top: 1px solid #e2e8f0; 
+      padding: 10px 0; 
+      width: 100%;
+    }
+    .disclaimer { font-style: italic; opacity: 0.8; }
+    .page-info { font-weight: bold; }
   </style>
   <div class="pdf-footer">
     <div class="row">
-      <div>Disclaimer: indicatief, geen rechten aan te ontlenen.</div>
-      <div>Pagina <span class="pageNumber"></span></div>
+      <div class="disclaimer">Disclaimer: indicatief PvE gegenereerd door Brikx Coaching Software.</div>
+      <div class="page-info">Pagina <span class="pageNumber"></span></div>
     </div>
   </div>`;
 }

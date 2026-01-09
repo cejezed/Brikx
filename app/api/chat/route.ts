@@ -7,6 +7,7 @@
 import { NextRequest } from "next/server";
 import { randomUUID } from "node:crypto";
 import { ProModel } from "@/lib/ai/ProModel";
+import { ConversationEngine } from "@/lib/ai/ConversationEngine";
 import { Kennisbank } from "@/lib/rag/Kennisbank";
 import { createSSEStream, type SSEWriter } from "@/lib/sse/stream";
 import { logEvent } from "@/lib/logging/logEvent";
@@ -143,6 +144,13 @@ async function runAITriage(
   const activeChapter = getActiveChapter(wizardState);
   const chapterFlow = getChapterFlow(wizardState);
   const previousChapter = ctx.previousChapter ?? null;
+
+  // ✅ v2.0: Init/Update session
+  const session = ConversationEngine.getInitialSession(wizardState);
+  session.turnCount += 1;
+  wizardState.chatSession = session;
+
+  console.log(`[runAITriage] Turn ${session.turnCount}, PIM NorthStar: ${session.pim?.northStar || 'none'}`);
 
   try {
     // Chapter transition guard: trigger ChapterInitializer once, skip normal flow
@@ -323,15 +331,27 @@ async function runAITriage(
     }
 
     // ┌─────────────────────────────────────────────────────────
-    // │ STEP 2: CLASSIFY INTENT
+    // │ STEP 2: CLASSIFY & PLAN WATCHER (v2.0)
     // └─────────────────────────────────────────────────────────
 
-    console.log("[runAITriage] Classifying intent...");
+    console.log("[runAITriage] Classifying intent & watching plan...");
+
+    // PlanWatcher check
+    const { nextPIM, verdict } = ConversationEngine.planWatcher(session.pim!, wizardState, query);
+    session.pim = nextPIM;
+
     const classifyResult = await ProModel.classify(
       query,
       wizardState
     );
     const { intent, confidence } = classifyResult;
+
+    // Mode logic: Default FAST, but trigger FULL if CONFLICT/DRIFT
+    const isTriggeredFull = verdict !== 'CONSISTENT' || !!ctx.clientFastIntent;
+    const mode_v2 = isTriggeredFull ? "FULL" : "FAST";
+
+    console.log(`[runAITriage] Mode: ${mode_v2}, Verdict: ${verdict}, Intent: ${intent}`);
+
     const policy = determinePolicy(confidence, intent);
 
     await logEvent("triage.classify", {
@@ -340,6 +360,8 @@ async function runAITriage(
       confidence,
       policy,
       activeChapter,
+      verdict,
+      mode: mode_v2
     });
 
     writer.writeEvent("metadata", {
@@ -365,6 +387,36 @@ async function runAITriage(
         wizardState,
         history
       );
+
+      // ✅ v2.0: Handle Intelligence Updates
+      if (llmResult.pimUpdate) {
+        session.pim = { ...session.pim!, ...llmResult.pimUpdate };
+        console.log("[runAITriage] PIM Updated from LLM");
+      }
+
+      if (llmResult.newObligation) {
+        const newOb = ConversationEngine.createObligation(
+          llmResult.newObligation.topic,
+          llmResult.newObligation.reason,
+          session.turnCount
+        );
+        session.obligations = [...(session.obligations || []), newOb];
+        console.log(`[runAITriage] New Obligation created: ${newOb.topic}`);
+      }
+
+      if (llmResult.addressedObligationId) {
+        session.obligations = session.obligations?.map(o =>
+          o.id === llmResult.addressedObligationId ? { ...o, status: 'addressed' } : o
+        );
+        console.log(`[runAITriage] Obligation addressed: ${llmResult.addressedObligationId}`);
+      }
+
+      // ✅ DRIFT/CONFLICT logic: Disable patches if DRIFT/CONFLICT
+      const allowPatchesByVerdict = verdict === 'CONSISTENT';
+      if (!allowPatchesByVerdict) {
+        console.log("[runAITriage] Patches BLOCKED due to DRIFT/CONFLICT verdict");
+      }
+
       responseText = llmResult.followUpQuestion || "";
 
       // ✅ v3.6: Check voor reset action
@@ -381,8 +433,7 @@ async function runAITriage(
         // responseText is al gezet door de LLM
       }
 
-      // ✅ v3.3: Multiple patches processing
-      const patches = llmResult.patches ?? [];
+      const patches = allowPatchesByVerdict ? (llmResult.patches ?? []) : [];
       console.log(`[runAITriage] Processing ${patches.length} patches from AI`);
 
       for (const rawPatch of patches) {
@@ -675,10 +726,15 @@ async function runAITriage(
       }
     }
 
+    // Final session state event
+    writer.writeEvent("chat_session", session);
+
     writer.writeEvent("done", {
       logId: requestId,
       tokensUsed: classifyResult.tokensUsed ?? 0,
       latencyMs: Date.now() - startTime,
+      mode: mode_v2,
+      verdict,
     });
   } catch (error) {
     console.error("[runAITriage] CAUGHT ERROR:", error);

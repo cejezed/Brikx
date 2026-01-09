@@ -79,6 +79,7 @@ export type ChatSSEEventName =
   | "reset"
   | "undo"
   | "expert_focus"
+  | "chat_session"
   | "error"
   | "done";
 

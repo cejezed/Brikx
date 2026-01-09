@@ -10,6 +10,7 @@ export default function HeroWithForm() {
   const [projectType, setProjectType] = useState<'nieuwbouw' | 'verbouwing'>('nieuwbouw')
   const [location, setLocation] = useState('')
   const [noLocation, setNoLocation] = useState(false)
+  const [ctaVariant, setCtaVariant] = useState<'start' | 'download'>('start')
 
   // Vereenvoudigde state voor de herbruikbare modal
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -18,8 +19,27 @@ export default function HeroWithForm() {
   // Check if user has existing basisData
   const { chapterAnswers } = useWizardState()
 
+  useEffect(() => {
+    const storageKey = 'brikx_pve_cta_variant'
+    const existing = sessionStorage.getItem(storageKey)
+    if (existing === 'start' || existing === 'download') {
+      setCtaVariant(existing)
+      return
+    }
+    const nextVariant = Math.random() < 0.5 ? 'start' : 'download'
+    sessionStorage.setItem(storageKey, nextVariant)
+    setCtaVariant(nextVariant)
+  }, [])
+
   // Functie voor het 'Wat wil je doen?' formulier
   const handleSubmit = () => {
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      ;(window as any).gtag('event', 'pve_start', {
+        type: projectType,
+        cta_variant: ctaVariant,
+      })
+    }
+
     // Check if user already has basisData with essential fields
     const basisData = chapterAnswers.basis
 
@@ -97,6 +117,8 @@ export default function HeroWithForm() {
     output: 'ICON_OUTPUT.png',
   }
 
+  const ctaLabel = ctaVariant === 'download' ? 'Download PvE Nu' : 'Start Gratis'
+
   return (
     <section id="home" className="bg-white">
       <style
@@ -105,9 +127,9 @@ export default function HeroWithForm() {
          @media (max-width: 968px) {
            .hero-image-large { display: none !important; }
            .hero-content-text { max-width: 100% !important; }
-           .hero-content-text h1 { font-size: 42px !important; line-height: 1.15 !important; }
-           .hero-content-text p { font-size: 20px !important; }
-           .form-card-absolute { position: static !important; width: 100% !important; margin-top: 16px !important; }
+           .hero-content-text h1 { font-size: 2rem !important; line-height: 1.2 !important; }
+           .hero-content-text p { font-size: 1.125rem !important; }
+           .form-card-absolute { position: static !important; width: 100% !important; margin-top: 16px !important; margin-left: 0 !important; margin-right: 0 !important; }
            .expertise-grid { grid-template-columns: 1fr !important; }
            .social-proof-row { flex-direction: column !important; align-items: flex-start !important; }
          }
@@ -120,31 +142,31 @@ export default function HeroWithForm() {
         <span aria-hidden className="pointer-events-none absolute inset-y-2 -right-6 w-12 rounded-full blur-2xl" style={{ background: 'radial-gradient(closest-side, rgba(0,0,0,0.14), rgba(0,0,0,0))' }} />
 
         <div className="relative z-[1] bg-[#e7f3f4] rounded-b-[20px] overflow-visible pb-0">
-          <div className="relative bg-cover bg-center px-10 pt-[48px] pb-[84px] min-h-[360px]" style={{ backgroundImage: 'url(/images/hero-background.png)' }}>
-            <div className="hero-content-text max-w-[50%] text-white">
-              <h1 className="text-[64px] leading-[1.15] mb-3 font-bold">Stop de bouwstress. Start met zekerheid.</h1>
-              <p className="text-2xl leading-relaxed mb-6 opacity-95">Of je nu gaat verbouwen of nieuwbouwen: begin met een professioneel Programma van Eisen en voorkom dure fouten.</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 max-w-[520px]">
+          <div className="relative bg-cover bg-center px-4 md:px-10 pt-[48px] pb-[84px] min-h-[360px]" style={{ backgroundImage: 'url(/images/hero-background.png)' }}>
+            <div className="hero-content-text max-w-full md:max-w-[50%] text-white">
+              <h1 className="text-4xl md:text-[64px] leading-[1.15] mb-3 font-bold">Stop de bouwstress. Start met zekerheid.</h1>
+              <p className="text-lg md:text-2xl leading-relaxed mb-6 opacity-95">Of je nu gaat verbouwen of nieuwbouwen: begin met een professioneel Programma van Eisen en voorkom dure fouten.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 max-w-full md:max-w-[520px]">
                 <button
                   onClick={handleSubmit}
-                  className="w-full inline-flex items-center justify-center bg-[#43D38D] hover:bg-[#3bc47d] text-white px-8 py-4 rounded-[50px] no-underline text-xl font-semibold transition-all duration-300 hover:shadow-[0_12px_28px_rgba(67,211,141,0.5)] hover:-translate-y-1 border-0 cursor-pointer"
+                  className="w-full inline-flex items-center justify-center bg-[#43D38D] hover:bg-[#3bc47d] text-white px-6 md:px-8 py-3 md:py-4 rounded-[50px] no-underline text-lg md:text-xl font-semibold transition-all duration-300 hover:shadow-[0_12px_28px_rgba(67,211,141,0.5)] hover:-translate-y-1 border-0 cursor-pointer"
                 >
-                  Start Gratis →
+                  {ctaLabel} →
                 </button>
                 <button
                   type="button"
                   onClick={() => handleOpenModal('Algemene Bouw Checklist')}
-                  className="w-full inline-flex items-center justify-center bg-transparent hover:bg-white/10 text-white px-8 py-4 rounded-[50px] no-underline text-xl font-semibold border-2 border-white transition-all duration-300"
+                  className="w-full inline-flex items-center justify-center bg-transparent hover:bg-white/10 text-white px-6 md:px-8 py-3 md:py-4 rounded-[50px] no-underline text-lg md:text-xl font-semibold border-2 border-white transition-all duration-300"
                 >
                   Download Checklist
                 </button>
               </div>
             </div>
             <div className="mt-6 pr-0 lg:pr-[clamp(360px,38vw,520px)]">
-              <ul className="flex flex-wrap items-center gap-x-6 gap-y-2 text-white/90 text-[16px] lg:text-[17px]">
+              <ul className="flex flex-wrap items-center gap-x-4 md:gap-x-6 gap-y-2 text-white/90 text-sm md:text-[16px] lg:text-[17px]">
                 {['20+ jaar architect-expertise', '100+ (ver)bouwprojecten begeleid', 'Voorkom fouten die wij al zagen', 'AVG-compliant · EU-servers · SSL'].map((t, i) => (
                   <li key={i} className="inline-flex items-center gap-2">
-                    <span className="text-[#43D38D] text-xl leading-none">✓</span>
+                    <span className="text-[#43D38D] text-lg md:text-xl leading-none">✓</span>
                     <span className="leading-none">{t}</span>
                   </li>
                 ))}
@@ -155,12 +177,12 @@ export default function HeroWithForm() {
             </div>
           </div>
 
-          <div className="bg-transparent px-10 pt-2 pb-[28px] relative">
-            <div className="max-w-[50%] mx-auto ml-10 text-center">
-              <div className="inline-block bg-transparent px-[36px] py-5 rounded-[20px]">
-                <h2 className="text-[30px] font-bold text-[#0d3d4d] mb-1.5">Architect-Gedreven Kennisbank</h2>
-                <p className="text-xl text-[#666] mb-3 leading-relaxed">Elke vraag, elk advies komt uit 20 jaar architect-ervaring</p>
-                <div className="expertise-grid grid grid-cols-2 gap-3 text-left mx-auto">
+          <div className="bg-transparent px-4 md:px-10 pt-2 pb-[28px] relative">
+            <div className="max-w-full md:max-w-[50%] mx-auto md:ml-10 text-center">
+              <div className="inline-block bg-transparent px-4 md:px-[36px] py-5 rounded-[20px]">
+                <h2 className="text-2xl md:text-[30px] font-bold text-[#0d3d4d] mb-1.5">Architect-Gedreven Kennisbank</h2>
+                <p className="text-lg md:text-xl text-[#666] mb-3 leading-relaxed">Elke vraag, elk advies komt uit 20 jaar architect-ervaring</p>
+                <div className="expertise-grid grid grid-cols-1 md:grid-cols-2 gap-3 text-left mx-auto">
                   {[
                     { key: 'expertise', icon: ICONS.expertise, text: 'Praktijkervaringen en veelgemaakte fouten' },
                     { key: 'kennisbank', icon: ICONS.kennisbank, text: 'Bouwregels en wetgeving 2025/2026' },
@@ -182,7 +204,7 @@ export default function HeroWithForm() {
                 </div>
               </div>
             </div>
-            <div id="start" className="form-card-absolute absolute right-10 -top-28 w-[40%] bg-white rounded-[20px] shadow-[0_10px_30px_rgba(0,0,0,0.16)] p-6 scroll-mt-28">
+            <div id="start" className="form-card-absolute absolute right-4 md:right-10 -top-28 w-full md:w-[40%] bg-white rounded-[20px] shadow-[0_10px_30px_rgba(0,0,0,0.16)] p-4 md:p-6 scroll-mt-28">
               <div id="login" className="sr-only" aria-hidden="true" />
               <h3 className="text-[22px] text-[#0d3d4d] mb-4 font-bold">Wat wil je doen?</h3>
               <div className="grid grid-cols-2 gap-3 mb-5">
