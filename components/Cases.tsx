@@ -52,15 +52,23 @@ export default function Cases() {
             >
               {/* Image Placeholder */}
               <div className="relative h-48 bg-gradient-to-br from-primary/10 to-accent/10">
-                <img
-                  src={`/images/${caseItem.image}`}
-                  alt={caseItem.title}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    // Fallback if image doesn't exist
-                    e.currentTarget.style.display = 'none'
-                  }}
-                />
+                <picture>
+                  <source
+                    srcSet={`/images/${caseItem.image.replace('.jpg', '.webp')}`}
+                    type="image/webp"
+                  />
+                  <img
+                    src={`/images/${caseItem.image}`}
+                    alt={`${caseItem.title}: ${caseItem.subtitle} - ${caseItem.badge}`}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                    onError={(e) => {
+                      // Fallback if image doesn't exist
+                      e.currentTarget.style.display = 'none'
+                    }}
+                  />
+                </picture>
                 
                 {/* Badge Overlay */}
                 <div className="absolute top-4 left-4">

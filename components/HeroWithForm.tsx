@@ -173,7 +173,12 @@ export default function HeroWithForm() {
               </ul>
             </div>
             <div className="hero-image-large absolute right-5 top-5 w-[45%] h-[460px] z-[1]">
-              <img src="/images/hero-infographic.png" alt="Bouw Infographic" className="w-full h-full object-contain" />
+              <img
+                src="/images/hero-infographic.png"
+                alt="Programma van Eisen opstellen - stap voor stap met Brikx AI-wizard"
+                className="w-full h-full object-contain"
+                loading="eager"
+              />
             </div>
           </div>
 
@@ -190,7 +195,12 @@ export default function HeroWithForm() {
                     { key: 'output', icon: ICONS.output, text: 'PvE dat professionals direct kunnen gebruiken' }
                   ].map((item, i) => (
                     <div key={i} className="flex items-start gap-3 text-[18px] leading-relaxed text-[#333]">
-                      <img src={`/images/${item.icon}`} alt="" className="w-[40%] h-[84px] flex-shrink-0 object-contain mt-0.5" />
+                      <img
+                        src={`/images/${item.icon}`}
+                        alt={`Icoon: ${item.text}`}
+                        className="w-[40%] h-[84px] flex-shrink-0 object-contain mt-0.5"
+                        loading="lazy"
+                      />
                       <div>
                         <span className="block">{item.text}</span>
                         {item.key === 'vragen' && (

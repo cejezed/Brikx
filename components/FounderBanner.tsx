@@ -25,9 +25,9 @@ export default function FounderBanner() {
               <div className="relative aspect-[3/4] overflow-hidden rounded-2xl shadow-2xl">
                 <img
                   src="/images/jules-zwijsen.jpg"
-                  alt="Jules Zwijsen - Architect en oprichter van Brikx"
+                  alt="Jules Zwijsen - Erkend architect met 20+ jaar ervaring, oprichter van Brikx en eigenaar van Architectenbureau Jules Zwijsen sinds 2005"
                   className="w-full h-full object-cover"
-                  loading="eager"
+                  loading="lazy"
                   decoding="async"
                 />
                 {/* Subtle gradient overlay */}

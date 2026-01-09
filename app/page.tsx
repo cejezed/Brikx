@@ -16,6 +16,19 @@ export default function Home() {
   return (
     <main className="min-h-screen">
       <Header />
+      <nav aria-label="Breadcrumb" className="mx-auto max-w-[1600px] px-6 pt-4 text-sm text-gray-500">
+        <ol className="flex flex-wrap items-center gap-2">
+          <li>
+            <a href="/" className="hover:text-gray-700">Home</a>
+          </li>
+          <li aria-hidden="true" className="text-gray-400">›</li>
+          <li>
+            <a href="/#voordelen" className="hover:text-gray-700">Diensten</a>
+          </li>
+          <li aria-hidden="true" className="text-gray-400">›</li>
+          <li className="text-gray-700">PvE</li>
+        </ol>
+      </nav>
       {/* Hero is #home + #login/#start in het formulier zelf */}
       <HeroWithForm />
       <section id="voordelen" className="scroll-mt-14"></section>
@@ -41,6 +54,37 @@ export default function Home() {
 
       <Footer />
 
+      {/* JSON-LD Structured Data for Breadcrumbs */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              {
+                "@type": "ListItem",
+                position: 1,
+                name: "Home",
+                item: "https://www.brikxai.nl/",
+              },
+              {
+                "@type": "ListItem",
+                position: 2,
+                name: "Diensten",
+                item: "https://www.brikxai.nl/#voordelen",
+              },
+              {
+                "@type": "ListItem",
+                position: 3,
+                name: "PvE",
+                item: "https://www.brikxai.nl/#start",
+              },
+            ],
+          }),
+        }}
+      />
+
       {/* JSON-LD Structured Data for SoftwareApplication */}
       <script
         type="application/ld+json"
@@ -62,6 +106,81 @@ export default function Home() {
               "ratingValue": "4.8",
               "ratingCount": "120"
             }
+          }),
+        }}
+      />
+
+      {/* JSON-LD Structured Data for Organization */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "Brikx",
+            "url": "https://www.brikxai.nl",
+            "logo": "https://www.brikxai.nl/images/logo.png",
+            "description": "Professionele PvE software voor (ver)bouwprojecten. AI-gedreven assistent gebaseerd op 20 jaar architect-ervaring.",
+            "founder": {
+              "@type": "Person",
+              "name": "Jules Zwijsen",
+              "jobTitle": "Architect",
+              "url": "https://www.zwijsen.net"
+            },
+            "contactPoint": {
+              "@type": "ContactPoint",
+              "email": "info@brikxai.nl",
+              "contactType": "Customer Service",
+              "availableLanguage": "Dutch"
+            },
+            "sameAs": [
+              "https://www.zwijsen.net"
+            ]
+          }),
+        }}
+      />
+
+      {/* JSON-LD Structured Data for Service */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Service",
+            "serviceType": "Programma van Eisen (PvE) Opstellen",
+            "provider": {
+              "@type": "Organization",
+              "name": "Brikx"
+            },
+            "areaServed": "NL",
+            "description": "Digitale wizard voor het opstellen van een professioneel Programma van Eisen (PvE) voor nieuwbouw en verbouwprojecten.",
+            "offers": {
+              "@type": "Offer",
+              "price": "0.00",
+              "priceCurrency": "EUR",
+              "availability": "https://schema.org/InStock"
+            }
+          }),
+        }}
+      />
+
+      {/* JSON-LD Structured Data for ProfessionalService (Architect) */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "ProfessionalService",
+            "name": "Architectenbureau Jules Zwijsen",
+            "url": "https://www.zwijsen.net",
+            "founder": {
+              "@type": "Person",
+              "name": "Jules Zwijsen",
+              "jobTitle": "Architect"
+            },
+            "foundingDate": "2005",
+            "areaServed": "NL",
+            "description": "Erkend architectenbureau met 20+ jaar ervaring in nieuwbouw, verbouw en renovatie. Specialist in woningbouw en herbestemming."
           }),
         }}
       />

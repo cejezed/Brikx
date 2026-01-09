@@ -11,6 +11,15 @@ export default function Footer({ className = "" }: FooterProps) {
   const year = new Date().getFullYear();
   const version = packageJson.version;
 
+  const trackPveStart = (ctaLocation: string) => {
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      ;(window as any).gtag('event', 'pve_start', {
+        type: 'unknown',
+        cta_location: ctaLocation,
+      })
+    }
+  }
+
   return (
     // Buitenste wrapper: WIT (geeft links/rechts witte marges)
     <footer className={`w-full bg-white mt-8 md:mt-12 ${className}`} aria-labelledby="footer-heading">
@@ -32,7 +41,15 @@ export default function Footer({ className = "" }: FooterProps) {
                   <li><a className="hover:text-white transition" href="/#werkwijze">Hoe het werkt</a></li>
                   <li><a className="hover:text-white transition" href="/#prijzen">Prijzen</a></li>
                   <li><a className="hover:text-white transition" href="/kennisbank">Checklists & Gidsen</a></li>
-                  <li><a className="hover:text-white transition" href={getWizardRedirectPath("/wizard")}>Start Gratis PvE</a></li>
+                  <li>
+                    <a
+                      className="hover:text-white transition"
+                      href={getWizardRedirectPath("/wizard")}
+                      onClick={() => trackPveStart('footer')}
+                    >
+                      Start Gratis PvE
+                    </a>
+                  </li>
                 </ul>
               </nav>
 
@@ -67,7 +84,7 @@ export default function Footer({ className = "" }: FooterProps) {
                   {/* Gebruik bij voorkeur een lichte versie van je logo voor donkere achtergrond */}
                   <img
                     src="/images/Brikx logo glow.png"
-                    alt="Brikx"
+                    alt="Brikx logo - Professioneel Programma van Eisen software"
                     className="h-50 w-auto  hover:opacity-100 transition"
                     loading="lazy"
                   />

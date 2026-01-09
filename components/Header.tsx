@@ -22,7 +22,18 @@ export default function Header({ className = '' }: { className?: string }) {
   const isPremium = useIsPremium() // v3.x: Fase 5
   const { chapterAnswers } = useWizardState()
 
+  const trackPveStart = (ctaLocation: string) => {
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      ;(window as any).gtag('event', 'pve_start', {
+        type: 'unknown',
+        cta_location: ctaLocation,
+      })
+    }
+  }
+
   const handleStartClick = () => {
+    trackPveStart('header')
+
     const basisData = chapterAnswers.basis
     const hasExistingProject =
       basisData &&
@@ -70,7 +81,7 @@ export default function Header({ className = '' }: { className?: string }) {
             >
               <Image
                 src="/images/brikx-logo.png"
-                alt="Brikx"
+                alt="Brikx - Professioneel PvE Opstellen voor Verbouw en Nieuwbouw"
                 width={200}
                 height={100}
                 className="h-7 w-auto md:h-8 object-contain drop-shadow-[0_0_8px_rgba(77,184,186,0.35)]"

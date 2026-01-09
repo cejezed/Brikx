@@ -1,0 +1,19 @@
+# robots.txt voor Brikx
+# https://www.brikxai.nl
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /wizard-info
+Disallow: /_next/
+Disallow: /private/
+
+# Sitemap
+Sitemap: https://www.brikxai.nl/sitemap.xml
+
+# Crawl-delay voor specifieke bots (optioneel)
+User-agent: Googlebot
+Crawl-delay: 0
+
+User-agent: Bingbot
+Crawl-delay: 0
