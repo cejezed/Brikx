@@ -1,8 +1,19 @@
+'use client'
+
 import Image from "next/image";
 import Link from "next/link";
 import { getWizardRedirectPath } from '@/lib/redirectHelper'
 
 export default function Hero() {
+  const trackPveStart = (ctaLocation: string) => {
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      ;(window as any).gtag('event', 'pve_start', {
+        type: 'unknown',
+        cta_location: ctaLocation,
+      })
+    }
+  }
+
   return (
     // VOLLEDIG FLUSH: geen extra witruimte
     <section id="home" className="bg-white m-0 p-0">
@@ -37,6 +48,7 @@ export default function Hero() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 max-w-[520px]">
               <Link
                 href={getWizardRedirectPath("/wizard")}
+                onClick={() => trackPveStart('brikx_hero_over')}
                 className="w-full inline-flex items-center justify-center bg-[#43D38D] hover:bg-[#3bc47d] text-white px-8 py-4 rounded-[50px] no-underline text-xl font-semibold transition-all duration-300 hover:shadow-[0_12px_28px_rgba(67,211,141,0.5)] hover:-translate-y-1"
               >
                 Start Gratis →

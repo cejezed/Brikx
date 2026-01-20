@@ -4,6 +4,15 @@ import { Check, X } from 'lucide-react'
 import { getWizardRedirectPath } from '@/lib/redirectHelper'
 
 export default function Pricing() {
+  const trackPveStart = (ctaLocation: string) => {
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      ;(window as any).gtag('event', 'pve_start', {
+        type: 'unknown',
+        cta_location: ctaLocation,
+      })
+    }
+  }
+
   return (
     <section className="py-20 bg-gradient-to-br from-[#E9F7F4] via-white to-[#E9F7F4]">
       <div className="max-w-7xl mx-auto px-6">
@@ -50,7 +59,10 @@ export default function Pricing() {
             </ul>
 
             <button
-              onClick={() => window.location.href = getWizardRedirectPath('/welcome/assessment')}
+              onClick={() => {
+                trackPveStart('pricing_free')
+                window.location.href = getWizardRedirectPath('/welcome/assessment')
+              }}
               className="w-full bg-accent hover:bg-primary text-white py-4 rounded-xl font-semibold transition-all hover:-translate-y-1 cursor-pointer"
             >
               Start Gratis

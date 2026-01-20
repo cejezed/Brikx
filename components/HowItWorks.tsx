@@ -34,6 +34,15 @@ const steps = [
 ]
 
 export default function HowItWorks() {
+  const trackPveStart = (ctaLocation: string) => {
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      ;(window as any).gtag('event', 'pve_start', {
+        type: 'unknown',
+        cta_location: ctaLocation,
+      })
+    }
+  }
+
   return (
     <section className="bg-gradient-to-b from-white to-gray-50 py-16">
       <div className="max-w-7xl mx-auto px-6">
@@ -98,7 +107,10 @@ export default function HowItWorks() {
             Neem de tijd om alles zorgvuldig in te vullen. Een compleet PvE voorkomt €10K+ aan fouten.
           </p>
           <button
-            onClick={() => window.location.href = getWizardRedirectPath('/welcome/assessment')}
+            onClick={() => {
+              trackPveStart('how_it_works')
+              window.location.href = getWizardRedirectPath('/welcome/assessment')
+            }}
             className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-white rounded-full font-semibold text-lg hover:bg-primary/90 transition-colors shadow-lg hover:shadow-xl cursor-pointer"
           >
             Start Gratis →

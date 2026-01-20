@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Printer, FileText, Info, CheckCircle2, Home, LayoutDashboard, Wallet, Zap, ShieldAlert, Layers, Ruler, Loader2, ArrowRight } from 'lucide-react';
-import { ReportPage } from './components/ReportPage';
-import { Logo } from './components/Logo';
+import { ReportPage } from './components/ReportPage.tsx';
+import { Logo } from './components/Logo.tsx';
 import { SectionHeader, SubSectionHeader, Paragraph, BulletList, PriorityBadge } from './components/Section.tsx';
-import { MOCK_DATA } from './constants';
+import { MOCK_DATA } from './constants.ts';
 
 const App: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);

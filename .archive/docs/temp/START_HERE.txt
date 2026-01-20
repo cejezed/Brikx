@@ -1,0 +1,139 @@
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║     🤖 BRIKX CHAT SYSTEM - START HIER                        ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+📁 JE BENT IN: temp/chat-system/
+
+Dit is een verzameling van alle bestanden die de AI-chat met 
+Jules Zwijsen regelen + documentatie.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚 LEES DEZE BESTANDEN IN VOLGORDE:
+
+  1. 📖 INDEX.md              ← START HIER (overzicht van alles)
+  2. 🚀 QUICK_REFERENCE.md    ← Snelle tips & tricks
+  3. 📖 README.md             ← Volledige documentatie (16KB)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 TOP 5 BELANGRIJKSTE BESTANDEN:
+
+  ⭐⭐⭐⭐⭐ api/route.ts
+  → Jules' persoonlijkheid + conversatie regels + RAG
+
+  ⭐⭐⭐⭐⭐ components/ChatInterface.tsx
+  → Hoofdcomponent met alle logica
+
+  ⭐⭐⭐⭐ config/field-ids.ts
+  → Alle vragen die Jules stelt per veld
+
+  ⭐⭐⭐⭐ utils/wizardStore.ts
+  → State management (Zustand)
+
+  ⭐⭐⭐ components/HumanHandoffModal.tsx
+  → Escalatie naar echte architect
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔍 ZOEK JE IETS SPECIFIEKS?
+
+  "Jules praat te veel"
+  → api/route.ts, regel 143: max_tokens: 500
+
+  "Jules te formeel"
+  → api/route.ts, regel 9-17: SYSTEM_PROMPT
+
+  "Veld vraag aanpassen"
+  → config/field-ids.ts: julesQuestion per veld
+
+  "Auto-hints timing"
+  → components/ChatInterface.tsx, regel 94: debounce 500ms
+
+  "RAG keywords toevoegen"
+  → api/route.ts, regel 90-95: technicalKeywords array
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📂 FOLDER STRUCTUUR:
+
+  api/          → Backend routes (chat, RAG, handoff)
+  components/   → React UI componenten (9 bestanden)
+  config/       → Configuratie (velden, OpenAI, premium)
+  types/        → TypeScript types
+  utils/        → Helper functies (vector search, store)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎓 NIEUWE DEVELOPER? START MET:
+
+  1. Lees INDEX.md (10 min)
+  2. Open api/route.ts en lees SYSTEM_PROMPT (10 min)
+  3. Open components/ChatInterface.tsx en volg de flow (15 min)
+  4. Test lokaal: npm run dev (5 min)
+  5. Doe een test chat (10 min)
+
+  Totaal: ~1 uur voor volledig begrip
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 TIPS:
+
+  • SYSTEM_PROMPT is het DNA van Jules
+  • Auto-hints triggeren op field focus (500ms debounce)
+  • RAG activeerd bij technische keywords
+  • Max 500 tokens per antwoord (houd Jules beknopt)
+  • Temperature 0.7 = creatief maar consistent
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 QUICK COMMANDS:
+
+  # Zoek specifieke code
+  grep -r "SYSTEM_PROMPT" .
+  grep -r "julesQuestion" .
+  
+  # Bekijk alle bestanden
+  find . -type f -name "*.ts*" -o -name "*.md"
+  
+  # Open belangrijkste bestanden
+  code api/route.ts
+  code components/ChatInterface.tsx
+  code config/field-ids.ts
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ CHECKLIST VOOR WIJZIGINGEN:
+
+  Jules' gedrag:
+  ☐ Update SYSTEM_PROMPT in api/route.ts
+  ☐ Test met verschillende scenarios
+  ☐ Verify antwoorden < 500 tokens
+
+  Nieuwe velden:
+  ☐ Voeg toe aan config/field-ids.ts
+  ☐ Definieer julesQuestion
+  ☐ Test auto-hint functionaliteit
+
+  RAG aanpassen:
+  ☐ Update technicalKeywords array
+  ☐ Test similarity threshold (0.7)
+  ☐ Verify knowledge integration
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 STATS:
+
+  Totaal bestanden:  18
+  Lines of code:     ~3,500
+  Documentatie:      3 files (20KB)
+  React components:  9
+  API routes:        3
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Laatste update: 2025-12-16
+Brikx Development Team
+

@@ -105,6 +105,25 @@ export default function FAQ() {
           </a>
         </div>
       </div>
+
+      {/* JSON-LD Structured Data for FAQ (top 5 items) */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: faqData.slice(0, 5).map((item) => ({
+              "@type": "Question",
+              name: item.question,
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: item.answer,
+              },
+            })),
+          }),
+        }}
+      />
     </section>
   )
 }
