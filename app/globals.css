@@ -10,6 +10,9 @@
   --color-brikx-dark: #0d3d4d;
   --color-brikx-accent: #4db8ba;
 
+  /* Primary color voor text-primary, border-primary, etc. */
+  --color-primary: #0d3d4d;
+
   /* Teal color palette (from /temp) */
   --color-brikx-50: #f0fdfa;
   --color-brikx-100: #ccfbf1;
