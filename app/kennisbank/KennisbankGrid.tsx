@@ -1,5 +1,7 @@
 'use client'
 
+import { FAQ_CARD_ITEMS } from './faq-cards'
+
 // --- Type Definitie ---
 // Prop-type is nu leeg, omdat de links binnen het component worden beheerd
 type KennisbankGridProps = {}
@@ -10,6 +12,14 @@ type KennisbankCardProps = {
   title: string
   description: string
   href: string // Prop is nu 'href' (een URL-string)
+}
+
+type FaqCardProps = {
+  imageUrl: string
+  title: string
+  description: string
+  href: string
+  tag: string
 }
 
 /**
@@ -66,6 +76,41 @@ function KennisbankCard({
   )
 }
 
+function FaqCard({ imageUrl, title, description, href, tag }: FaqCardProps) {
+  return (
+    <a
+      href={href}
+      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[#d8e7ea] bg-white shadow-[0_12px_24px_rgba(13,61,77,0.12)] transition hover:-translate-y-1 hover:shadow-[0_16px_32px_rgba(13,61,77,0.18)]"
+    >
+      <div className="relative">
+        <img
+          src={imageUrl}
+          alt={title}
+          width={600}
+          height={400}
+          className="h-48 w-full object-cover"
+          onError={(e) =>
+            (e.currentTarget.src =
+              'https://placehold.co/600x400/0b2b3e/ffffff?text=Brikx+FAQ')
+          }
+        />
+        <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#0d3d4d]">
+          {tag}
+        </span>
+      </div>
+      <div className="flex flex-1 flex-col gap-4 p-6">
+        <h3 className="text-lg font-semibold text-[#0d3d4d] group-hover:underline">
+          {title}
+        </h3>
+        <p className="text-sm text-[#51616a]">{description}</p>
+        <span className="mt-auto text-sm font-semibold text-[#1c7d86]">
+          Lees het antwoord →
+        </span>
+      </div>
+    </a>
+  )
+}
+
 // --- Data voor de 4 Kennisbank Checklists ---
 // 'icon' is hernoemd naar 'imageUrl'
 const kennisbankItems = [
@@ -73,7 +118,7 @@ const kennisbankItems = [
     imageUrl: '/images/Brikx checklist 3.png',
     title: 'Checklist Droomhuis Vormgeven (10 Stappen)',
     description:
-      'Van een vage wens naar een concreet plan. Definieer uw ‘waarom’, breng leefpatronen in kaart en leg de fundering voor uw (ver)bouwproject.',
+      'Van een vage wens naar een concreet plan. Definieer uw â€˜waaromâ€™, breng leefpatronen in kaart en leg de fundering voor uw (ver)bouwproject.',
     link: '/kennisbank/stappenplan', // Voorbeeld-URL
   },
   {
@@ -105,42 +150,72 @@ const kennisbankItems = [
  */
 export default function KennisbankGrid({}: KennisbankGridProps) {
   return (
-    <section className="bg-[#e7f3f4] rounded-b-[30px] py-16 md:py-24 shadow-[0_10px_30px_rgba(0,0,0,0.16)] relative w-full mx-auto max-w-[1552px]">
-      <div className="mx-auto px-4 md:px-6">
-        
+    <>
+      <section className="bg-[#e7f3f4] rounded-b-[30px] py-16 md:py-24 shadow-[0_10px_30px_rgba(0,0,0,0.16)] relative w-full mx-auto max-w-[1552px]">
+        <div className="mx-auto px-4 md:px-6">
+          {/* --- 4-Koloms Grid --- */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 max-w-7xl mx-auto">
+            {kennisbankItems.map((item, index) => (
+              <KennisbankCard
+                key={index}
+                imageUrl={item.imageUrl} // Prop heet nu 'imageUrl'
+                title={item.title}
+                description={item.description}
+                href={item.link} // We geven nu de 'link' door aan de 'href' prop
+              />
+            ))}
+          </div>
 
-        {/* --- 4-Koloms Grid --- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 max-w-7xl mx-auto">
-          {kennisbankItems.map((item, index) => (
-            <KennisbankCard
-              key={index}
-              imageUrl={item.imageUrl} // Prop heet nu 'imageUrl'
-              title={item.title}
-              description={item.description}
-              href={item.link} // We geven nu de 'link' door aan de 'href' prop
-            />
-          ))}
+          {/* --- Tekst onder de cards --- */}
+          <div className="text-center mt-12 md:mt-16 max-w-3xl mx-auto">
+            <h3 className="text-3xl font-bold text-[#0d3d4d] mb-4">
+              Mist u een onderwerp?
+            </h3>
+            <p className="text-xl text-[#35515a] mb-6">
+              We blijven deze kennisbank constant uitbreiden met nieuwe,
+              praktische checklists. Heeft u een specifieke (ver)bouwvraag of mist
+              u een cruciaal onderwerp?
+            </p>
+            <a
+              href="mailto:info@brikxai.nl?subject=Suggestie voor nieuwe checklist"
+              className="text-xl font-semibold text-primary hover:underline"
+            >
+              Stuur ons uw suggestie â†’
+            </a>
+          </div>
         </div>
+      </section>
 
-        {/* --- Tekst onder de cards --- */}
-        <div className="text-center mt-12 md:mt-16 max-w-3xl mx-auto">
-          <h3 className="text-3xl font-bold text-[#0d3d4d] mb-4">
-            Mist u een onderwerp?
-          </h3>
-          <p className="text-xl text-[#35515a] mb-6">
-            We blijven deze kennisbank constant uitbreiden met nieuwe,
-            praktische checklists. Heeft u een specifieke (ver)bouwvraag of mist
-            u een cruciaal onderwerp?
-          </p>
-          <a
-            href="mailto:info@brikxai.nl?subject=Suggestie voor nieuwe checklist"
-            className="text-xl font-semibold text-primary hover:underline"
-          >
-            Stuur ons uw suggestie →
-          </a>
+      <section className="py-16 md:py-24">
+        <div className="mx-auto max-w-[1552px] px-4 md:px-6">
+          <div className="max-w-4xl mb-10">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#1c7d86] mb-3">
+              Veelgestelde vragen
+            </p>
+            <h2 className="text-3xl md:text-4xl font-bold text-[#0d3d4d] mb-4">
+              Praktische antwoorden over kosten, risico en uitvoering
+            </h2>
+            <p className="text-lg text-[#51616a]">
+              Deze FAQ-artikelen beantwoorden de vragen die het vaakst leiden tot
+              vertragingen, budgetstress en onduidelijke offertes. Elke vraag
+              heeft een eigen pagina met extra links en verdieping.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
+            {FAQ_CARD_ITEMS.map((item) => (
+              <FaqCard
+                key={item.slug}
+                imageUrl={item.imageUrl}
+                title={item.title}
+                description={item.description}
+                href={`/kennisbank/${item.slug}`}
+                tag={item.tag}
+              />
+            ))}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   )
 }
-

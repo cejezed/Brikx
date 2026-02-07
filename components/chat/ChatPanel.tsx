@@ -9,6 +9,7 @@ import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import HumanHandoffModal from './HumanHandoffModal';
 import TypingIndicator from '@/components/common/TypingIndicator';
+import ProposalsPanel from './ProposalsPanel';
 
 type MsgRole = 'user' | 'assistant';
 
@@ -20,6 +21,9 @@ export default function ChatPanel() {
   const error = useChatStore((s) => s.error);
   const sendMessage = useChatStore((s) => s.sendMessage);
   const abortController = useChatStore((s) => s.abortController);
+  const proposals = useChatStore((s) => s.proposals);
+  const applyProposal = useChatStore((s) => s.applyProposal);
+  const dismissProposal = useChatStore((s) => s.dismissProposal);
 
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -122,6 +126,15 @@ export default function ChatPanel() {
             <div className="rounded-2xl bg-red-50 border border-red-100 p-3 text-xs text-red-700">
               <strong>Fout:</strong> {error}
             </div>
+          )}
+
+          {proposals.length > 0 && (
+            <ProposalsPanel
+              proposals={proposals}
+              onApply={applyProposal}
+              onDismiss={dismissProposal}
+              variant="desktop"
+            />
           )}
         </div>
 

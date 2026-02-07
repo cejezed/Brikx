@@ -71,6 +71,42 @@ export default function sitemap(): MetadataRoute.Sitemap {
             priority: 0.7,
         },
         {
+            url: `${baseUrl}/kennisbank/wat-zijn-faalkosten-en-hoe-voorkom-ik-ze`,
+            lastModified: new Date(),
+            changeFrequency: 'weekly',
+            priority: 0.6,
+        },
+        {
+            url: `${baseUrl}/kennisbank/hoeveel-buffer-moet-ik-aanhouden-voor-onvoorziene-kosten`,
+            lastModified: new Date(),
+            changeFrequency: 'weekly',
+            priority: 0.6,
+        },
+        {
+            url: `${baseUrl}/kennisbank/wat-zijn-verborgen-kosten-waar-mensen-niet-aan-denken`,
+            lastModified: new Date(),
+            changeFrequency: 'weekly',
+            priority: 0.6,
+        },
+        {
+            url: `${baseUrl}/kennisbank/hoe-maak-ik-een-realistisch-budget-voor-bouwen-of-verbouwen`,
+            lastModified: new Date(),
+            changeFrequency: 'weekly',
+            priority: 0.6,
+        },
+        {
+            url: `${baseUrl}/kennisbank/wanneer-heb-ik-een-architect-nodig-en-wanneer-niet`,
+            lastModified: new Date(),
+            changeFrequency: 'weekly',
+            priority: 0.6,
+        },
+        {
+            url: `${baseUrl}/kennisbank/hoe-weet-ik-of-een-offerte-compleet-is`,
+            lastModified: new Date(),
+            changeFrequency: 'weekly',
+            priority: 0.6,
+        },
+        {
             url: `${baseUrl}/over`,
             lastModified: new Date(),
             changeFrequency: 'monthly',

@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from "react";
 import { useChatStore } from "@/lib/stores/useChatStore";
 import ChatMessage from "@/components/chat/ChatMessage";
 import TypingIndicator from "@/components/common/TypingIndicator";
+import ProposalsPanel from "@/components/chat/ProposalsPanel";
 
 type MsgRole = "user" | "assistant";
 
@@ -15,6 +16,9 @@ export default function ChatFeed({ className }: Props) {
   const messages = useChatStore((s) => s.messages);
   const isStreaming = useChatStore((s) => s.isStreaming);
   const error = useChatStore((s) => s.error);
+  const proposals = useChatStore((s) => s.proposals);
+  const applyProposal = useChatStore((s) => s.applyProposal);
+  const dismissProposal = useChatStore((s) => s.dismissProposal);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -57,6 +61,15 @@ export default function ChatFeed({ className }: Props) {
         <div className="rounded-xl bg-red-50 border border-red-100 p-3 text-xs text-red-700">
           <strong>Fout:</strong> {error}
         </div>
+      )}
+
+      {proposals.length > 0 && (
+        <ProposalsPanel
+          proposals={proposals}
+          onApply={applyProposal}
+          onDismiss={dismissProposal}
+          variant="mobile"
+        />
       )}
     </div>
   );

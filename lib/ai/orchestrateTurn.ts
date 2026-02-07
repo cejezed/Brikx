@@ -261,18 +261,16 @@ export async function orchestrateTurn(input: OrchestrateTurnInput): Promise<Turn
   });
 
   // Enforce allowPatches guardrail: if disallowed, drop patches entirely
-  const normalizedPatches =
-    turnPlan.allowPatches === false || input.interactionMode === 'auto'
-      ? []
-      : (finalResult.patches || []);
+  const rawPatches = turnPlan.allowPatches === false ? [] : (finalResult.patches || []);
 
-  // Default requiresConfirmation to true when missing (indirect patching safeguard)
   const patchesWithConfirmation =
-    normalizedPatches.map((p: any) =>
-      p && p.requiresConfirmation === undefined
-        ? { ...p, requiresConfirmation: true }
-        : p
-    );
+    input.interactionMode === 'auto'
+      ? applyAutoTurnPatchGate(rawPatches)
+      : rawPatches.map((p: any) =>
+          p && p.requiresConfirmation === undefined
+            ? { ...p, requiresConfirmation: true }
+            : p
+        );
 
   console.log('[orchestrateTurn] Phase 5 complete: Execution & Guard', {
     attempts: finalResult.metadata.attempts,
@@ -378,4 +376,31 @@ export function getGuardIssues(result: TurnResult): string[] {
   // Guard issues are tracked in FinalTurnResult metadata
   // This is a placeholder for potential future implementation
   return [];
+}
+
+// ============================================================================
+// AUTO-TURN PATCH GUARDRAILS
+// ============================================================================
+
+const AUTO_TURN_MAX_PATCHES = 3;
+
+function isAutoTurnSafeAutoApply(patch: any): boolean {
+  if (!patch?.delta) return false;
+  const { chapter } = patch;
+  const { operation, path } = patch.delta;
+
+  if (operation === 'append' && chapter === 'risico' && path === 'risks') return true;
+  if (operation === 'set' && chapter === 'risico' && path === 'overallRisk') return true;
+  return false;
+}
+
+function applyAutoTurnPatchGate(patches: any[]): any[] {
+  if (!Array.isArray(patches) || patches.length === 0) return [];
+
+  const filtered = patches.filter((p) => p?.delta?.operation !== 'remove').slice(0, AUTO_TURN_MAX_PATCHES);
+
+  return filtered.map((p) => {
+    const autoApply = isAutoTurnSafeAutoApply(p);
+    return { ...p, requiresConfirmation: !autoApply };
+  });
 }

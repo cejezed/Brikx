@@ -19,6 +19,7 @@ import { create } from "zustand";
 import { nanoid } from "nanoid";
 import { useWizardState } from "./useWizardState";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { processSSEStream } from "@/lib/sse/client";
 
 import type {
   ChatRequest,
@@ -46,6 +47,14 @@ export interface ChatMessage {
   createdAt: number;
 }
 
+export interface ProposalItem {
+  id: string;
+  createdAt: number;
+  sourceEventId?: string;
+  patch: PatchEvent;
+  dedupeKey: string;
+}
+
 interface ChatStoreState {
   messages: ChatMessage[];
   isStreaming: boolean;
@@ -57,10 +66,21 @@ interface ChatStoreState {
   lastNavigate?: NavigateEvent;
 
   abortController?: AbortController;
+  proposals: ProposalItem[];
 
   sendMessage: (query: string, mode?: "PREVIEW" | "PREMIUM") => Promise<void>;
   appendSystemMessage: (content: string) => void;
   appendArchitectMessage: (content: string) => void;
+  addProposal: (patch: PatchEvent, sourceEventId?: string) => void;
+  applyProposal: (proposalId: string) => void;
+  dismissProposal: (proposalId: string) => void;
+  clearProposalsForEvent: (sourceEventId: string) => void;
+  pruneProposalsByAppliedPatch: (applied: {
+    chapter: string;
+    path?: string;
+    operation?: string;
+    value?: any;
+  }) => void;
   reset: () => void;
 }
 
@@ -75,6 +95,18 @@ function createMessage(role: ChatRole, content: string): ChatMessage {
     content,
     createdAt: Date.now(),
   };
+}
+
+function buildProposalDedupeKey(patch: PatchEvent, sourceEventId?: string): string {
+  const delta = patch.delta || ({} as any);
+  const value = delta.value === undefined ? "undefined" : JSON.stringify(delta.value);
+  return [
+    sourceEventId || "no-event",
+    patch.chapter,
+    delta.operation,
+    delta.path,
+    value,
+  ].join("|");
 }
 
 /**
@@ -134,6 +166,7 @@ export const useChatStore = create(
       lastNavigate: undefined,
 
       abortController: undefined,
+      proposals: [],
 
       // ====================================================================
       // System message helper
@@ -146,6 +179,87 @@ export const useChatStore = create(
         set((state) => ({
           messages: [...state.messages, createMessage("architect", content)],
         })),
+
+      // ====================================================================
+      // Proposals
+      // ====================================================================
+      addProposal: (patch, sourceEventId) =>
+        set((state) => {
+          const dedupeKey = buildProposalDedupeKey(patch, sourceEventId);
+          if (state.proposals.some((p) => p.dedupeKey === dedupeKey)) {
+            return state;
+          }
+          const proposal: ProposalItem = {
+            id: nanoid(),
+            createdAt: Date.now(),
+            sourceEventId,
+            patch,
+            dedupeKey,
+          };
+          return { proposals: [...state.proposals, proposal] };
+        }),
+      applyProposal: (proposalId) => {
+        const proposal = get().proposals.find((p) => p.id === proposalId);
+        if (!proposal) return;
+        const { applyPatch, setFocusedField } = useWizardState.getState();
+        applyPatch(proposal.patch.chapter, proposal.patch.delta, "ai");
+        if (proposal.patch.delta?.path) {
+          const focusKey = `${proposal.patch.chapter}:${proposal.patch.delta.path}` as `${string}:${string}`;
+          setFocusedField(focusKey);
+        }
+        set((state) => ({
+          proposals: state.proposals.filter((p) => p.id !== proposalId),
+        }));
+      },
+      dismissProposal: (proposalId) =>
+        set((state) => ({
+          proposals: state.proposals.filter((p) => p.id !== proposalId),
+        })),
+      clearProposalsForEvent: (sourceEventId) =>
+        set((state) => ({
+          proposals: state.proposals.filter((p) => p.sourceEventId !== sourceEventId),
+        })),
+      pruneProposalsByAppliedPatch: (applied) =>
+        set((state) => {
+          if (!applied?.chapter || !applied?.path || !applied?.operation) return state;
+          const { chapter, path, operation, value } = applied;
+          const appliedValueJson = (() => {
+            try {
+              return JSON.stringify(value);
+            } catch {
+              return null;
+            }
+          })();
+
+          const next = state.proposals.filter((p) => {
+            const delta = p.patch.delta;
+            if (!delta) return true;
+            if (p.patch.chapter !== chapter) return true;
+            if (delta.path !== path) return true;
+            if (delta.operation !== operation) return true;
+
+            if (operation === "set") {
+              try {
+                return JSON.stringify(delta.value) !== appliedValueJson;
+              } catch {
+                return false;
+              }
+            }
+
+            if (operation === "append") {
+              try {
+                return JSON.stringify(delta.value) !== appliedValueJson;
+              } catch {
+                return false;
+              }
+            }
+
+            return false;
+          });
+
+          if (next.length === state.proposals.length) return state;
+          return { proposals: next };
+        }),
 
       // ====================================================================
       // Reset chat history (wizard-state blijft staan)
@@ -162,6 +276,7 @@ export const useChatStore = create(
           lastRag: undefined,
           lastNavigate: undefined,
           abortController: undefined,
+          proposals: [],
         });
       },
 
@@ -223,12 +338,8 @@ export const useChatStore = create(
             );
           }
 
-          const reader = response.body.getReader();
-          const decoder = new TextDecoder("utf-8");
-
           // Streaming buffer voor huidig assistant-antwoord
           let assistantId = nanoid();
-          let sseBuffer = "";
 
           const pushAssistant = (chunk: string, done = false) => {
             if (!chunk && !done) return;
@@ -391,64 +502,19 @@ export const useChatStore = create(
             }
           };
 
-          // ==================================================================
-          // SSE chunk parser
-          // ==================================================================
-          const processSSEChunk = (chunk: string) => {
-            sseBuffer += chunk;
-
-            const blocks = sseBuffer.split("\n\n");
-            // Laatste block kan incompleet zijn → bewaren
-            sseBuffer = blocks.pop() || "";
-
-            for (const block of blocks) {
-              const trimmedBlock = block.trim();
-              if (!trimmedBlock) continue;
-
-              const lines = trimmedBlock.split("\n");
-              const eventLine = lines.find((l) => l.startsWith("event:"));
-              const dataLines = lines.filter((l) => l.startsWith("data:"));
-
-              const eventName = eventLine
-                ? (eventLine.replace("event:", "").trim() as ChatSSEEventName)
-                : null;
-
-              const dataRaw = dataLines
-                .map((l) => l.replace("data:", "").trim())
-                .join("");
-
-              if (!eventName || !dataRaw) {
-                console.warn("[SSE] Malformed event block skipped:", {
-                  eventName,
-                  dataRaw,
-                  block,
-                });
-                continue;
-              }
-
+          await processSSEStream(
+            response,
+            (eventName, dataRaw) => {
               try {
                 handleSSEEvent(eventName, dataRaw);
               } catch (e) {
                 console.error("[SSE] Failed to handle event", eventName, e);
               }
+            },
+            (info) => {
+              console.warn("[SSE] Malformed event block skipped:", info);
             }
-          };
-
-          // ==================================================================
-          // Lees-loop
-          // ==================================================================
-          // eslint-disable-next-line no-constant-condition
-          while (true) {
-            const { value, done } = await reader.read();
-            if (done) break;
-
-            const text = decoder.decode(value, {
-              stream: true,
-            });
-            if (text) {
-              processSSEChunk(text);
-            }
-          }
+          );
 
           // Extra veiligheidsnet: als server geen "done" stuurde
           set((state) => ({

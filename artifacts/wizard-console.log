@@ -1,0 +1,126 @@
+[console:info] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[console:warning] GoTrueClient@sb-ymwwydpywichbotrqwsy-auth-token:1 (2.81.1) 2026-01-29T21:20:26.133Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+[console:error] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+%s%s https://react.dev/link/hydration-mismatch 
+
+  ...
+    <HotReload assetPrefix="" globalError={[...]}>
+      <AppDevOverlayErrorBoundary globalError={[...]}>
+        <ReplaySsrOnlyErrors>
+        <DevRootHTTPAccessFallbackBoundary>
+          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+            <HTTPAccessFallbackErrorBoundary pathname="/wizard" notFound={<NotAllowedRootHTTPFallbackError>} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <Head>
+                  <__next_root_layout_boundary__>
+                    <SegmentViewNode type="layout" pagePath="/brikx/Bri...">
+                      <SegmentTrieNode>
+                      <link>
+                      <script>
+                      <script>
+                      <script>
+                      <RootLayout>
+                        <html
+                          lang="nl"
+-                         className="light"
+-                         style={{color-scheme:"light"}}
+                        >
+                  ...
+
+[console:error] Failed to load resource: the server responded with a status of 404 (Not Found)
+[requestfailed] https://region1.google-analytics.com/g/collect?v=2&tid=G-GH2SYBWL74&gtm=45je61r1v9239956978za200zd9239956978&_p=1769721626008&gcd=13l3l3l2l1l1&npa=1&dma_cps=syphamo&dma=1&cid=1196590395.1769721626&ul=nl-nl&sr=1280x720&uaa=x86&uab=64&uafvl=Not(A%253ABrand%3B8.0.0.0%7CChromium%3B144.0.7559.97%7CGoogle%2520Chrome%3B144.0.7559.97&uamb=0&uam=&uap=Windows&uapv=19.0.0&uaw=0&are=1&frm=0&pscdl=noapi&_s=1&tag_exp=103116026~103200004~104527906~104528500~104684208~104684211~115938465~115938468~116185181~116185182~116988315~117041587&sid=1769721626&sct=1&seg=0&dl=http%3A%2F%2Flocalhost%2Fwizard%3Ftest%3Dtrue&dt=Brikx%20%7C%20Professioneel%20PvE%20Opstellen%20%E2%80%93%20AI-assistent%20voor%20(Ver)bouwprojecten&en=page_view&_fv=1&_nsi=1&_ss=1&_ee=1&tfd=372 net::ERR_ABORTED
+[pageerror] (messageText || input).trim is not a function
+[console:log] [orchestrateTurn] Starting turn orchestration {query: [AUTO_TRIGGER]
+Schrijf formeel Nederlands (u/uw), , userId: auto, currentChapter: budget, mode: PREMIUM, interactionMode: auto}
+[console:error] Failed to load resource: the server responded with a status of 404 ()
+[console:error] [ConversationMemory.load] Database error: {code: PGRST205, details: null, hint: Perhaps you meant the table 'public.contractors', message: Could not find the table 'public.conversation_history' in the schema cache}
+[console:log] [orchestrateTurn] Phase 1 complete: Memory & Context {turnCount: 0, fieldFocus: null, hasPendingFeedback: false}
+[console:log] [orchestrateTurn] Phase 2 complete: Intelligence {behaviorProfile: neutral/balanced, anticipationCount: 1, conflictCount: 0}
+[console:log] [orchestrateTurn] Phase 3 complete: Planning {goal: anticipate_and_guide, priority: anticipation, route: normal, allowPatches: true}
+[console:log] [orchestrateTurn] Phase 4 complete: Context Pruning {tokenEstimate: 400, prunedChapters: 2, focusedField: null}
+[console:error] Failed to load resource: the server responded with a status of 401 ()
+[console:error] [ProModel.generateResponse] LLM error: Error: LLM error: 401
+    at ProModel.generateResponse (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:3545:23)
+    at async ResponseOrchestrator.callLLM (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:3989:22)
+    at async ResponseOrchestrator.generate (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:3809:31)
+    at async FallbackStrategy.runWithGuardAndRetry (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:4693:28)
+    at async orchestrateTurn (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:5017:25)
+    at async ArchitectEventRouter.processEvent (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:5268:24)
+    at async processEvent (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:5429:23)
+    at async ArchitectEventQueue.flushLeading (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:1081:17)
+[console:error] [ResponseOrchestrator.parseResponse] JSON parse error: Unexpected token 'I', "Ik weet ni"... is not valid JSON
+[console:log] [FallbackStrategy] Attempt 0: verdict=RETRY_REQUIRED, issues=2
+[console:log] [FallbackStrategy] Retrying with correction prompt
+[console:error] Failed to load resource: the server responded with a status of 401 ()
+[console:error] [ProModel.generateResponse] LLM error: Error: LLM error: 401
+    at ProModel.generateResponse (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:3545:23)
+    at async ResponseOrchestrator.callLLM (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:3989:22)
+    at async ResponseOrchestrator.generate (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:3809:31)
+    at async FallbackStrategy.runWithGuardAndRetry (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:4693:28)
+    at async orchestrateTurn (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:5017:25)
+    at async ArchitectEventRouter.processEvent (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:5268:24)
+    at async processEvent (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:5429:23)
+    at async ArchitectEventQueue.flushLeading (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:1081:17)
+[console:error] [ResponseOrchestrator.parseResponse] JSON parse error: Unexpected token 'I', "Ik weet ni"... is not valid JSON
+[console:warning] [AnswerGuard] Soft issues remain after retry, approving with warning: {attemptCount: 2, issues: Array(2)}
+[console:log] [FallbackStrategy] Attempt 1: verdict=APPROVED, issues=2
+[console:log] [orchestrateTurn] Phase 5 complete: Execution & Guard {attempts: 2, guardVerdict: APPROVED, usedFallback: false, patchCount: 0}
+[console:error] Failed to load resource: the server responded with a status of 404 ()
+[console:error] [ConversationMemory.addTurn] Insert error: {code: PGRST205, details: null, hint: Perhaps you meant the table 'public.contractors', message: Could not find the table 'public.conversation_history' in the schema cache}
+[console:error] Failed to load resource: the server responded with a status of 404 ()
+[console:error] [ConversationMemory.addTurn] Insert error: {code: PGRST205, details: null, hint: Perhaps you meant the table 'public.contractors', message: Could not find the table 'public.conversation_history' in the schema cache}
+[console:log] [orchestrateTurn] Turn complete - persisted to memory
+[console:log] [orchestrateTurn] Starting turn orchestration {query: [AUTO_TRIGGER]
+Schrijf formeel Nederlands (u/uw), , userId: auto, currentChapter: budget, mode: PREMIUM, interactionMode: auto}
+[console:error] Failed to load resource: the server responded with a status of 404 ()
+[console:error] [ConversationMemory.load] Database error: {code: PGRST205, details: null, hint: Perhaps you meant the table 'public.contractors', message: Could not find the table 'public.conversation_history' in the schema cache}
+[console:log] [orchestrateTurn] Phase 1 complete: Memory & Context {turnCount: 0, fieldFocus: null, hasPendingFeedback: false}
+[console:log] [orchestrateTurn] Phase 2 complete: Intelligence {behaviorProfile: neutral/balanced, anticipationCount: 1, conflictCount: 0}
+[console:log] [orchestrateTurn] Phase 3 complete: Planning {goal: anticipate_and_guide, priority: anticipation, route: normal, allowPatches: true}
+[console:log] [orchestrateTurn] Phase 4 complete: Context Pruning {tokenEstimate: 400, prunedChapters: 2, focusedField: null}
+[console:error] Failed to load resource: the server responded with a status of 401 ()
+[console:error] [ProModel.generateResponse] LLM error: Error: LLM error: 401
+    at ProModel.generateResponse (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:3545:23)
+    at async ResponseOrchestrator.callLLM (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:3989:22)
+    at async ResponseOrchestrator.generate (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:3809:31)
+    at async FallbackStrategy.runWithGuardAndRetry (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:4693:28)
+    at async orchestrateTurn (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:5017:25)
+    at async ArchitectEventRouter.processEvent (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:5275:33)
+    at async processEvent (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:5429:23)
+    at async ArchitectEventQueue.flushLeading (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:1081:17)
+[console:error] [ResponseOrchestrator.parseResponse] JSON parse error: Unexpected token 'I', "Ik weet ni"... is not valid JSON
+[console:log] [FallbackStrategy] Attempt 0: verdict=RETRY_REQUIRED, issues=2
+[console:log] [FallbackStrategy] Retrying with correction prompt
+[console:error] Failed to load resource: the server responded with a status of 401 ()
+[console:error] [ProModel.generateResponse] LLM error: Error: LLM error: 401
+    at ProModel.generateResponse (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:3545:23)
+    at async ResponseOrchestrator.callLLM (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:3989:22)
+    at async ResponseOrchestrator.generate (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:3809:31)
+    at async FallbackStrategy.runWithGuardAndRetry (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:4693:28)
+    at async orchestrateTurn (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:5017:25)
+    at async ArchitectEventRouter.processEvent (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:5275:33)
+    at async processEvent (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:5429:23)
+    at async ArchitectEventQueue.flushLeading (http://localhost:3000/_next/static/chunks/brikx_Brikxai_brikx-wizard_lib_8cdbb827._.js:1081:17)
+[console:error] [ResponseOrchestrator.parseResponse] JSON parse error: Unexpected token 'I', "Ik weet ni"... is not valid JSON
+[console:warning] [AnswerGuard] Soft issues remain after retry, approving with warning: {attemptCount: 2, issues: Array(2)}
+[console:log] [FallbackStrategy] Attempt 1: verdict=APPROVED, issues=2
+[console:log] [orchestrateTurn] Phase 5 complete: Execution & Guard {attempts: 2, guardVerdict: APPROVED, usedFallback: false, patchCount: 0}
+[console:error] Failed to load resource: the server responded with a status of 404 ()
+[console:error] [ConversationMemory.addTurn] Insert error: {code: PGRST205, details: null, hint: Perhaps you meant the table 'public.contractors', message: Could not find the table 'public.conversation_history' in the schema cache}
+[console:error] Failed to load resource: the server responded with a status of 404 ()
+[console:error] [ConversationMemory.addTurn] Insert error: {code: PGRST205, details: null, hint: Perhaps you meant the table 'public.contractors', message: Could not find the table 'public.conversation_history' in the schema cache}
+[console:log] [orchestrateTurn] Turn complete - persisted to memory
+[console:log] [ArchitectEventRouter] auto-turn telemetry {interactionMode: auto, triggerType: chapter_completed, triggerId: 58a7cdf4-f11e-425e-9626-845da67f91b9, chapter: budget, projectId: default}
+[requestfailed] https://region1.google-analytics.com/g/collect?v=2&tid=G-GH2SYBWL74&gtm=45je61r1v9239956978za200zd9239956978&_p=1769721626008&gcd=13l3l3l2l1l1&npa=1&dma_cps=syphamo&dma=1&cid=1196590395.1769721626&ul=nl-nl&sr=1280x720&uaa=x86&uab=64&uafvl=Not(A%253ABrand%3B8.0.0.0%7CChromium%3B144.0.7559.97%7CGoogle%2520Chrome%3B144.0.7559.97&uamb=0&uam=&uap=Windows&uapv=19.0.0&uaw=0&are=1&frm=0&pscdl=noapi&_eu=AEAAAAQ&_s=2&tag_exp=103116026~103200004~104527906~104528500~104684208~104684211~115938465~115938468~116185181~116185182~116988315~117041587&sid=1769721626&sct=1&seg=0&dl=http%3A%2F%2Flocalhost%2Fwizard%3Ftest%3Dtrue&dt=Brikx%20%7C%20Professioneel%20PvE%20Opstellen%20%E2%80%93%20AI-assistent%20voor%20(Ver)bouwprojecten&en=scroll&epn.percent_scrolled=90&_et=14&tfd=5397 net::ERR_ABORTED
+[console:error] The result of getSnapshot should be cached to avoid an infinite loop
+[pageerror] Maximum update depth exceeded. This can happen when a component repeatedly calls setState inside componentWillUpdate or componentDidUpdate. React limits the number of nested updates to prevent infinite loops.

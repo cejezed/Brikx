@@ -261,6 +261,19 @@ export const useWizardState = create<WizardStore>()(
             projectId: (nextSnap as any).projectMeta?.projectId,
             userId: (nextSnap as any).projectMeta?.userId,
           });
+          // Proactively prune matching proposals to avoid stale suggestions
+          queueMicrotask(() => {
+            void import("@/lib/stores/useChatStore").then(({ useChatStore }) => {
+              useChatStore
+                .getState()
+                .pruneProposalsByAppliedPatch({
+                  chapter,
+                  path: delta?.path,
+                  operation: delta?.operation,
+                  value: (delta as any)?.value,
+                });
+            });
+          });
         }
       },
 

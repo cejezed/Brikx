@@ -16,19 +16,6 @@ export default function Home() {
   return (
     <main className="min-h-screen">
       <Header />
-      <nav aria-label="Breadcrumb" className="mx-auto max-w-[1600px] px-6 pt-4 text-sm text-gray-500">
-        <ol className="flex flex-wrap items-center gap-2">
-          <li>
-            <a href="/" className="hover:text-gray-700">Home</a>
-          </li>
-          <li aria-hidden="true" className="text-gray-400">›</li>
-          <li>
-            <a href="/#voordelen" className="hover:text-gray-700">Diensten</a>
-          </li>
-          <li aria-hidden="true" className="text-gray-400">›</li>
-          <li className="text-gray-700">PvE</li>
-        </ol>
-      </nav>
       {/* Hero is #home + #login/#start in het formulier zelf */}
       <HeroWithForm />
       <section id="voordelen" className="scroll-mt-14"></section>
@@ -54,36 +41,7 @@ export default function Home() {
 
       <Footer />
 
-      {/* JSON-LD Structured Data for Breadcrumbs */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "BreadcrumbList",
-            itemListElement: [
-              {
-                "@type": "ListItem",
-                position: 1,
-                name: "Home",
-                item: "https://www.brikxai.nl/",
-              },
-              {
-                "@type": "ListItem",
-                position: 2,
-                name: "Diensten",
-                item: "https://www.brikxai.nl/#voordelen",
-              },
-              {
-                "@type": "ListItem",
-                position: 3,
-                name: "PvE",
-                item: "https://www.brikxai.nl/#start",
-              },
-            ],
-          }),
-        }}
-      />
+
 
       {/* JSON-LD Structured Data for SoftwareApplication */}
       <script
