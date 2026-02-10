@@ -861,11 +861,265 @@ export const FAQ_ARTICLES: FaqArticle[] = [
       { label: 'Checklist Droomhuis Vormgeven', href: '/kennisbank/stappenplan' },
       { label: 'Start direct met de wizard', href: '/wizard' },
     ],
+  },
+  {
+    slug: 'hoe-lang-duurt-een-gemiddeld-bouw-of-verbouwproject',
+    title: 'Realistische doorlooptijd van bouw en verbouw',
+    metaTitle: 'Hoe lang duurt bouwen of verbouwen echt? | Brikx Kennisbank',
+    metaDescription:
+      'Nieuwbouw duurt vaak 12-18 maanden en grote verbouwing 8-14 maanden. Lees waar tijd weglekt en hoe je realistischer plant.',
+    intro:
+      'Doorlooptijd wordt structureel onderschat. Veel projecten lopen niet uit door pech, maar door te optimistische planning, wachttijden tussen fases en te late keuzes. Realistische timing voorkomt stress en extra kosten.',
+    keyPoints: [
+      'Nieuwbouw vraagt meestal 12-18 maanden totaal.',
+      'Grote verbouwing zit vaak tussen 8-14 maanden.',
+      'Voorbereiding en vergunning kosten vaak meer tijd dan verwacht.',
+    ],
+    sections: [
+      {
+        title: 'Wat is realistisch per projecttype?',
+        paragraphs: [
+          'Nieuwbouw bestaat grofweg uit 4-6 maanden voorbereiding en 6-10 maanden uitvoering. Bij grote verbouw zit je vaak op 3-5 maanden voorbereiding en 4-8 maanden uitvoering.',
+          'Kleine verbouwingen zijn sneller, maar ook daar bepalen vergunning, levertijden en planning van vakmensen het tempo.',
+        ],
+        bullets: [
+          'Nieuwbouw: meestal 12-18 maanden totaal.',
+          'Grote verbouw: meestal 8-14 maanden totaal.',
+          'Kleine verbouw: vaak 4-8 maanden inclusief voorbereiding.',
+        ],
+      },
+      {
+        title: 'Waarom duurt het vaak langer?',
+        paragraphs: [
+          'Wachttijden stapelen zich op tussen ontwerp, berekeningen, vergunning en uitvoering. Daarnaast veroorzaken levertijden en late keuzes regelmatig extra uitloop.',
+        ],
+        bullets: [
+          'Wachttijd tussen adviseurs en vergunningstappen.',
+          'Levertijden van keuken, kozijnen en maatwerkmateriaal.',
+          'Herplanning door te late keuzes tijdens uitvoering.',
+          'Seizoenseffect en beperkte beschikbaarheid van onderaannemers.',
+        ],
+      },
+    ],
+    callout:
+      'Een realistische planning met buffer is geen pessimisme, maar professionele projectsturing.',
+    relatedFaqSlugs: [
+      'wanneer-moet-je-welke-keuzes-maken-tijdens-het-bouwproces',
+      'waarom-lopen-bouwprojecten-uit-en-hoe-voorkom-je-dat',
+      'hoe-blijf-je-binnen-budget-tijdens-de-bouw',
+    ],
+    relatedLinks: [
+      { label: 'Checklist Droomhuis Vormgeven', href: '/kennisbank/stappenplan' },
+      { label: 'Start direct met de wizard', href: '/wizard' },
+    ],
+  },
+  {
+    slug: 'welke-verzekeringen-heb-je-nodig-bij-bouwen-of-verbouwen',
+    title: 'Verzekeringen die je project echt beschermen',
+    metaTitle: 'Verzekeringen bij bouwen of verbouwen | Brikx Kennisbank',
+    metaDescription:
+      'CAR, AVB en opdrachtgeversaansprakelijkheid: dit zijn de verzekeringen die risico tijdens bouw en verbouw afdekken.',
+    intro:
+      'Verzekeringen voelen vaak als bijzaak, tot er schade ontstaat. Dan bepalen ze of een project beheersbaar blijft of financieel uit de hand loopt. Controle op verzekeringen hoort in de voorbereiding, niet tijdens de crisis.',
+    keyPoints: [
+      'CAR en AVB zijn kernverzekeringen in uitvoering.',
+      'Ook als opdrachtgever heb je eigen aansprakelijkheidsrisico.',
+      'Polissen en verantwoordelijkheden moeten vooraf duidelijk zijn.',
+    ],
+    sections: [
+      {
+        title: 'Welke verzekeringen moet je checken?',
+        paragraphs: [
+          'Controleer per project wie welke polis draagt en op welke periode de dekking geldt. Vooral bij nieuwbouw is het essentieel dat CAR en AVB goed geregeld zijn.',
+        ],
+        bullets: [
+          'CAR-verzekering voor bouwrisico tijdens uitvoering.',
+          'AVB-verzekering van de aannemer voor schade aan derden.',
+          'Opdrachtgeversaansprakelijkheid voor jouw positie als opdrachtgever.',
+          'Afstemming met bestaande woonhuis- en inboedelpolis bij verbouw.',
+        ],
+      },
+      {
+        title: 'Hoe voorkom je problemen bij schade?',
+        paragraphs: [
+          'Vraag polisbewijs vooraf op, leg verantwoordelijkheden vast in contract en bewaar alle gegevens centraal. Bij schade telt snelheid en heldere documentatie.',
+        ],
+        bullets: [
+          'Vraag bewijs van dekking op naam en periode.',
+          'Leg in contract vast wie welke schade claimt.',
+          'Meld verbouw vooraf aan je huidige verzekeraar.',
+          'Bundel polisnummers en contactpersonen in een projectdossier.',
+        ],
+      },
+    ],
+    callout:
+      'Verzekering is geen formaliteit. Het is je vangnet als planning en budget onder druk komen door schade.',
+    relatedFaqSlugs: [
+      'wat-zijn-je-rechten-als-opdrachtgever',
+      'wat-moet-je-weten-over-garanties-bij-nieuwbouw-en-verbouwing',
+      'hoe-kies-je-een-betrouwbare-aannemer',
+    ],
+    relatedLinks: [
+      { label: 'Checklist Grip op Uitvoering & Meerwerk', href: '/kennisbank/meerwerk' },
+      { label: 'Checklist Waterdicht Projectbudget', href: '/kennisbank/financien' },
+    ],
+  },
+  {
+    slug: 'hoe-ga-je-om-met-buren-tijdens-een-verbouwing',
+    title: 'Buren slim meenemen tijdens verbouwing',
+    metaTitle: 'Omgaan met buren tijdens verbouwing | Brikx Kennisbank',
+    metaDescription:
+      'Goede communicatie met buren voorkomt bezwaar, vertraging en escalatie. Lees hoe je dit praktisch aanpakt.',
+    intro:
+      'Burenmanagement is projectmanagement. Goede afstemming voorkomt klachten, bezwaar en langdurige spanning in de straat. Slechte communicatie leidt vaak tot onnodige vertraging.',
+    keyPoints: [
+      'Informeer buren vroeg en concreet over planning en impact.',
+      'Maak contact laagdrempelig met duidelijke aanspreekpunten.',
+      'Kleine irritaties vroeg oplossen voorkomt escalatie.',
+    ],
+    sections: [
+      {
+        title: 'Wat werkt in de praktijk?',
+        paragraphs: [
+          'Informeer buren vooraf over duur, werktijden en momenten met extra overlast. Laat waar relevant tekeningen zien zodat zorgen niet op aannames blijven hangen.',
+        ],
+        bullets: [
+          'Kondig start en kritieke fasen vooraf aan.',
+          'Deel contactgegevens van opdrachtgever en aannemer.',
+          'Geef tussentijdse updates bij wijziging van planning.',
+          'Reageer snel op klachten of schadepunten.',
+        ],
+      },
+      {
+        title: 'Wat moet je vermijden?',
+        paragraphs: [
+          'Niet communiceren of te optimistische beloftes doen werkt averechts. Beter eerlijk en voorspelbaar communiceren dan te rooskleurig plannen.',
+        ],
+        bullets: [
+          'Niet starten zonder voorafgaande uitleg.',
+          'Geen loze beloftes over einddatum of overlastniveau.',
+          'Geen defensieve reactie op vragen of zorgen.',
+        ],
+      },
+    ],
+    callout:
+      'Een goede buurrelatie kost weinig en bespaart vaak maanden aan gedoe.',
+    relatedFaqSlugs: [
+      'hoe-lang-duurt-een-gemiddeld-bouw-of-verbouwproject',
+      'waarom-lopen-bouwprojecten-uit-en-hoe-voorkom-je-dat',
+      'wat-zijn-je-rechten-als-opdrachtgever',
+    ],
+    relatedLinks: [
+      { label: 'Checklist Droomhuis Vormgeven', href: '/kennisbank/stappenplan' },
+      { label: 'Checklist Grip op Uitvoering & Meerwerk', href: '/kennisbank/meerwerk' },
+    ],
+  },
+  {
+    slug: 'wat-zijn-je-rechten-als-opdrachtgever',
+    title: 'Je rechten als opdrachtgever in de bouw',
+    metaTitle: 'Rechten als opdrachtgever bij verbouw en nieuwbouw | Brikx Kennisbank',
+    metaDescription:
+      'Ken je rechten op offerte, kwaliteit, oplevering, meerwerk en garantie zodat je sterker staat tijdens uitvoering.',
+    intro:
+      'Als opdrachtgever heb je meer rechten dan veel mensen denken. Die rechten werken alleen als je ze vooraf contractueel borgt en tijdens uitvoering consequent toepast.',
+    keyPoints: [
+      'Je hebt recht op duidelijke scope, kwaliteit en toetsbare meerwerkonderbouwing.',
+      'Schriftelijke afspraken zijn cruciaal voor handhaving.',
+      'Ook jij hebt plichten: tijdige keuzes, toegang en betaling volgens afspraak.',
+    ],
+    sections: [
+      {
+        title: 'Waar heb je recht op?',
+        paragraphs: [
+          'Rechten draaien om helderheid, controle en herstel: duidelijke offerte, schriftelijk contract, kwaliteitscontrole, opleverlijst en onderbouwd meerwerk.',
+        ],
+        bullets: [
+          'Recht op complete en begrijpelijke offerte.',
+          'Recht op schriftelijk contract en duidelijke voorwaarden.',
+          'Recht op kwaliteitsinspectie en herstel bij gebreken.',
+          'Recht op transparante meerwerkonderbouwing.',
+        ],
+      },
+      {
+        title: 'Hoe handel je bij conflict?',
+        paragraphs: [
+          'Escalatie begint met goede dossiervorming. Leg afwijkingen direct schriftelijk vast en geef redelijke hersteltermijn. Pas daarna is formele geschilroute logisch.',
+        ],
+        bullets: [
+          'Stap 1: bespreek direct en feitelijk.',
+          'Stap 2: bevestig schriftelijk met hersteltermijn.',
+          'Stap 3: schakel onafhankelijke toetsing of geschillenroute in.',
+          'Stap 4: juridische route als laatste optie.',
+        ],
+      },
+    ],
+    callout:
+      'Rechten zonder documentatie zijn moeilijk te handhaven. Leg afspraken en afwijkingen altijd vast.',
+    relatedFaqSlugs: [
+      'wat-is-meerwerk-en-hoe-voorkom-je-discussies',
+      'hoe-weet-ik-of-een-offerte-compleet-is',
+      'wat-moet-je-weten-over-garanties-bij-nieuwbouw-en-verbouwing',
+    ],
+    relatedLinks: [
+      { label: 'Checklist Grip op Uitvoering & Meerwerk', href: '/kennisbank/meerwerk' },
+      { label: 'Checklist Waterdicht Projectbudget', href: '/kennisbank/financien' },
+    ],
+  },
+  {
+    slug: 'wat-moet-je-weten-over-garanties-bij-nieuwbouw-en-verbouwing',
+    title: 'Garanties bij nieuwbouw en verbouwing begrijpen',
+    metaTitle: 'Garanties bij bouw en verbouw uitgelegd | Brikx Kennisbank',
+    metaDescription:
+      'Wettelijke, contractuele en productgaranties verschillen sterk. Lees wat je mag verwachten en hoe je een claim goed indient.',
+    intro:
+      'Garantie is alleen waardevol als je weet wat er precies gedekt is, hoe lang en onder welke voorwaarden. Verschil tussen wettelijke, contractuele en productgarantie is daarom essentieel.',
+    keyPoints: [
+      'Niet elke schade valt onder garantie; onderhoud en gebruik spelen mee.',
+      'Contractvoorwaarden bepalen vaak de praktische claimroute.',
+      'Snelle en complete melding vergroot de kans op goed herstel.',
+    ],
+    sections: [
+      {
+        title: 'Welke garanties spelen er?',
+        paragraphs: [
+          'Bij bouwprojecten lopen meestal meerdere garanties tegelijk: wettelijke bescherming, contractafspraken met uitvoerende partij en fabrieksgaranties op producten en installaties.',
+        ],
+        bullets: [
+          'Wettelijke garantie op gebreken binnen redelijke kaders.',
+          'Contractuele garantie op afgesproken onderdelen en termijnen.',
+          'Fabrieksgarantie op specifieke producten zoals installaties.',
+          'Aanvullende borging via projectspecifieke regelingen waar van toepassing.',
+        ],
+      },
+      {
+        title: 'Hoe dien je een garantieclaim goed in?',
+        paragraphs: [
+          'Meld gebreken direct, schriftelijk en met bewijs. Koppel de melding aan contract en oplevergegevens en geef redelijke hersteltermijn.',
+        ],
+        bullets: [
+          'Beschrijf gebrek feitelijk en voeg foto\'s toe.',
+          'Verwijs naar contract, opleverdatum en relevante garantie.',
+          'Vraag herstelvoorstel met duidelijke planning.',
+          'Bewaar alle communicatie in een centraal dossier.',
+        ],
+      },
+    ],
+    callout:
+      'Goede garantie begint niet bij schade, maar bij heldere contracten en complete opleverdocumentatie.',
+    relatedFaqSlugs: [
+      'wat-zijn-je-rechten-als-opdrachtgever',
+      'welke-verzekeringen-heb-je-nodig-bij-bouwen-of-verbouwen',
+      'hoe-kies-je-een-betrouwbare-aannemer',
+    ],
+    relatedLinks: [
+      { label: 'Checklist Grip op Uitvoering & Meerwerk', href: '/kennisbank/meerwerk' },
+      { label: 'Start direct met de wizard', href: '/wizard' },
+    ],
   }
-
-]
+];
 
 export const FAQ_ARTICLE_MAP = new Map(FAQ_ARTICLES.map((article) => [article.slug, article]))
+
 
 
 

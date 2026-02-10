@@ -217,8 +217,44 @@ export const FAQ_ITEMS: FAQItem[] = [
         answer:
             'Een tekenaar werkt uit wat al gekozen is; een architect helpt ook met ontwerpkeuzes, afwegingen en kwaliteitsbewaking. Welke rol past, hangt af van complexiteit en ambities.',
         href: '/kennisbank/wat-is-het-verschil-tussen-een-architect-en-een-tekenaar',
+    },
+    {
+        cluster: 'Kosten & planning',
+        question: 'Hoe lang duurt een gemiddeld bouw- of verbouwproject?',
+        answer:
+            'De meeste trajecten duren langer dan verwacht door voorbereiding, vergunning en levertijden. Met realistische planning en buffer voorkom je dat timing je grootste risico wordt.',
+        href: '/kennisbank/hoe-lang-duurt-een-gemiddeld-bouw-of-verbouwproject',
+    },
+    {
+        cluster: 'Proces & risico\'s',
+        question: 'Welke verzekeringen heb je nodig bij bouwen of verbouwen?',
+        answer:
+            'Zonder goede dekking kan schade direct je budget ontregelen. Controleer altijd CAR, AVB en je eigen opdrachtgeverrisico voordat de uitvoering start.',
+        href: '/kennisbank/welke-verzekeringen-heb-je-nodig-bij-bouwen-of-verbouwen',
+    },
+    {
+        cluster: 'Proces & risico\'s',
+        question: 'Hoe ga je om met buren tijdens een verbouwing?',
+        answer:
+            'Goede buurcommunicatie voorkomt klachten en vertraging. Informeer vroeg, communiceer helder over impact en houd contact tijdens uitvoering actief.',
+        href: '/kennisbank/hoe-ga-je-om-met-buren-tijdens-een-verbouwing',
+    },
+    {
+        cluster: 'Proces & risico\'s',
+        question: 'Wat zijn je rechten als opdrachtgever?',
+        answer:
+            'Je hebt rechten op duidelijke scope, kwaliteit en onderbouwd meerwerk. Die werken alleen echt als afspraken schriftelijk zijn vastgelegd en opgevolgd.',
+        href: '/kennisbank/wat-zijn-je-rechten-als-opdrachtgever',
+    },
+    {
+        cluster: 'Proces & risico\'s',
+        question: 'Wat moet je weten over garanties bij nieuwbouw en verbouwing?',
+        answer:
+            'Garantie verschilt per type: wettelijk, contractueel en productgebonden. Duidelijke documentatie en snelle melding bepalen of je claim sterk staat.',
+        href: '/kennisbank/wat-moet-je-weten-over-garanties-bij-nieuwbouw-en-verbouwing',
     }
-
 ];
+
+
 
 

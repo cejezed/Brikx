@@ -127,4 +127,40 @@ export const FAQ_CARD_ITEMS: FaqCardItem[] = [
     imageUrl: '/faq/wat-is-het-verschil-tussen-een-architect-en-een-tekenaar.webp',
     tag: 'Rolkeuze',
   },
+  {
+    slug: 'hoe-lang-duurt-een-gemiddeld-bouw-of-verbouwproject',
+    title: 'Realistische doorlooptijd van bouw en verbouw',
+    description: 'Nieuwbouw en verbouw duren vaak langer dan gedacht. Deze gids geeft realistische bandbreedtes per fase.',
+    imageUrl: '/faq/hoe-lang-duurt-een-gemiddeld-bouw-of-verbouwproject.webp',
+    tag: 'Planning',
+  },
+  {
+    slug: 'welke-verzekeringen-heb-je-nodig-bij-bouwen-of-verbouwen',
+    title: 'Verzekeringen die je project echt beschermen',
+    description: 'CAR, AVB en opdrachtgeverrisico: wat je vooraf moet regelen om schade beheersbaar te houden.',
+    imageUrl: '/faq/welke-verzekeringen-heb-je-nodig-bij-bouwen-of-verbouwen.webp',
+    tag: 'Zekerheid',
+  },
+  {
+    slug: 'hoe-ga-je-om-met-buren-tijdens-een-verbouwing',
+    title: 'Buren slim meenemen tijdens verbouwing',
+    description: 'Voorkom bezwaar en frustratie met duidelijke communicatie, updates en praktisch burenmanagement.',
+    imageUrl: '/faq/hoe-ga-je-om-met-buren-tijdens-een-verbouwing.webp',
+    tag: 'Omgeving',
+  },
+  {
+    slug: 'wat-zijn-je-rechten-als-opdrachtgever',
+    title: 'Je rechten als opdrachtgever in de bouw',
+    description: 'Sterker staan in offerte, meerwerk, kwaliteit en oplevering door je rechten goed toe te passen.',
+    imageUrl: '/faq/wat-zijn-je-rechten-als-opdrachtgever.webp',
+    tag: 'Juridisch',
+  },
+  {
+    slug: 'wat-moet-je-weten-over-garanties-bij-nieuwbouw-en-verbouwing',
+    title: 'Garanties bij nieuwbouw en verbouwing begrijpen',
+    description: 'Leer wat wel en niet onder garantie valt en hoe je herstelclaims effectief indient.',
+    imageUrl: '/faq/wat-moet-je-weten-over-garanties-bij-nieuwbouw-en-verbouwing.webp',
+    tag: 'Nazorg',
+  }
 ]
+
