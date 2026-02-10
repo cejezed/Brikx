@@ -1,11 +1,11 @@
-'use client';
+﻿'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { ChevronDown, Link as LinkIcon, Search } from 'lucide-react';
 
 // --------------------------------------------
-// DATA – 5 CLUSTERS × 4 VRAGEN
+// DATA - 5 CLUSTERS x 4 VRAGEN
 // --------------------------------------------
 import { FAQ_ITEMS } from './faq-data';
 
@@ -27,14 +27,14 @@ export default function FAQClient() {
       {/* Meta + Search */}
       <header className="text-center mb-10">
         <p className="text-gray-700">
-          Laatste update: 19 oktober 2025 · Beantwoord door architect (20+ jaar ervaring)
+          Laatste update: 19 oktober 2025 - Praktische antwoorden voor je PvE en voorbereiding
         </p>
         <div className="mt-6 mx-auto max-w-xl flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-3 bg-white shadow-sm">
           <Search className="w-5 h-5 text-gray-500" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Zoek in vragen (bijv. vergunning, kosten, privacy)…"
+            placeholder="Zoek in vragen (bijv. vergunning, kosten, privacy)..."
             className="w-full outline-none text-[15px]"
           />
         </div>
@@ -120,11 +120,11 @@ export default function FAQClient() {
         );
       })}
 
-      {/* Contact CTA */}
+      {/* Tool CTA */}
       <div className="mt-14 text-center p-8 bg-gradient-to-br from-primary/5 to-primary/10 rounded-2xl border border-primary/20">
-        <p className="text-lg text-gray-700 mb-3">Staat je vraag er niet tussen?</p>
-        <Link href="/contact" className="inline-flex items-center gap-2 text-primary font-semibold hover:underline text-lg">
-          Neem contact op →
+        <p className="text-lg text-gray-700 mb-3">Nog onzeker over je keuzes?</p>
+        <Link href="/wizard" className="inline-flex items-center gap-2 text-primary font-semibold hover:underline text-lg">
+          Start met je PvE in de wizard →
         </Link>
       </div>
 
@@ -133,3 +133,6 @@ export default function FAQClient() {
     </>
   );
 }
+
+
+

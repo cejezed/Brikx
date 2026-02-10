@@ -1,4 +1,4 @@
-export type FaqSection = {
+﻿export type FaqSection = {
   title: string
   paragraphs: string[]
   bullets?: string[]
@@ -25,12 +25,12 @@ export type FaqArticle = {
 export const FAQ_ARTICLES: FaqArticle[] = [
   {
     slug: 'wat-zijn-faalkosten-en-hoe-voorkom-ik-ze',
-    title: 'Wat zijn faalkosten en hoe voorkom ik ze?',
+    title: 'Faalkosten voorkomen in de praktijk',
     metaTitle: 'Faalkosten in de bouw voorkomen | Brikx Kennisbank',
     metaDescription:
       'Faalkosten ontstaan door fouten, miscommunicatie en slechte voorbereiding. Lees waar ze ontstaan en hoe je ze voorkomt.',
     intro:
-      'Faalkosten zijn kosten door fouten, miscommunicatie of slechte voorbereiding. In Nederland ligt dit gemiddeld rond 10-15% van de bouwsom. Bij een project van 300.000 EUR is dat 30.000-45.000 EUR aan vermijdbare kosten.',
+      'Faalkosten zijn vermijdbare extra kosten tijdens bouwen door fouten, miscommunicatie of te late keuzes. In de sector wordt vaak gesproken over 10-15% van het bouwbudget. Bij een project van 300.000 EUR gaat het dan al snel om 30.000-45.000 EUR aan vermijdbare kosten.',
     keyPoints: [
       'De grootste oorzaak is te late besluitvorming en onduidelijke afspraken.',
       'Fouten in volgorde leiden tot dubbel werk en meerwerk.',
@@ -80,7 +80,7 @@ export const FAQ_ARTICLES: FaqArticle[] = [
   },
   {
     slug: 'hoeveel-buffer-moet-ik-aanhouden-voor-onvoorziene-kosten',
-    title: 'Hoeveel buffer moet ik aanhouden voor onvoorziene kosten?',
+    title: 'Buffer voor onvoorziene kosten bepalen',
     metaTitle: 'Buffer voor onvoorziene kosten | Brikx Kennisbank',
     metaDescription:
       'Minimaal 10% buffer nodig, liever 15%. Lees waarom, waar het risico het hoogst is en hoe je dit verwerkt in je budget.',
@@ -137,7 +137,7 @@ export const FAQ_ARTICLES: FaqArticle[] = [
   },
   {
     slug: 'wat-zijn-verborgen-kosten-waar-mensen-niet-aan-denken',
-    title: 'Wat zijn verborgen kosten waar mensen niet aan denken?',
+    title: 'Verborgen kosten die budgetten onder druk zetten',
     metaTitle: 'Verborgen kosten bij bouwen of verbouwen | Brikx Kennisbank',
     metaDescription:
       'Veel mensen vergeten 15-20% bijkomende kosten. Bekijk de complete lijst met leges, aansluitingen, onderzoeken en afwerking.',
@@ -202,7 +202,7 @@ export const FAQ_ARTICLES: FaqArticle[] = [
   },
   {
     slug: 'hoe-maak-ik-een-realistisch-budget-voor-bouwen-of-verbouwen',
-    title: 'Hoe maak ik een realistisch budget voor bouwen of verbouwen?',
+    title: 'Een realistisch bouw- of verbouwbudget opzetten',
     metaTitle: 'Realistisch bouwbudget maken | Brikx Kennisbank',
     metaDescription:
       'Een realistisch budget betekent alle kosten in beeld, geen wishful thinking en voldoende buffer voor onvoorzien.',
@@ -255,7 +255,7 @@ export const FAQ_ARTICLES: FaqArticle[] = [
   },
   {
     slug: 'wanneer-heb-ik-een-architect-nodig-en-wanneer-niet',
-    title: 'Wanneer heb ik een architect nodig en wanneer niet?',
+    title: 'Architect inschakelen: wanneer wel en wanneer niet',
     metaTitle: 'Architect nodig? Wanneer wel en niet | Brikx Kennisbank',
     metaDescription:
       'Nieuwbouw en grote verbouwingen vragen om een architect. Lees wanneer dit essentieel is en welke alternatieven er zijn.',
@@ -303,7 +303,7 @@ export const FAQ_ARTICLES: FaqArticle[] = [
       },
     ],
     callout:
-      'De besparing van 7% architect weegt zelden op tegen 10-15% faalkosten door fouten en miscommunicatie.',
+      'Een lagere adviespost lijkt aantrekkelijk, maar weegt in de praktijk zelden op tegen de kosten van fouten, vertraging en meerwerk.',
     relatedFaqSlugs: [
       'wat-zijn-faalkosten-en-hoe-voorkom-ik-ze',
       'hoe-weet-ik-of-een-offerte-compleet-is',
@@ -316,7 +316,7 @@ export const FAQ_ARTICLES: FaqArticle[] = [
   },
   {
     slug: 'hoe-weet-ik-of-een-offerte-compleet-is',
-    title: 'Hoe weet ik of een offerte compleet is?',
+    title: 'Een offerte op volledigheid controleren',
     metaTitle: 'Offerte controleren bij bouw of verbouw | Brikx Kennisbank',
     metaDescription:
       'Een incomplete offerte lijkt goedkoop maar wordt duur door meerwerk. Leer hoe je een offerte checkt op details en stelposten.',
@@ -372,6 +372,505 @@ export const FAQ_ARTICLES: FaqArticle[] = [
       { label: 'Checklist Waterdicht Projectbudget', href: '/kennisbank/financien' },
     ],
   },
+  {
+    slug: 'wat-is-meerwerk-en-hoe-voorkom-je-discussies',
+    title: 'Meerwerk beheersen zonder discussies',
+    metaTitle: 'Meerwerk in de bouw: conflicten voorkomen | Brikx Kennisbank',
+    metaDescription:
+      'Meerwerk is een van de grootste bronnen van conflict. Lees hoe je afspraken vooraf vastlegt en discussies tijdens de bouw voorkomt.',
+    intro:
+      'Meerwerk is werk dat niet in de oorspronkelijke offerte stond en tijdens de bouw wordt toegevoegd - gevraagd of onvoorzien. Het is een van de grootste bronnen van conflict tussen opdrachtgever en aannemer, vooral als afspraken vooraf onduidelijk zijn.',
+    keyPoints: [
+      'Niet elk meerwerk is hetzelfde: keuze, onduidelijkheid, onvoorzien of foutherstel.',
+      'De meeste discussies ontstaan door mondelinge afspraken en vage offertes.',
+      'Met een vaste meerwerkprocedure houd je grip op budget en planning.',
+    ],
+    sections: [
+      {
+        title: 'Waarom ontstaat meerwerk?',
+        paragraphs: [
+          'Meerwerk ontstaat meestal in vier situaties. Type 1 is een bewuste wijziging van jou tijdens de bouw, zoals extra stopcontacten of andere tegels. Type 2 is onduidelijkheid in de offerte, bijvoorbeeld bij termen als "complete badkamer" zonder specificaties.',
+          'Type 3 gaat over onvoorziene omstandigheden zoals verborgen gebreken in bestaande bouw. Type 4 is foutherstel door de aannemer. Dat laatste is geen meerwerk en hoort niet als extra post te worden gefactureerd.',
+        ],
+        bullets: [
+          'Type 1: wijziging op verzoek van opdrachtgever.',
+          'Type 2: verschil in interpretatie van de offerte.',
+          'Type 3: technische tegenvaller die vooraf niet zichtbaar was.',
+          'Type 4: herstel van een uitvoeringsfout (geen terecht meerwerk).',
+        ],
+      },
+      {
+        title: 'Hoe voorkom je discussies over meerwerk?',
+        paragraphs: [
+          'Voorkomen begint met een compleet bestek en een heldere contractafspraak. Laat meerwerk altijd vooraf schriftelijk melden met prijs en impact op planning. Zonder akkoord geen uitvoering.',
+          'Werk bij grotere projecten met een wekelijkse meerwerklijst. Zo zie je vroeg welke posten oplopen en voorkom je een onverwachte eindafrekening.',
+        ],
+        bullets: [
+          'Specificeer offertes op merk, type, aantallen en uitvoering.',
+          'Leg vast: meerwerk alleen na schriftelijke goedkeuring.',
+          'Accepteer geen mondelinge "doen we wel even" beslissingen.',
+          'Vraag per meerwerkpost een losse specificatie.',
+          'Laat bij twijfel een architect of adviseur toetsen.',
+        ],
+      },
+      {
+        title: 'Wat doe je als het toch misgaat?',
+        paragraphs: [
+          'Komt er achteraf een grote meerwerkclaim zonder voorafgaande melding, controleer dan eerst de contractafspraak. Staat daarin dat meerwerk vooraf moet worden gemeld, dan is de claim vaak niet automatisch afdwingbaar.',
+          'Vraag altijd een onderbouwing per post en betaal niet onder tijdsdruk. Laat bij twijfel een onafhankelijk expert meekijken.',
+        ],
+      },
+    ],
+    callout:
+      'Een beetje meerwerk is normaal, vooral bij verbouw. Maar 20-30% extra is meestal een signaal van slechte voorbereiding of een te laag ingestoken offerte.',
+    relatedFaqSlugs: [
+      'hoe-weet-ik-of-een-offerte-compleet-is',
+      'wat-zijn-faalkosten-en-hoe-voorkom-ik-ze',
+      'hoeveel-buffer-moet-ik-aanhouden-voor-onvoorziene-kosten',
+    ],
+    relatedLinks: [
+      { label: 'Checklist Grip op Uitvoering & Meerwerk', href: '/kennisbank/meerwerk' },
+      { label: 'Checklist Waterdicht Projectbudget', href: '/kennisbank/financien' },
+    ],
+  },
+  {
+    slug: 'hoe-kies-je-een-betrouwbare-aannemer',
+    title: 'Een betrouwbare aannemer selecteren',
+    metaTitle: 'Betrouwbare aannemer kiezen zonder gedoe | Brikx Kennisbank',
+    metaDescription:
+      'Een aannemer kies je niet op laagste prijs. Lees waar je op let bij referenties, contracten, verzekeringen en offertevergelijking.',
+    intro:
+      'Een aannemer kiezen op laagste prijs lijkt logisch, maar geeft vaak de grootste risico\'s op vertraging, meerwerk en conflicten. Betrouwbaarheid, specialisatie en duidelijke communicatie zijn meestal belangrijker dan een prijsverschil op papier.',
+    keyPoints: [
+      'Vraag altijd meerdere offertes op basis van dezelfde scope.',
+      'Controleer referenties, verzekeringen en projectervaring.',
+      'Een goede aannemer communiceert duidelijk voordat het werk start.',
+    ],
+    sections: [
+      {
+        title: 'Waar let je op bij selectie?',
+        paragraphs: [
+          'Vraag om recente referenties en bel deze actief na. Vraag naar planning, communicatie, meerwerk en eindkwaliteit. Alleen foto\'s zeggen weinig over hoe een project echt is verlopen.',
+          'Kies ook op specialisatie. Een partij die sterk is in nieuwbouw is niet automatisch sterk in complexe verbouwingen of monumenten.',
+        ],
+        bullets: [
+          'Controleer recente projecten die lijken op jouw opdracht.',
+          'Check KvK-inschrijving en bedrijfscontinuiteit.',
+          'Vraag bewijs van CAR- en AVB-verzekering.',
+          'Vergelijk offertes op inhoud, niet alleen op totaalprijs.',
+        ],
+      },
+      {
+        title: 'Rode vlaggen die je serieus moet nemen',
+        paragraphs: [
+          'Rode vlaggen zijn vaak al zichtbaar in het offertetraject. Een aannemer die pusht op snelheid of vaag blijft over scope, doet dat meestal later in de uitvoering ook.',
+        ],
+        bullets: [
+          'Groot voorschot zonder duidelijke tegenprestatie.',
+          'Geen recente referenties of ontwijkende antwoorden.',
+          'Offerte veel lager dan markt zonder heldere uitleg.',
+          'Geen duidelijke contractvoorwaarden of planning.',
+        ],
+      },
+      {
+        title: 'Praktische aanpak in 3 stappen',
+        paragraphs: [
+          'Vraag minimaal drie vergelijkbare offertes op hetzelfde PvE en vergelijk ze op scope, voorwaarden en communicatie. Loop waar mogelijk een lopend project van de aannemer na.',
+          'Leg afspraken altijd vast in een schriftelijk contract met duidelijke meerwerkprocedure, planning en oplevercriteria.',
+        ],
+      },
+    ],
+    callout:
+      'De meeste bouwconflicten ontstaan niet op de bouwplaats, maar in de selectiefase. Een scherpe keuze vooraf voorkomt veel gedoe later.',
+    relatedFaqSlugs: [
+      'hoe-weet-ik-of-een-offerte-compleet-is',
+      'wat-is-meerwerk-en-hoe-voorkom-je-discussies',
+      'wat-zijn-faalkosten-en-hoe-voorkom-ik-ze',
+    ],
+    relatedLinks: [
+      { label: 'Checklist Grip op Uitvoering & Meerwerk', href: '/kennisbank/meerwerk' },
+      { label: 'Checklist Droomhuis Vormgeven', href: '/kennisbank/stappenplan' },
+    ],
+  },
+  {
+    slug: 'wat-is-een-programma-van-eisen-en-waarom-is-het-belangrijk',
+    title: 'Werken met een helder Programma van Eisen (PvE)',
+    metaTitle: 'Programma van Eisen (PvE) maken | Brikx Kennisbank',
+    metaDescription:
+      'Een goed Programma van Eisen voorkomt misverstanden en dure wijzigingen. Lees wat erin moet en hoe je ermee betere offertes krijgt.',
+    intro:
+      'Een Programma van Eisen (PvE) is een document waarin je beschrijft wat je wil bouwen of verbouwen - je wensen, eisen en randvoorwaarden op papier. Zonder PvE werken architect en aannemer vaak op aannames, met hogere kans op wijzigingen en kostenstress.',
+    keyPoints: [
+      'Een PvE maakt verwachtingen expliciet voor ontwerp, budget en planning.',
+      'Het helpt om offertes echt vergelijkbaar te maken.',
+      'Must-haves en nice-to-haves voorkomen twijfel tijdens uitvoering.',
+    ],
+    sections: [
+      {
+        title: 'Wat staat er in een goed PvE?',
+        paragraphs: [
+          'Een goed PvE bevat functionele eisen, ruimtelijke voorkeuren, technische wensen, stijl, budgetgrenzen, planning en prioriteiten. Dat geeft houvast voor iedereen die met jouw project werkt.',
+          'Gebruik altijd een duidelijke scheiding tussen must-have en nice-to-have. Bij budgetdruk kun je dan bijsturen zonder de kern van je plan kwijt te raken.',
+        ],
+        bullets: [
+          'Functioneel: ruimtes, oppervlaktes, gebruik per ruimte.',
+          'Technisch: installaties, duurzaamheid, comfortniveau.',
+          'Financieel: totaalbudget en prioriteiten.',
+          'Proces: planning en beslismomenten.',
+        ],
+      },
+      {
+        title: 'Waarom helpt dit in de praktijk?',
+        paragraphs: [
+          'Voor de architect geeft een PvE richting aan het ontwerp. Voor de aannemer geeft het een duidelijk kader voor een complete offerte. Voor jou geeft het rust, omdat keuzes vooraf worden gemaakt in plaats van onder druk tijdens de bouw.',
+          'Wie vroeg investeert in een goed PvE voorkomt vaak duur meerwerk en miscommunicatie in latere fases.',
+        ],
+      },
+      {
+        title: 'Hoe begin je ermee?',
+        paragraphs: [
+          'Start met je grootste frustraties in de huidige situatie en vertaal die naar concrete eisen. Werk daarna je leefpatronen, budgetgrenzen en prioriteiten uit.',
+          'Gebruik een checklist of wizard zodat je geen belangrijke onderdelen overslaat.',
+        ],
+      },
+    ],
+    callout:
+      'Een PvE is geen papierwerk voor erbij. Het is het stuurdocument dat bepaalt of ontwerp, offerte en uitvoering op elkaar aansluiten.',
+    relatedFaqSlugs: [
+      'hoe-maak-ik-een-realistisch-budget-voor-bouwen-of-verbouwen',
+      'wat-is-meerwerk-en-hoe-voorkom-je-discussies',
+      'hoe-kies-je-een-betrouwbare-aannemer',
+    ],
+    relatedLinks: [
+      { label: 'Checklist Droomhuis Vormgeven', href: '/kennisbank/stappenplan' },
+      { label: 'Start direct met de wizard', href: '/wizard' },
+    ],
+  },
+  {
+    slug: 'waarom-lopen-bouwprojecten-uit-en-hoe-voorkom-je-dat',
+    title: 'Bouwvertraging voorkomen met realistische planning',
+    metaTitle: 'Bouwproject loopt uit: oorzaken en aanpak | Brikx Kennisbank',
+    metaDescription:
+      'Waarom lopen bouwprojecten uit? Lees de belangrijkste oorzaken en hoe je met voorbereiding, planning en overleg vertraging beperkt.',
+    intro:
+      'Vertraging in bouwprojecten is frustrerend en kost geld. Toch is een groot deel van de uitloop te beperken met betere voorbereiding, realistische planning en tijdige keuzes. De grootste fouten ontstaan meestal al voor de eerste dag op de bouwplaats.',
+    keyPoints: [
+      'Te late keuzes en leveringsproblemen zijn de meest voorkomende oorzaken.',
+      'Onvolledige tekeningen en wijzigingen tijdens uitvoering kosten veel tijd.',
+      'Een realistische planning bevat altijd buffer.',
+    ],
+    sections: [
+      {
+        title: 'Waarom loopt planning vaak uit?',
+        paragraphs: [
+          'Uitloop ontstaat zelden door een oorzaak. Meestal stapelen meerdere kleine vertragingen zich op: late materiaalkeuzes, langere levertijden, onduidelijke tekeningen of onverwachte technische issues.',
+          'Ook vergunningstrajecten en personele uitval kunnen impact hebben. Wie hier vooraf geen ruimte voor plant, komt vrijwel altijd in tijdsdruk terecht.',
+        ],
+        bullets: [
+          'Late keuzes voor keuken, tegels of installaties.',
+          'Lange levertijden van maatwerkmaterialen.',
+          'Wijzigingen tijdens uitvoering.',
+          'Onvolledige of tegenstrijdige tekeningen.',
+          'Vertraging in vergunning of onderaannemersplanning.',
+        ],
+      },
+      {
+        title: 'Hoe voorkom je onnodige vertraging?',
+        paragraphs: [
+          'Werk met een keuzetijdlijn per fase, bestel kritieke onderdelen vroeg en houd een realistische buffer aan. Wekelijks overleg helpt om kleine afwijkingen direct op te lossen voordat ze uitgroeien tot weken vertraging.',
+          'Zorg daarnaast dat ontwerp, begroting en uitvoeringstekeningen op elkaar zijn afgestemd voordat de uitvoering start.',
+        ],
+        bullets: [
+          'Maak vooraf een complete voorbereidingsset (PvE, ontwerp, budget).',
+          'Plan met minimaal 15-20% tijdsbuffer.',
+          'Werk met vaste besluitmomenten per bouwfase.',
+          'Leg alternatieven vast voor kritieke materialen.',
+        ],
+      },
+      {
+        title: 'Wat als je project toch uitloopt?',
+        paragraphs: [
+          'Controleer contractafspraken over planning en voortgang. Blijf in gesprek over oorzaak, herstelplan en nieuwe mijlpalen. Niet elke vertraging is verwijtbaar, maar structurele uitval zonder plan vraagt om duidelijke sturing.',
+          'Escaleren is pas laatste stap. In de praktijk levert vroeg ingrijpen met transparante voortgangsafspraken meestal het beste resultaat op.',
+        ],
+      },
+    ],
+    callout:
+      'Projecten lopen het vaakst uit door optimistische planning. Realisme in de voorbereiding is de goedkoopste vorm van tijdswinst.',
+    relatedFaqSlugs: [
+      'wat-is-een-programma-van-eisen-en-waarom-is-het-belangrijk',
+      'wat-is-meerwerk-en-hoe-voorkom-je-discussies',
+      'hoe-maak-ik-een-realistisch-budget-voor-bouwen-of-verbouwen',
+    ],
+    relatedLinks: [
+      { label: 'Checklist Droomhuis Vormgeven', href: '/kennisbank/stappenplan' },
+      { label: 'Checklist Grip op Uitvoering & Meerwerk', href: '/kennisbank/meerwerk' },
+    ],
+  },
+  {
+    slug: 'wanneer-moet-je-welke-keuzes-maken-tijdens-het-bouwproces',
+    title: 'Keuzes op het juiste moment in het bouwproces',
+    metaTitle: 'Wanneer welke keuzes maken tijdens de bouw? | Brikx Kennisbank',
+    metaDescription:
+      'Te late keuzes veroorzaken vertraging en meerkosten. Bekijk per fase welke beslissingen je wanneer moet nemen.',
+    intro:
+      'Timing van keuzes is cruciaal in elk bouwproject. Te laat kiezen veroorzaakt stilstand, herplanning en meerwerk. Met een duidelijke keuzetijdlijn per fase houd je grip op planning en budget.',
+    keyPoints: [
+      'Grote keuzes horen in schets- en voorlopig ontwerp, niet tijdens uitvoering.',
+      'Keuken, sanitair en elektra moeten ruim voor start bouw vastliggen.',
+      'Kleine afwerkingskeuzes kunnen later, maar met vaste deadlines.',
+    ],
+    sections: [
+      {
+        title: 'Welke keuzes horen in welke fase?',
+        paragraphs: [
+          'In de eerste fases maak je structurele keuzes: indeling, massa, constructie en installatiestrategie. In de uitvoeringsvoorbereiding kies je concrete producten met levertijd, zoals keuken, sanitair en vloeren.',
+          'Tijdens de bouw wil je vooral nog detailkeuzes maken. Als je dan nog basisbeslissingen moet nemen, schuift de planning vrijwel altijd op.',
+        ],
+        bullets: [
+          'Schetsontwerp: indeling, volume, dakvorm, globale stijl.',
+          'Voorlopig ontwerp: maatvoering, ramen/deuren, constructie, basistechniek.',
+          'Definitief ontwerp: materialisatie buitenzijde en vergunningskeuzes.',
+          'Uitvoeringsvoorbereiding: keuken, sanitair, elektra, vloeren, verlichting.',
+        ],
+      },
+      {
+        title: 'Hoe voorkom je dat keuzes te laat komen?',
+        paragraphs: [
+          'Werk met een keuzelijst met harde deadlines per onderdeel. Plan showroombezoeken vroeg, maar leg definitieve bestellingen pas vast zodra planning en specificaties kloppen.',
+        ],
+        bullets: [
+          'Vraag een keuzeplanning met weeknummers.',
+          'Check levertijden voordat je akkoord geeft.',
+          'Stel interne beslisdeadlines in (niet wachten tot laatste moment).',
+          'Leg gekozen opties direct schriftelijk vast.',
+        ],
+      },
+    ],
+    callout:
+      'De meeste planningstress ontstaat niet op de bouwplaats, maar door keuzes die te laat worden gemaakt.',
+    relatedFaqSlugs: [
+      'waarom-lopen-bouwprojecten-uit-en-hoe-voorkom-je-dat',
+      'hoe-maak-ik-een-realistisch-budget-voor-bouwen-of-verbouwen',
+      'wat-is-een-programma-van-eisen-en-waarom-is-het-belangrijk',
+    ],
+    relatedLinks: [
+      { label: 'Checklist Droomhuis Vormgeven', href: '/kennisbank/stappenplan' },
+      { label: 'Checklist Grip op Uitvoering & Meerwerk', href: '/kennisbank/meerwerk' },
+    ],
+  },
+  {
+    slug: 'hoe-blijf-je-binnen-budget-tijdens-de-bouw',
+    title: 'Binnen budget blijven tijdens de bouw',
+    metaTitle: 'Budget bewaken tijdens de bouw | Brikx Kennisbank',
+    metaDescription:
+      'Budgetoverschrijding ontstaat vaak door kleine keuzes. Leer hoe je scope, wijzigingen en buffer onder controle houdt.',
+    intro:
+      'Binnen budget blijven vraagt actieve sturing. Overschrijding ontstaat meestal door veel kleine wijzigingen, kwaliteitsupsells en onderschatte tegenvallers. Met duidelijke keuzes en budgetdiscipline blijft je project beheersbaar.',
+    keyPoints: [
+      'Het totaalbudget is leidend, niet alleen de aanneemsom.',
+      'Wijzigingen moeten zichtbaar en toetsbaar blijven.',
+      'Buffer is voor onvoorzien, niet voor extra luxe.',
+    ],
+    sections: [
+      {
+        title: 'Waarom gaat budget vaak mis?',
+        paragraphs: [
+          'Scope creep is de grootste oorzaak: steeds kleine extra\'s die samen groot worden. Daarnaast komen onvoorziene technische posten en prijsstijgingen vaak bovenop een al krap plan.',
+        ],
+        bullets: [
+          'Veel kleine upgrades tijdens showroomkeuzes.',
+          'Onvoorziene technische tegenvallers in uitvoering.',
+          'Prijswijzigingen tussen offerte en uitvoering.',
+          'Geen actueel overzicht van meerwerk en totaalsom.',
+        ],
+      },
+      {
+        title: 'Hoe houd je grip op het budget?',
+        paragraphs: [
+          'Werk met een wijzigingslijst en bespreek die wekelijks. Spreek af dat grotere wijzigingen pas doorgaan na expliciet akkoord. Koppel elke toevoeging aan een bewuste besparing elders als het budget onder druk staat.',
+        ],
+        bullets: [
+          'Maak vooraf verschil tussen must-have en nice-to-have.',
+          'Leg een goedkeuringsgrens vast voor wijzigingen.',
+          'Reserveer minimaal 10-15% buffer voor onvoorzien.',
+          'Laat architect/adviseur meelezen op gevolgen van keuzes.',
+        ],
+      },
+    ],
+    callout:
+      'Budgetbewaking is geen eenmalige berekening, maar een ritme van keuzes, controle en bijsturen.',
+    relatedFaqSlugs: [
+      'hoeveel-buffer-moet-ik-aanhouden-voor-onvoorziene-kosten',
+      'wat-zijn-verborgen-kosten-waar-mensen-niet-aan-denken',
+      'wat-is-meerwerk-en-hoe-voorkom-je-discussies',
+    ],
+    relatedLinks: [
+      { label: 'Checklist Waterdicht Projectbudget', href: '/kennisbank/financien' },
+      { label: 'Start direct met de wizard', href: '/wizard' },
+    ],
+  },
+  {
+    slug: 'wat-zijn-de-grootste-fouten-bij-bouwen-of-verbouwen',
+    title: 'De grootste fouten bij bouwen of verbouwen',
+    metaTitle: 'Grootste bouwfouten en hoe je ze voorkomt | Brikx Kennisbank',
+    metaDescription:
+      'Van te weinig voorbereiding tot slechte offertecontrole: dit zijn de fouten die projecten vertragen en duur maken.',
+    intro:
+      'De grootste bouwfouten zijn zelden technisch ingewikkeld. Ze ontstaan meestal door te weinig voorbereiding, onduidelijke prioriteiten en gebrek aan controle tijdens uitvoering. Het goede nieuws: deze fouten zijn grotendeels te voorkomen.',
+    keyPoints: [
+      'Haast in de voorbereiding veroorzaakt vertraging in uitvoering.',
+      'Geen buffer of prioriteitenlijst maakt elk project kwetsbaar.',
+      'Mondelinge afspraken en te weinig toezicht leiden tot discussies.',
+    ],
+    sections: [
+      {
+        title: 'Welke fouten doen het meeste pijn?',
+        paragraphs: [
+          'Veel projecten lopen vast op dezelfde patronen: te laat keuzes maken, besparen op verkeerde onderdelen, een offerte vertrouwen en te weinig kwaliteitscontrole op de bouwplaats.',
+        ],
+        bullets: [
+          'Te weinig tijd voor ontwerp en voorbereiding.',
+          'Geen realistische buffer in budget.',
+          'Te late materiaalkeuzes met lange levertijd.',
+          'Geen wekelijkse controle op voortgang en kwaliteit.',
+          'Alles willen zonder prioriteiten te stellen.',
+        ],
+      },
+      {
+        title: 'Hoe voorkom je deze fouten?',
+        paragraphs: [
+          'Werk met een heldere faseaanpak: eerst PvE en budget, dan ontwerp, dan uitvoering. Combineer dit met een vaste overlegstructuur en schriftelijke besluitvorming.',
+        ],
+        bullets: [
+          'Plan 3-4 maanden voorbereiding voor complexe projecten.',
+          'Vraag minimaal drie vergelijkbare offertes.',
+          'Leg keuzes en wijzigingen altijd schriftelijk vast.',
+          'Gebruik een adviseur als kwaliteits- en procesbewaker.',
+        ],
+      },
+    ],
+    callout:
+      'De duurste fout is denken dat voorbereiding tijd kost. In de praktijk bespaart goede voorbereiding juist tijd, geld en stress.',
+    relatedFaqSlugs: [
+      'wanneer-moet-je-welke-keuzes-maken-tijdens-het-bouwproces',
+      'hoe-kies-je-een-betrouwbare-aannemer',
+      'wat-zijn-faalkosten-en-hoe-voorkom-ik-ze',
+    ],
+    relatedLinks: [
+      { label: 'Checklist Droomhuis Vormgeven', href: '/kennisbank/stappenplan' },
+      { label: 'Checklist Grip op Uitvoering & Meerwerk', href: '/kennisbank/meerwerk' },
+    ],
+  },
+  {
+    slug: 'hoe-werkt-de-samenwerking-tussen-architect-en-aannemer',
+    title: 'Samenwerking tussen architect en aannemer',
+    metaTitle: 'Architect en aannemer: zo werkt de samenwerking | Brikx Kennisbank',
+    metaDescription:
+      'Ontdek de verschillen tussen traditioneel, bouwteam en design & build en wat dit betekent voor kwaliteit, budget en controle.',
+    intro:
+      'Architect en aannemer kunnen op verschillende manieren samenwerken. Het gekozen model bepaalt hoeveel grip je hebt op kwaliteit, budget en belangen. Een bewuste keuze vooraf voorkomt veel ruis tijdens uitvoering.',
+    keyPoints: [
+      'Traditioneel model geeft duidelijke scheiding van rollen.',
+      'Bouwteam geeft vroege uitvoeringsinput, maar minder prijscompetitie.',
+      'Design & build kan snel zijn, maar vraagt extra aandacht voor onafhankelijkheid.',
+    ],
+    sections: [
+      {
+        title: 'Welke samenwerkingsmodellen zijn er?',
+        paragraphs: [
+          'In het traditionele model ontwerpt de architect en bouwt de aannemer op basis van een uitgevraagd plan. In bouwteam werken architect en aannemer al vroeg samen. Bij design & build ligt ontwerp en uitvoering in één hand.',
+        ],
+        bullets: [
+          'Traditioneel: meer controle op kwaliteit en scope.',
+          'Bouwteam: vroegere kostentoets en uitvoerbaarheid.',
+          'Design & build: snelle lijn, maar minder onafhankelijke tegenkracht.',
+        ],
+      },
+      {
+        title: 'Hoe houd je samenwerking gezond?',
+        paragraphs: [
+          'Werk met vaste bouwoverleggen, heldere verslaglegging en duidelijke escalatieroutes bij verschil van inzicht. Bespreek keuzes vooraf en voorkom dat discussies pas achteraf ontstaan.',
+        ],
+        bullets: [
+          'Leg rollen en beslisbevoegdheden vooraf vast.',
+          'Plan periodieke voortgangs- en kwaliteitsrondes.',
+          'Documenteer alle wijzigingen en afspraken schriftelijk.',
+          'Schakel bij technische discussie tijdig een onafhankelijke expert in.',
+        ],
+      },
+    ],
+    callout:
+      'Goede samenwerking is geen toeval. Het is het resultaat van duidelijke rollen, vaste communicatie en transparante afspraken.',
+    relatedFaqSlugs: [
+      'hoe-kies-je-een-betrouwbare-aannemer',
+      'wat-is-meerwerk-en-hoe-voorkom-je-discussies',
+      'hoe-weet-ik-of-een-offerte-compleet-is',
+    ],
+    relatedLinks: [
+      { label: 'Checklist Grip op Uitvoering & Meerwerk', href: '/kennisbank/meerwerk' },
+      { label: 'Checklist Droomhuis Vormgeven', href: '/kennisbank/stappenplan' },
+    ],
+  },
+  {
+    slug: 'wat-is-het-verschil-tussen-een-architect-en-een-tekenaar',
+    title: 'Architect versus tekenaar: wat is het verschil?',
+    metaTitle: 'Verschil architect en tekenaar | Brikx Kennisbank',
+    metaDescription:
+      'Een tekenaar tekent uit, een architect ontwerpt en begeleidt. Lees wanneer welke rol past bij jouw project.',
+    intro:
+      'Een tekenaar en een architect hebben allebei waarde, maar niet dezelfde rol. Een tekenaar werkt meestal uit wat al gekozen is. Een architect helpt ook met ontwerpkeuzes, afwegingen en kwaliteitsbewaking tijdens het proces.',
+    keyPoints: [
+      'Een tekenaar is geschikt voor eenvoudige, duidelijke opdrachten.',
+      'Een architect voegt waarde toe bij complexiteit, budgetafweging en kwaliteit.',
+      'Goedkoop in de voorfase kan duur uitpakken in uitvoering.',
+    ],
+    sections: [
+      {
+        title: 'Wat doet een tekenaar en wat niet?',
+        paragraphs: [
+          'Een tekenaar vertaalt een duidelijke vraag naar tekenwerk voor vergunning en uitvoering. Meestal hoort daar geen brede ontwerpbegeleiding of processturing bij.',
+        ],
+        bullets: [
+          'Wel: technisch uitwerken van afgesproken oplossing.',
+          'Niet: strategische ontwerpkeuzes en procesbewaking.',
+          'Niet: actieve kwaliteitscontrole tijdens bouw.',
+        ],
+      },
+      {
+        title: 'Wanneer kies je voor een architect?',
+        paragraphs: [
+          'Bij nieuwbouw, grotere verbouwingen en complexe locaties is ontwerpkwaliteit direct gekoppeld aan budget, regelgeving en uitvoerbaarheid. Dan loont architectbegeleiding vrijwel altijd.',
+          'Een tussenvorm is ook mogelijk: architect voor ontwerp en vergunning, met beperkte begeleiding in uitvoering.',
+        ],
+        bullets: [
+          'Nieuwbouw of verbouw met veel ontwerpkeuzes.',
+          'Projecten met vergunningsdruk of complexe context.',
+          'Situaties waar budget, kwaliteit en planning tegelijk moeten kloppen.',
+        ],
+      },
+    ],
+    callout:
+      'De juiste keuze is niet: wat kost minder op papier? De juiste keuze is: welke begeleiding voorkomt later de meeste faalkosten.',
+    relatedFaqSlugs: [
+      'hoe-kies-je-een-betrouwbare-aannemer',
+      'wat-zijn-faalkosten-en-hoe-voorkom-ik-ze',
+      'wat-is-een-programma-van-eisen-en-waarom-is-het-belangrijk',
+    ],
+    relatedLinks: [
+      { label: 'Checklist Droomhuis Vormgeven', href: '/kennisbank/stappenplan' },
+      { label: 'Start direct met de wizard', href: '/wizard' },
+    ],
+  }
+
 ]
 
 export const FAQ_ARTICLE_MAP = new Map(FAQ_ARTICLES.map((article) => [article.slug, article]))
+
+
+
+
+
+
+
+

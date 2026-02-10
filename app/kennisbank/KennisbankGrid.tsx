@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { FAQ_CARD_ITEMS } from './faq-cards'
 
@@ -118,7 +118,7 @@ const kennisbankItems = [
     imageUrl: '/images/Brikx checklist 3.png',
     title: 'Checklist Droomhuis Vormgeven (10 Stappen)',
     description:
-      'Van een vage wens naar een concreet plan. Definieer uw â€˜waaromâ€™, breng leefpatronen in kaart en leg de fundering voor uw (ver)bouwproject.',
+      "Van een vage wens naar een concreet plan. Definieer uw \"waarom\", breng leefpatronen in kaart en leg de fundering voor uw (ver)bouwproject.",
     link: '/kennisbank/stappenplan', // Voorbeeld-URL
   },
   {
@@ -177,10 +177,10 @@ export default function KennisbankGrid({}: KennisbankGridProps) {
               u een cruciaal onderwerp?
             </p>
             <a
-              href="mailto:info@brikxai.nl?subject=Suggestie voor nieuwe checklist"
+              href="/wizard-info"
               className="text-xl font-semibold text-primary hover:underline"
             >
-              Stuur ons uw suggestie â†’
+              Bekijk de wizard-info →
             </a>
           </div>
         </div>
@@ -190,10 +190,10 @@ export default function KennisbankGrid({}: KennisbankGridProps) {
         <div className="mx-auto max-w-[1552px] px-4 md:px-6">
           <div className="max-w-4xl mb-10">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#1c7d86] mb-3">
-              Veelgestelde vragen
+              Verdiepende artikelen
             </p>
             <h2 className="text-3xl md:text-4xl font-bold text-[#0d3d4d] mb-4">
-              Praktische antwoorden over kosten, risico en uitvoering
+              Praktische verdieping over kosten, risico en uitvoering
             </h2>
             <p className="text-lg text-[#51616a]">
               Deze FAQ-artikelen beantwoorden de vragen die het vaakst leiden tot
@@ -219,3 +219,7 @@ export default function KennisbankGrid({}: KennisbankGridProps) {
     </>
   )
 }
+
+
+
+
