@@ -1,5 +1,6 @@
-﻿'use client'
+'use client'
 
+import { useMemo, useState } from 'react'
 import { FAQ_CARD_ITEMS } from './faq-cards'
 
 // --- Type Definitie ---
@@ -69,7 +70,7 @@ function KennisbankCard({
 
         {/* Call-to-action link */}
         <span className="text-lg font-semibold text-primary group-hover:underline mt-auto">
-          Lees meer →
+          Lees meer ?
         </span>
       </div>
     </a>
@@ -104,7 +105,7 @@ function FaqCard({ imageUrl, title, description, href, tag }: FaqCardProps) {
         </h3>
         <p className="text-sm text-[#51616a]">{description}</p>
         <span className="mt-auto text-sm font-semibold text-[#1c7d86]">
-          Lees het antwoord →
+          Lees het antwoord ?
         </span>
       </div>
     </a>
@@ -149,6 +150,16 @@ const kennisbankItems = [
  * Dit component beheert nu zijn eigen links en heeft geen 'onClick' prop meer nodig.
  */
 export default function KennisbankGrid({}: KennisbankGridProps) {
+  const [activeTag, setActiveTag] = useState('Alles')
+  const tagOptions = useMemo(() => {
+    const tags = Array.from(new Set(FAQ_CARD_ITEMS.map((item) => item.tag)))
+    return ['Alles', ...tags]
+  }, [])
+  const visibleFaqs =
+    activeTag === 'Alles'
+      ? FAQ_CARD_ITEMS
+      : FAQ_CARD_ITEMS.filter((item) => item.tag === activeTag)
+
   return (
     <>
       <section className="bg-[#e7f3f4] rounded-b-[30px] py-16 md:py-24 shadow-[0_10px_30px_rgba(0,0,0,0.16)] relative w-full mx-auto max-w-[1552px]">
@@ -180,7 +191,7 @@ export default function KennisbankGrid({}: KennisbankGridProps) {
               href="/wizard-info"
               className="text-xl font-semibold text-primary hover:underline"
             >
-              Bekijk de wizard-info →
+              Bekijk de wizard-info ?
             </a>
           </div>
         </div>
@@ -202,8 +213,28 @@ export default function KennisbankGrid({}: KennisbankGridProps) {
             </p>
           </div>
 
+          <div className="flex flex-wrap gap-3 mb-10">
+            {tagOptions.map((tag) => {
+              const isActive = tag === activeTag
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => setActiveTag(tag)}
+                  className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                    isActive
+                      ? 'border-[#0d3d4d] bg-[#0d3d4d] text-white'
+                      : 'border-[#d8e7ea] bg-white text-[#0d3d4d] hover:border-[#1c7d86] hover:text-[#1c7d86]'
+                  }`}
+                >
+                  {tag}
+                </button>
+              )
+            })}
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
-            {FAQ_CARD_ITEMS.map((item) => (
+            {visibleFaqs.map((item) => (
               <FaqCard
                 key={item.slug}
                 imageUrl={item.imageUrl}

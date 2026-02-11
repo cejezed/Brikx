@@ -60,7 +60,7 @@ export const FAQ_CARD_ITEMS: FaqCardItem[] = [
     title: 'Meerwerk beheersen zonder discussies',
     description:
       'Meerwerk is vaak te voorkomen met heldere afspraken, schriftelijke procedures en strakke controle tijdens de bouw.',
-    imageUrl: '/faq/wat-is-meerwerk-en-hoe-voorkom-je-discussies.webp',
+    imageUrl: '/faq/meerwerk-beheersen-zonder-discussies.webp',
     tag: 'Uitvoering',
   },
   {
@@ -68,7 +68,7 @@ export const FAQ_CARD_ITEMS: FaqCardItem[] = [
     title: 'Een betrouwbare aannemer selecteren',
     description:
       'Selecteer op referenties, duidelijkheid en ervaring met jouw projecttype in plaats van alleen op prijs.',
-    imageUrl: '/faq/hoe-kies-je-een-betrouwbare-aannemer.webp',
+    imageUrl: '/faq/een-betrouwbare-aannemer-selecteren.webp',
     tag: 'Selectie',
   },
   {
@@ -76,7 +76,7 @@ export const FAQ_CARD_ITEMS: FaqCardItem[] = [
     title: 'Werken met een helder Programma van Eisen (PvE)',
     description:
       'Een sterk PvE voorkomt misverstanden, maakt offertes vergelijkbaar en geeft richting aan ontwerp en uitvoering.',
-    imageUrl: '/faq/wat-is-een-programma-van-eisen-en-waarom-is-het-belangrijk.webp',
+    imageUrl: '/faq/werken-met-een-helder-programma-van-eisen-pve.webp',
     tag: 'Voorbereiding',
   },
   {
@@ -84,7 +84,7 @@ export const FAQ_CARD_ITEMS: FaqCardItem[] = [
     title: 'Bouwvertraging voorkomen met realistische planning',
     description:
       'Voorkom uitloop met een keuzetijdlijn, tijdsbuffer en wekelijkse voortgang op planning en beslissingen.',
-    imageUrl: '/faq/waarom-lopen-bouwprojecten-uit-en-hoe-voorkom-je-dat.webp',
+    imageUrl: '/faq/bouwvertraging-voorkomen-met-realistische-planning.webp',
     tag: 'Planning',
   },
   {
@@ -92,7 +92,7 @@ export const FAQ_CARD_ITEMS: FaqCardItem[] = [
     title: 'Keuzes op het juiste moment in het bouwproces',
     description:
       'Per fase de juiste keuzes maken voorkomt stilstand, herplanning en duur meerwerk.',
-    imageUrl: '/faq/wanneer-moet-je-welke-keuzes-maken-tijdens-het-bouwproces.webp',
+    imageUrl: '/faq/keuzes-op-het-juiste-moment-in-het-bouwproces.webp',
     tag: 'Planning',
   },
   {
@@ -100,7 +100,7 @@ export const FAQ_CARD_ITEMS: FaqCardItem[] = [
     title: 'Binnen budget blijven tijdens de bouw',
     description:
       'Houd grip op wijzigingen, buffer en meerwerk met een strak ritme van besluiten en controle.',
-    imageUrl: '/faq/hoe-blijf-je-binnen-budget-tijdens-de-bouw.webp',
+    imageUrl: '/faq/binnen-budget-blijven-tijdens-de-bouw.webp',
     tag: 'Budget',
   },
   {
@@ -108,7 +108,7 @@ export const FAQ_CARD_ITEMS: FaqCardItem[] = [
     title: 'De grootste fouten bij bouwen of verbouwen',
     description:
       'Voorkom de fouten die projecten structureel vertragen en veel duurder maken dan gepland.',
-    imageUrl: '/faq/wat-zijn-de-grootste-fouten-bij-bouwen-of-verbouwen.webp',
+    imageUrl: '/faq/de-grootste-fouten-bij-bouwen-en-verbouwen.webp',
     tag: 'Risico',
   },
   {
@@ -116,7 +116,7 @@ export const FAQ_CARD_ITEMS: FaqCardItem[] = [
     title: 'Samenwerking tussen architect en aannemer',
     description:
       'Kies het juiste samenwerkingsmodel en voorkom ruis over rollen, kwaliteit en beslissingen.',
-    imageUrl: '/faq/hoe-werkt-de-samenwerking-tussen-architect-en-aannemer.webp',
+    imageUrl: '/faq/samenwerking-tussen-architect-en-aannemer.webp',
     tag: 'Team',
   },
   {
@@ -124,42 +124,42 @@ export const FAQ_CARD_ITEMS: FaqCardItem[] = [
     title: 'Architect versus tekenaar: wat is het verschil?',
     description:
       'Ontdek wanneer tekenwerk volstaat en wanneer ontwerpbegeleiding essentieel wordt.',
-    imageUrl: '/faq/wat-is-het-verschil-tussen-een-architect-en-een-tekenaar.webp',
+    imageUrl: '/faq/architect-versus-tekenaar-wat-is-het-verschil.webp',
     tag: 'Rolkeuze',
   },
   {
     slug: 'hoe-lang-duurt-een-gemiddeld-bouw-of-verbouwproject',
     title: 'Realistische doorlooptijd van bouw en verbouw',
     description: 'Nieuwbouw en verbouw duren vaak langer dan gedacht. Deze gids geeft realistische bandbreedtes per fase.',
-    imageUrl: '/faq/hoe-lang-duurt-een-gemiddeld-bouw-of-verbouwproject.webp',
+    imageUrl: '/faq/realistische-doorlooptijd-bouw-en-verbouw.webp',
     tag: 'Planning',
   },
   {
     slug: 'welke-verzekeringen-heb-je-nodig-bij-bouwen-of-verbouwen',
     title: 'Verzekeringen die je project echt beschermen',
     description: 'CAR, AVB en opdrachtgeverrisico: wat je vooraf moet regelen om schade beheersbaar te houden.',
-    imageUrl: '/faq/welke-verzekeringen-heb-je-nodig-bij-bouwen-of-verbouwen.webp',
+    imageUrl: '/faq/verzekeringen-die-je-project-echt-beschermen.webp',
     tag: 'Zekerheid',
   },
   {
     slug: 'hoe-ga-je-om-met-buren-tijdens-een-verbouwing',
     title: 'Buren slim meenemen tijdens verbouwing',
     description: 'Voorkom bezwaar en frustratie met duidelijke communicatie, updates en praktisch burenmanagement.',
-    imageUrl: '/faq/hoe-ga-je-om-met-buren-tijdens-een-verbouwing.webp',
+    imageUrl: '/faq/buren-slim-meenemen-tijdens-verbouwing.webp',
     tag: 'Omgeving',
   },
   {
     slug: 'wat-zijn-je-rechten-als-opdrachtgever',
     title: 'Je rechten als opdrachtgever in de bouw',
     description: 'Sterker staan in offerte, meerwerk, kwaliteit en oplevering door je rechten goed toe te passen.',
-    imageUrl: '/faq/wat-zijn-je-rechten-als-opdrachtgever.webp',
+    imageUrl: '/faq/je-rechten-als-opdrachtgever-in-de-bouw.webp',
     tag: 'Juridisch',
   },
   {
     slug: 'wat-moet-je-weten-over-garanties-bij-nieuwbouw-en-verbouwing',
     title: 'Garanties bij nieuwbouw en verbouwing begrijpen',
     description: 'Leer wat wel en niet onder garantie valt en hoe je herstelclaims effectief indient.',
-    imageUrl: '/faq/wat-moet-je-weten-over-garanties-bij-nieuwbouw-en-verbouwing.webp',
+    imageUrl: '/faq/garanties-bij-nieuwbouw-en-verbouw-begrijpen.webp',
     tag: 'Nazorg',
   }
 ]
