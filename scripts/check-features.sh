@@ -22,12 +22,12 @@ check_feature() {
   fi
 }
 
-# Route.ts checks
-echo "📄 Checking app/api/chat/route.ts..."
-check_feature "app/api/chat/route.ts" "followUpQuestion" "followUpQuestion logic"
-check_feature "app/api/chat/route.ts" "detectMetaTooling" "META_TOOLING pre-layer"
-check_feature "app/api/chat/route.ts" "getOnboardingMessage" "ONBOARDING pre-layer"
-check_feature "app/api/chat/route.ts" "ProModel.generatePatch" "ProModel.generatePatch call"
+# Logic checks
+echo "📄 Checking app/api/chat/logic.ts..."
+check_feature "app/api/chat/logic.ts" "followUpQuestion" "followUpQuestion logic"
+check_feature "app/api/chat/logic.ts" "detectMetaTooling" "META_TOOLING pre-layer"
+check_feature "app/api/chat/logic.ts" "getOnboardingMessage" "ONBOARDING pre-layer"
+check_feature "app/api/chat/logic.ts" "ProModel.generatePatch" "ProModel.generatePatch call"
 echo ""
 
 # ProModel.ts checks
@@ -114,19 +114,19 @@ echo "📄 Checking lib/wizard/CHAPTER_SCHEMAS.ts (Data Integrity)..."
 check_feature "lib/wizard/CHAPTER_SCHEMAS.ts" "validateChapter" "DATA_F01: Chapter Schema Validation"
 echo ""
 
-echo "📄 Checking app/api/chat/route.ts (Data Integrity)..."
-check_feature "app/api/chat/route.ts" "randomUUID" "DATA_F02: UUID Injection"
-check_feature "app/api/chat/route.ts" "stateVersion" "DATA_F03: State Versioning"
+echo "📄 Checking app/api/chat/logic.ts (Data Integrity)..."
+check_feature "app/api/chat/logic.ts" "randomUUID" "DATA_F02: UUID Injection"
+check_feature "app/api/chat/logic.ts" "stateVersion" "DATA_F03: State Versioning"
 echo ""
 
 # ============================================================================
 # CHAT API CALL-SITES (Critical routing layer)
 # ============================================================================
 
-echo "📄 Checking app/api/chat/route.ts (Chat API Call-Sites)..."
-check_feature "app/api/chat/route.ts" "@protected CHAT_F02_META_TOOLING" "CHAT_F02: META_TOOLING call-site protected"
-check_feature "app/api/chat/route.ts" "@protected CHAT_F03_ONBOARDING" "CHAT_F03: ONBOARDING call-site protected"
-check_feature "app/api/chat/route.ts" "@protected CHAT_F10_QUICK_REPLIES" "CHAT_F10: getToolHelp call-site protected"
+echo "📄 Checking app/api/chat/logic.ts (Chat API Call-Sites)..."
+check_feature "app/api/chat/logic.ts" "@protected CHAT_F02_META_TOOLING" "CHAT_F02: META_TOOLING call-site protected"
+check_feature "app/api/chat/logic.ts" "@protected CHAT_F03_ONBOARDING" "CHAT_F03: ONBOARDING call-site protected"
+check_feature "app/api/chat/logic.ts" "@protected CHAT_F10_QUICK_REPLIES" "CHAT_F10: getToolHelp call-site protected"
 echo ""
 
 # ============================================================================

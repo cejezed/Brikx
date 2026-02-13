@@ -4,52 +4,23 @@ import { useEffect, useState } from 'react'
 import ChecklistModal from '@/components/ChecklistModal'
 import { useWizardState } from '@/lib/stores/useWizardState'
 import { getWizardRedirectPath } from '@/lib/redirectHelper'
+import { motion } from 'framer-motion'
+import { CheckCircle2, ArrowRight, Download, Sparkles, ShieldCheck, Building2, Hammer } from 'lucide-react'
 
 export default function HeroWithForm() {
-  // State voor het 'Wat wil je doen?' formulier
-  const [projectType, setProjectType] = useState<'nieuwbouw' | 'verbouwing'>('nieuwbouw')
-  const [location, setLocation] = useState('')
-  const [noLocation, setNoLocation] = useState(false)
-  const [ctaVariant, setCtaVariant] = useState<'start' | 'download'>('start')
-
-  // Vereenvoudigde state voor de herbruikbare modal
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [requestedChecklist, setRequestedChecklist] = useState<string | null>(null)
 
-  // Check if user has existing basisData
   const { chapterAnswers } = useWizardState()
 
-  useEffect(() => {
-    const storageKey = 'brikx_pve_cta_variant'
-    const existing = sessionStorage.getItem(storageKey)
-    if (existing === 'start' || existing === 'download') {
-      setCtaVariant(existing)
-      return
-    }
-    const nextVariant = Math.random() < 0.5 ? 'start' : 'download'
-    sessionStorage.setItem(storageKey, nextVariant)
-    setCtaVariant(nextVariant)
-  }, [])
-
-  // Functie voor het 'Wat wil je doen?' formulier
-  const handleSubmit = () => {
+  const handleStartCta = () => {
     if (typeof window !== 'undefined' && (window as any).gtag) {
-      ;(window as any).gtag('event', 'pve_start', {
-        type: projectType,
-        cta_variant: ctaVariant,
+      ; (window as any).gtag('event', 'pve_start_hero', {
+        type: 'intake_start'
       })
     }
 
-    // Check if user already has basisData with essential fields
     const basisData = chapterAnswers.basis
-
-    // Debug log
-    console.log('BasisData check:', {
-      basisData,
-      hasProjectType: !!basisData?.projectType,
-      hasProjectNaam: !!basisData?.projectNaam
-    })
-
     const hasExistingProject =
       basisData &&
       basisData.projectType &&
@@ -57,17 +28,12 @@ export default function HeroWithForm() {
       basisData.projectNaam.trim().length > 0
 
     if (hasExistingProject) {
-      console.log('Redirecting to wizard (returning user)')
-      // Returning user -> go directly to wizard
       window.location.href = getWizardRedirectPath('/wizard')
     } else {
-      console.log('Redirecting to assessment (new user)')
-      // New user -> go to intake assessment
       window.location.href = getWizardRedirectPath('/welcome/assessment')
     }
   }
 
-  // Aangepaste functies voor de herbruikbare modal
   const handleOpenModal = (checklistName: string) => {
     setRequestedChecklist(checklistName)
     setIsModalOpen(true)
@@ -98,205 +64,112 @@ export default function HeroWithForm() {
     }
   }
 
-  // useEffect voor smooth scrolling en escape-key functionaliteit
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => ev.key === 'Escape' && isModalOpen && handleCloseModal()
     document.addEventListener('keydown', onKey)
-    const prev = document.documentElement.style.scrollBehavior
-    document.documentElement.style.scrollBehavior = 'smooth'
-    return () => {
-      document.removeEventListener('keydown', onKey)
-      document.documentElement.style.scrollBehavior = prev
-    }
+    return () => document.removeEventListener('keydown', onKey)
   }, [isModalOpen])
 
-  const ICONS = {
-    expertise: 'ICON_EXPERTISE.png',
-    kennisbank: 'ICON_KENNISBANK.png',
-    vragen: 'ICON_VRAGEN.png',
-    output: 'ICON_OUTPUT.png',
-  }
-
-  const ctaLabel = ctaVariant === 'download' ? 'Download PvE Nu' : 'Start Gratis'
-
   return (
-    <section id="home" className="bg-white">
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-         @media (max-width: 968px) {
-           .hero-image-large { display: none !important; }
-           .hero-content-text { max-width: 100% !important; }
-           .hero-content-text h1 { font-size: 2rem !important; line-height: 1.2 !important; }
-           .hero-content-text p { font-size: 1.125rem !important; }
-           .form-card-absolute { position: static !important; width: 100% !important; margin-top: 16px !important; margin-left: 0 !important; margin-right: 0 !important; }
-           .expertise-grid { grid-template-columns: 1fr !important; }
-           .social-proof-row { flex-direction: column !important; align-items: flex-start !important; }
-         }
-        `,
-        }}
-      />
+    <section id="home" className="relative overflow-hidden bg-white">
+      {/* Dynamic Background Elements */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#4db8ba]/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[#0d3d4d]/10 rounded-full blur-[120px]" />
+      </div>
 
-      <div className="relative max-w-[1600px] mx-auto px-6 mt-0">
-        <span aria-hidden className="pointer-events-none absolute inset-y-2 -left-6 w-12 rounded-full blur-2xl" style={{ background: 'radial-gradient(closest-side, rgba(0,0,0,0.14), rgba(0,0,0,0))' }} />
-        <span aria-hidden className="pointer-events-none absolute inset-y-2 -right-6 w-12 rounded-full blur-2xl" style={{ background: 'radial-gradient(closest-side, rgba(0,0,0,0.14), rgba(0,0,0,0))' }} />
+      <div className="relative max-w-[1600px] mx-auto px-6 py-12 md:py-20 lg:py-28">
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
 
-        <div className="relative z-[1] bg-[#e7f3f4] rounded-b-[20px] overflow-visible pb-0">
-          <div className="relative bg-cover bg-center px-4 md:px-10 pt-[48px] pb-[84px] min-h-[360px]" style={{ backgroundImage: 'url(/images/hero-background.png)' }}>
-            <div className="hero-content-text max-w-full md:max-w-[50%] text-white">
-              <h1 className="text-4xl md:text-[64px] leading-[1.15] mb-3 font-bold">Stop de bouwstress. Start met zekerheid.</h1>
-              <p className="text-lg md:text-2xl leading-relaxed mb-6 opacity-95">Of je nu gaat verbouwen of nieuwbouwen: begin met een professioneel Programma van Eisen en voorkom dure fouten.</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 max-w-full md:max-w-[520px]">
-                <button
-                  onClick={handleSubmit}
-                  className="w-full inline-flex items-center justify-center bg-[#43D38D] hover:bg-[#3bc47d] text-white px-6 md:px-8 py-3 md:py-4 rounded-[50px] no-underline text-lg md:text-xl font-semibold transition-all duration-300 hover:shadow-[0_12px_28px_rgba(67,211,141,0.5)] hover:-translate-y-1 border-0 cursor-pointer"
-                >
-                  {ctaLabel} →
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleOpenModal('Algemene Bouw Checklist')}
-                  className="w-full inline-flex items-center justify-center bg-transparent hover:bg-white/10 text-white px-6 md:px-8 py-3 md:py-4 rounded-[50px] no-underline text-lg md:text-xl font-semibold border-2 border-white transition-all duration-300"
-                >
-                  Download Checklist
-                </button>
+          {/* Content Column */}
+          <div className="lg:col-span-7 space-y-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#e7f3f4] text-[#0d3d4d] text-sm font-semibold mb-6 border border-[#4db8ba]/20 shadow-sm">
+                <Sparkles className="w-4 h-4 text-[#4db8ba]" />
+                <span>AI-gedreven bouw assistent</span>
               </div>
-            </div>
-            <div className="mt-6 pr-0 lg:pr-[clamp(360px,38vw,520px)]">
-              <ul className="flex flex-wrap items-center gap-x-4 md:gap-x-6 gap-y-2 text-white/90 text-sm md:text-[16px] lg:text-[17px]">
-                {['20+ jaar architect-expertise', '100+ (ver)bouwprojecten begeleid', 'Voorkom fouten die wij al zagen', 'AVG-compliant · EU-servers · SSL'].map((t, i) => (
-                  <li key={i} className="inline-flex items-center gap-2">
-                    <span className="text-[#43D38D] text-lg md:text-xl leading-none">✓</span>
-                    <span className="leading-none">{t}</span>
+
+              <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold leading-[1.1] tracking-tight text-[#0d3d4d] mb-6">
+                Stop de <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#4db8ba] to-[#0d3d4d]">bouwstress.</span><br />
+                Start met zekerheid.
+              </h1>
+
+              <p className="text-lg md:text-xl lg:text-2xl text-gray-600 leading-relaxed max-w-2xl">
+                Of je nu gaat verbouwen of nieuwbouwen: begin met een professioneel Programma van Eisen en voorkom dure fouten. Gebaseerd op 20 jaar architect-expertise.
+              </p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="flex flex-col sm:flex-row gap-4 pt-4"
+            >
+              <button
+                onClick={handleStartCta}
+                className="group relative inline-flex items-center justify-center bg-[#0d3d4d] text-white px-8 py-4 rounded-2xl text-lg font-bold transition-all duration-300 hover:shadow-[0_20px_40px_rgba(13,61,77,0.3)] hover:-translate-y-1 overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+                <span>Start Direct met de Intake</span>
+                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleOpenModal('Algemene Bouw Checklist')}
+                className="inline-flex items-center justify-center bg-white border-2 border-[#0d3d4d]/10 text-[#0d3d4d] px-8 py-4 rounded-2xl text-lg font-bold transition-all duration-300 hover:bg-gray-50 hover:border-[#0d3d4d]/20"
+              >
+                <Download className="mr-2 w-5 h-5" />
+                Checklist Downloaden
+              </button>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 1, delay: 0.4 }}
+              className="pt-8"
+            >
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+                {[
+                  { icon: Building2, text: '20+ jaar architect-expertise' },
+                  { icon: Hammer, text: '100+ projecten begeleid' },
+                  { icon: ShieldCheck, text: 'Voorkom kritieke bouwfouten' },
+                  { icon: CheckCircle2, text: 'AVG-compliant & SSL beveilgd' }
+                ].map((item, i) => (
+                  <li key={i} className="flex items-center gap-3 text-gray-700">
+                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-[#4db8ba]/10 flex items-center justify-center">
+                      <item.icon className="w-3.5 h-3.5 text-[#4db8ba]" />
+                    </div>
+                    <span className="text-base font-medium">{item.text}</span>
                   </li>
                 ))}
               </ul>
-            </div>
-            <div className="hero-image-large absolute right-5 top-5 w-[45%] h-[460px] z-[1]">
+            </motion.div>
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="lg:col-span-5 relative"
+          >
+            <div className="relative z-10 rounded-[32px] overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.14)] border border-white/20 bg-white/40 backdrop-blur-xl p-4 transform hover:rotate-1 transition-transform duration-700">
               <img
                 src="/images/hero-infographic.png"
                 alt="Programma van Eisen opstellen - stap voor stap met Brikx AI-wizard"
-                className="w-full h-full object-contain"
-                loading="eager"
+                className="w-full h-auto rounded-2xl bg-white shadow-inner"
               />
-            </div>
-          </div>
-
-          <div className="bg-transparent px-4 md:px-10 pt-2 pb-[28px] relative">
-            <div className="max-w-full md:max-w-[50%] mx-auto md:ml-10 text-center">
-              <div className="inline-block bg-transparent px-4 md:px-[36px] py-5 rounded-[20px]">
-                <h2 className="text-2xl md:text-[30px] font-bold text-[#0d3d4d] mb-1.5">Architect-Gedreven Kennisbank</h2>
-                <p className="text-lg md:text-xl text-[#666] mb-3 leading-relaxed">Elke vraag, elk advies komt uit 20 jaar architect-ervaring</p>
-                <div className="expertise-grid grid grid-cols-1 md:grid-cols-2 gap-3 text-left mx-auto">
-                  {[
-                    { key: 'expertise', icon: ICONS.expertise, text: 'Praktijkervaringen en veelgemaakte fouten' },
-                    { key: 'kennisbank', icon: ICONS.kennisbank, text: 'Bouwregels en wetgeving 2025/2026' },
-                    { key: 'vragen', icon: ICONS.vragen, text: 'Vragen die cruciale details blootleggen' },
-                    { key: 'output', icon: ICONS.output, text: 'PvE dat professionals direct kunnen gebruiken' }
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-start gap-3 text-[18px] leading-relaxed text-[#333]">
-                      <img
-                        src={`/images/${item.icon}`}
-                        alt={`Icoon: ${item.text}`}
-                        className="w-[40%] h-[84px] flex-shrink-0 object-contain mt-0.5"
-                        loading="lazy"
-                      />
-                      <div>
-                        <span className="block">{item.text}</span>
-                        {item.key === 'vragen' && (
-                          <p className="mt-1 text-[15px] text-[#4b5563]">
-                            <em>"Waar laat u sporttassen en natte jassen als u thuiskomt?"</em>
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <div className="absolute -top-6 -right-6 bg-[#4db8ba] text-white p-4 rounded-2xl shadow-xl transform -rotate-12">
+                <p className="text-sm font-bold leading-tight">Nu met<br />Generatieve AI</p>
               </div>
             </div>
-            <div id="start" className="form-card-absolute absolute right-4 md:right-10 -top-28 w-full md:w-[40%] bg-white rounded-[20px] shadow-[0_10px_30px_rgba(0,0,0,0.16)] p-4 md:p-6 scroll-mt-28">
-              <div id="login" className="sr-only" aria-hidden="true" />
-              <h3 className="text-[22px] text-[#0d3d4d] mb-4 font-bold">Wat wil je doen?</h3>
-              <div className="grid grid-cols-2 gap-3 mb-5">
-                <button
-                  onClick={() => setProjectType('nieuwbouw')}
-                  className={`py-4 rounded-xl text-[18px] font-medium transition-all duration-300 cursor-pointer ${projectType === 'nieuwbouw'
-                    ? 'border-2 border-[#4169e1] bg-[#4169e1] text-white'
-                    : 'border-2 border-[#e0e0e0] bg-white text-[#333] hover:border-[#4db8ba]'
-                    }`}
-                >
-                  🏠 Nieuwbouw
-                </button>
-                <button
-                  onClick={() => setProjectType('verbouwing')}
-                  className={`py-4 rounded-xl text-[18px] font-medium transition-all duration-300 cursor-pointer ${projectType === 'verbouwing'
-                    ? 'border-2 border-[#4169e1] bg-[#4169e1] text-white'
-                    : 'border-2 border-[#e0e0e0] bg-white text-[#333] hover:border-[#4db8ba]'
-                    }`}
-                >
-                  🔨 Verbouwing
-                </button>
-              </div>
-              <label className="block text-[18px] text-[#0d3d4d] mb-2 font-medium">
-                <span className="inline-flex items-center gap-2">
-                  Waar?
-                  <span className="relative group inline-flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#0d3d4d]/70" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM9 14h2v2H9v-2zm1-10a4 4 0 00-4 4h2a2 2 0 114 0c0 1-1 1.5-1.6 1.9-.5.4-.9.7-.9 1.1V12h2v-.7c0-.2.3-.5.8-.9C13 9 14 8.3 14 7a4 4 0 00-4-4z" />
-                    </svg>
-                    <span className="absolute left-6 top-1/2 -translate-y-1/2 z-10 whitespace-nowrap rounded-md bg-gray-900 text-white text-xs px-2 py-1 opacity-0 group-hover:opacity-100 pointer-events-none shadow-lg">
-                      Postcode helpt ons lokale regels & risico's te checken. Geen spam.
-                    </span>
-                  </span>
-                </span>
-              </label>
-              <input
-                type="text"
-                placeholder="bijv. 2671 AA"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                disabled={noLocation}
-                className={`w-full px-4 py-3 border border-[#ddd] rounded-lg text-[18px] mb-3 box-border focus:outline-none focus:ring-2 focus:ring-[#4db8ba] focus:border-[#4db8ba] transition-all ${noLocation ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''
-                  }`}
-              />
-              <label className="flex items-center gap-3 mb-4 cursor-pointer group">
-                <input
-                  type="checkbox"
-                  checked={noLocation}
-                  onChange={(e) => {
-                    setNoLocation(e.target.checked)
-                    if (e.target.checked) {
-                      setLocation('')
-                    }
-                  }}
-                  className="w-5 h-5 text-[#4db8ba] border-gray-300 rounded focus:ring-[#4db8ba] cursor-pointer"
-                />
-                <span className="text-[16px] text-gray-700 group-hover:text-[#0d3d4d] transition-colors">
-                  Ik heb nog geen locatie <span className="text-gray-500">(bouw zoekprofiel)</span>
-                </span>
-              </label>
-              <button
-                onClick={handleSubmit}
-                disabled={!noLocation && !location.trim()}
-                className={`w-full py-4 text-white border-none rounded-lg text-[19px] font-semibold transition-all duration-300 ${noLocation || location.trim()
-                  ? 'bg-[#4db8ba] hover:bg-[#3da7a9] hover:shadow-lg cursor-pointer'
-                  : 'bg-[#d1d5db] cursor-not-allowed opacity-50'
-                  }`}
-              >
-                {noLocation ? 'Start Zoekprofiel →' : 'Start Gratis in 2 Minuten →'}
-              </button>
-              <div className="mt-4 space-y-1.5 text-[15px] text-gray-500">
-                <div className="flex items-center gap-2">
-                  <span className="text-[#4db8ba] text-lg">✓</span>
-                  <span>Geen creditcard nodig</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[#4db8ba] text-lg">✓</span>
-                  <span>Direct toegang tot dashboard</span>
-                </div>
-              </div>
-            </div>
-          </div>
+            <div className="absolute inset-0 z-0 bg-gradient-to-tr from-[#4db8ba]/20 to-transparent rounded-[32px] blur-3xl transform translate-x-4 translate-y-4" />
+          </motion.div>
         </div>
       </div>
 

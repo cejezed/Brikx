@@ -24,7 +24,7 @@ export default function Header({ className = '' }: { className?: string }) {
 
   const trackPveStart = (ctaLocation: string) => {
     if (typeof window !== 'undefined' && (window as any).gtag) {
-      ;(window as any).gtag('event', 'pve_start', {
+      ; (window as any).gtag('event', 'pve_start', {
         type: 'unknown',
         cta_location: ctaLocation,
       })
@@ -66,11 +66,11 @@ export default function Header({ className = '' }: { className?: string }) {
           {/* HEADER-BAR - rounding styles dynamisch */}
           <header
             className={`
-              bg-[#0d3d4d] px-8 py-2
+              px-8 py-3
               flex justify-between items-center
-              rounded-t-[20px]
-              ${isScrolled ? 'rounded-b-[20px]' : ''}
-              shadow-lg transition-all duration-300
+              rounded-t-[24px]
+              ${isScrolled ? 'rounded-b-[24px] bg-[#0d3d4d]/90 backdrop-blur-md' : 'bg-[#0d3d4d]'}
+              shadow-lg transition-all duration-500 ease-in-out
             `}
           >
             {/* Logo */}

@@ -1,0 +1,526 @@
+﻿
+> brikx-wizard@0.1.0 build
+> next build --turbopack
+
+node.exe :  ÔÜá The config property `experimental.turbo` is deprecated. Move this setting to `config.turbopack` or run `npx @next/codemod@lates
+t next-experimental-turbo-to-turbopack .`
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ( ÔÜá The config...to-turbopack .`:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+ ÔÜá Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of E:\pnpm-lock.yaml as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * E:\brikx\Brikxai\brikx-wizard\package-lock.json
+
+   Ôû▓ Next.js 15.5.6 (Turbopack)
+   - Environments: .env.local
+   - Experiments (use with caution):
+     ┬À turbo
+
+   Creating an optimized production build ...
+ Ô£ô Finished writing to disk in 35ms
+ Ô£ô Compiled successfully in 1821ms
+   Linting and checking validity of types ...
+
+./app/(legal)/terms/page.tsx
+10:8  Warning: 'BrikxHeaderLanding' is defined but never used.  @typescript-eslint/no-unused-vars
+11:8  Warning: 'BrikxHero' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/(marketing)/contact/page.tsx
+9:3  Warning: 'Linkedin' is defined but never used.  @typescript-eslint/no-unused-vars
+10:3  Warning: 'Instagram' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/chat/route.ts
+21:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+22:27  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+50:9  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+180:15  Warning: 'topicId' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+186:14  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+211:17  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./app/api/feedback/submit/route.ts
+149:44  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./app/api/generate-pdf/route.ts
+3:28  Warning: 'PveDocumentProps' is defined but never used.  @typescript-eslint/no-unused-vars
+9:54  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./app/api/human-handoff/route.ts
+36:15  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./app/api/log/route.ts
+10:48  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+30:15  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./app/api/progress/route.ts
+34:15  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./app/kennisbank/KennisbankGrid.tsx
+5:28  Warning: The `{}` ("empty object") type allows any non-nullish value, including literals like `0` and `""`.
+- If that's what you want, disable this lint rule with an inline comment or configure the 'allowObjectTypes' rule option.
+- If you want a type meaning "any object", you probably want `object` instead.
+- If you want a type meaning "any value", you probably want `unknown` instead.  @typescript-eslint/no-empty-object-type
+38:7  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./app/kennisbank/page.tsx
+4:8  Warning: 'Image' is defined but never used.  @typescript-eslint/no-unused-vars
+14:7  Warning: 'kennisbankItems' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+46:7  Warning: 'CHECKLISTS' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./app/wizard/page.tsx
+29:38  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+43:45  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+44:42  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+45:42  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+95:58  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/BrikxHeaderLanding.tsx
+32:15  Warning: Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+33:15  Warning: Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+34:15  Warning: Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+35:15  Warning: Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+62:13  Warning: Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+63:13  Warning: Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+64:13  Warning: Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+65:13  Warning: Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+
+./components/BrikxHeroContact.tsx
+2:8  Warning: 'Link' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/canvas/CanvasWorksheet.tsx
+42:45  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+43:42  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+44:42  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/Cases.tsx
+55:17  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/chapters/Basis.tsx
+20:84  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+62:28  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+62:60  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+77:53  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+84:26  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/chapters/Budget.tsx
+17:84  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/chapters/Duurzaamheid.tsx
+47:9  Warning: The 'flow' logical expression could make the dependencies of useMemo Hook (at line 71) change on every render. To fix this, wrap the initialization of 'flow' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+47:9  Warning: The 'flow' logical expression could make the dependencies of useMemo Hook (at line 78) change on every render. To fix this, wrap the initialization of 'flow' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+93:9  Warning: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free.  @typescript-eslint/ban-ts-comment
+
+./components/chapters/Preview.tsx
+15:9  Warning: The 'triage' logical expression could make the dependencies of useMemo Hook (at line 31) change on every render. To fix this, wrap the initialization of 'triage' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+15:9  Warning: The 'triage' logical expression could make the dependencies of useMemo Hook (at line 42) change on every render. To fix this, wrap the initialization of 'triage' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+16:9  Warning: The 'answers' logical expression could make the dependencies of useMemo Hook (at line 31) change on every render. To fix this, wrap the initialization of 'answers' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+16:9  Warning: The 'answers' logical expression could make the dependencies of useMemo Hook (at line 42) change on every render. To fix this, wrap the initialization of 'answers' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+30:3  Warning: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free.  @typescript-eslint/ban-ts-comment
+35:9  Warning: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free.  @typescript-eslint/ban-ts-comment
+54:7  Warning: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free.  @typescript-eslint/ban-ts-comment
+157:68  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+219:43  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+243:78  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+244:83  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+245:73  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+246:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+247:77  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/chapters/Risico.tsx
+14:3  Warning: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free.  @typescript-eslint/ban-ts-comment
+15:93  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+16:3  Warning: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free.  @typescript-eslint/ban-ts-comment
+99:5  Warning: Unused eslint-disable directive (no problems were reported from 'no-console').
+
+./components/chapters/Ruimtes.tsx
+37:5  Warning: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free.  @typescript-eslint/ban-ts-comment
+55:5  Warning: React Hook useMemo has a missing dependency: 'chapterAnswers'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+61:5  Warning: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free.  @typescript-eslint/ban-ts-comment
+69:92  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+73:5  Warning: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free.  @typescript-eslint/ban-ts-comment
+90:5  Warning: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free.  @typescript-eslint/ban-ts-comment
+
+./components/chapters/Techniek.tsx
+77:3  Warning: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free.  @typescript-eslint/ban-ts-comment
+79:3  Warning: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free.  @typescript-eslint/ban-ts-comment
+106:5  Warning: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free.  @typescript-eslint/ban-ts-comment
+
+./components/chapters/Wensen.tsx
+3:28  Warning: 'useMemo' is defined but never used.  @typescript-eslint/no-unused-vars
+3:37  Warning: 'useRef' is defined but never used.  @typescript-eslint/no-unused-vars
+23:30  Warning: 'focusedField' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+29:3  Warning: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free.  @typescript-eslint/ban-ts-comment
+32:5  Warning: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free.  @typescript-eslint/ban-ts-comment
+52:5  Warning: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free.  @typescript-eslint/ban-ts-comment
+60:89  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+65:5  Warning: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free.  @typescript-eslint/ban-ts-comment
+72:5  Warning: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free.  @typescript-eslint/ban-ts-comment
+
+./components/chat/ChatPanel.tsx
+10:71  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+11:31  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+11:69  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+12:20  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+23:52  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+24:42  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+25:42  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+26:49  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+41:14  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+84:62  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+89:87  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+115:19  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/chat/HumanHandoffModal.tsx
+14:34  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+68:19  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/common/DocumentPreview.tsx
+7:19  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+7:49  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+14:36  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+128:55  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+201:76  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/common/FocusTarget.tsx
+12:43  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+13:45  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/common/SaveProgressCard.tsx
+8:10  Warning: 'get' is defined but never used.  @typescript-eslint/no-unused-vars
+8:19  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+8:49  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+14:37  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+59:17  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/cookies/ConsentProvider.tsx
+85:16  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/drafts/DraftManager.tsx
+19:17  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+26:35  Warning: React Hook useEffect has a missing dependency: 'refresh'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+35:17  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+46:17  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+57:17  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+69:17  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/drafts/DraftSaveButton.tsx
+28:17  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/expert/ExpertCorner.tsx
+47:3  Warning: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free.  @typescript-eslint/ban-ts-comment
+54:57  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+121:21  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/FeedbackDashboard.tsx
+9:3  Warning: 'MessageSquare' is defined but never used.  @typescript-eslint/no-unused-vars
+12:3  Warning: 'BarChart3' is defined but never used.  @typescript-eslint/no-unused-vars
+14:3  Warning: 'AlertCircle' is defined but never used.  @typescript-eslint/no-unused-vars
+15:3  Warning: 'ChevronRight' is defined but never used.  @typescript-eslint/no-unused-vars
+65:10  Warning: 'calculateNPS' is defined but never used.  @typescript-eslint/no-unused-vars
+154:9  Warning: 'npsColor' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+478:29  Warning: 'metrics' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/FeedbackModal.tsx
+3:38  Warning: 'useCallback' is defined but never used.  @typescript-eslint/no-unused-vars
+10:29  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+49:6  Warning: React Hook useEffect has a missing dependency: 'trackEvent'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+124:49  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+477:36  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/FeedbackTrigger.tsx
+16:3  Warning: 'projectCompleteness' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/Footer.tsx
+26:23  Warning: Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+27:23  Warning: Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+28:23  Warning: Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+61:17  Warning: Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+63:19  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/FounderBanner.tsx
+26:17  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/Header.tsx
+7:63  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+7:63  Warning: img elements must have an alt prop, either with meaningful text, or an empty string for decorative images.  jsx-a11y/alt-text
+65:15  Warning: Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+71:15  Warning: Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+77:15  Warning: Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+123:15  Warning: Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+130:15  Warning: Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+137:15  Warning: Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+144:15  Warning: Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+
+./components/HeroWithForm.tsx
+3:21  Warning: 'useRef' is defined but never used.  @typescript-eslint/no-unused-vars
+4:8  Warning: 'Image' is defined but never used.  @typescript-eslint/no-unused-vars
+13:10  Warning: 'mobileMenuOpen' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+80:9  Warning: 'onNavClick' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+142:15  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+154:23  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/HeroWizard.tsx
+1:8  Warning: 'Image' is defined but never used.  @typescript-eslint/no-unused-vars
+2:8  Warning: 'Link' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/intake/IntakeForm.tsx
+92:42  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+95:12  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+100:46  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+102:5  Warning: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free.  @typescript-eslint/ban-ts-comment
+172:7  Warning: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free.  @typescript-eslint/ban-ts-comment
+
+./components/pdf/DownloadPdfButton.tsx
+58:13  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/Solutions.tsx
+94:23  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+148:25  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/TrustBar.tsx
+27:19  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/ui/use-toast.tsx
+39:11  Warning: Unused eslint-disable directive (no problems were reported from 'no-console').
+47:5  Warning: Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps').
+84:5  Warning: Unused eslint-disable directive (no problems were reported from 'no-console').
+
+./components/wizard/components/HumanHandoffModal.tsx
+14:34  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+68:19  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/wizard/ExportModal.tsx
+35:46  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+41:44  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+42:36  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/wizard/PatchBridge.tsx
+9:20  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+18:50  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+19:43  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+29:57  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+30:38  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+36:63  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+36:90  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+42:16  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+46:83  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+58:90  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+94:60  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+95:60  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/wizard/PvEPreview.tsx
+26:46  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+31:66  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+32:44  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+33:36  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/wizard/WizardLayout.tsx
+34:67  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/ai/missing.ts
+59:26  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+73:45  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+95:36  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+120:46  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/ai/ProModel.ts
+11:28  Warning: 'ChatRequest' is defined but never used.  @typescript-eslint/no-unused-vars
+106:40  Warning: 'context' is defined but never used.  @typescript-eslint/no-unused-vars
+182:45  Warning: 'wizardState' is defined but never used.  @typescript-eslint/no-unused-vars
+298:14  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+385:14  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+459:82  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+461:7  Warning: Unused eslint-disable directive (no problems were reported from 'no-console').
+
+./lib/ai/promptTemplates.ts
+7:17  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+40:63  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/ai/rag.ts
+47:20  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+48:23  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/chat/applyChatResponse.ts
+11:27  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+12:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+21:27  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+22:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+30:40  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+31:64  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+61:14  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+69:81  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+70:70  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+77:55  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+81:88  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+82:70  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+94:28  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+94:53  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/chat/patchTypes.ts
+7:17  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+11:31  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+12:39  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+14:20  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/drafts/api.ts
+23:26  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+27:34  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+32:43  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+49:42  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+59:58  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+141:46  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+142:65  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+144:48  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+154:59  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/hooks/useCrossChapterData.ts
+12:24  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+12:34  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+15:12  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+26:40  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+30:27  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+30:45  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+41:84  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+43:49  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+49:25  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+56:10  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+57:46  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+64:21  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+74:31  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+91:56  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+91:80  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+94:83  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+108:63  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/logging/logEvent.ts
+15:38  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+16:37  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+21:24  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/pdf/PveTemplate.tsx
+89:14  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+90:13  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+91:14  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+92:14  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+93:15  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+94:16  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+95:20  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+96:14  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+186:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+204:32  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/preview/buildPreview.ts
+11:34  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+24:29  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+25:33  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+29:22  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+67:27  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+77:27  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+105:43  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+105:69  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+134:5  Warning: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free.  @typescript-eslint/ban-ts-comment
+
+./lib/rag/Kennisbank.ts
+5:5  Warning: '_query' is defined but never used.  @typescript-eslint/no-unused-vars
+6:5  Warning: '_options' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./lib/risk/scan.ts
+22:18  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+24:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+36:22  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+100:42  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+147:47  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/server/log.tsx
+2:56  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+12:57  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/server/pdf.tsx
+18:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+19:27  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+75:40  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/sse/stream.ts
+4:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/stores/useChatStore.ts
+18:11  Warning: 'get' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./lib/stores/useUiStore.ts
+31:25  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/stores/useWizardState.ts
+16:11  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+28:50  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+34:82  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+57:34  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+69:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+82:34  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+86:36  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+87:20  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+88:29  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+89:20  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+91:20  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+91:44  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+98:33  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+99:17  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+103:24  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+104:24  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+168:28  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+   Collecting page data ...
+   Generating static pages (0/25) ...
+   Generating static pages (6/25) 
+   Generating static pages (12/25) 
+   Generating static pages (18/25) 
+ Ô£ô Generating static pages (25/25)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                         Size  First Load JS
+Ôöî Ôùï /                            13.7 kB         129 kB
+Ôö£ Ôùï /_not-found                      0 B         115 kB
+Ôö£ ãÆ /api/chat                        0 B            0 B
+Ôö£ ãÆ /api/expert                      0 B            0 B
+Ôö£ ãÆ /api/feedback/analytics          0 B            0 B
+Ôö£ ãÆ /api/feedback/submit             0 B            0 B
+Ôö£ ãÆ /api/generate-pdf                0 B            0 B
+Ôö£ ãÆ /api/health                      0 B            0 B
+Ôö£ ãÆ /api/human-handoff               0 B            0 B
+Ôö£ ãÆ /api/log                         0 B            0 B
+Ôö£ ãÆ /api/progress                    0 B            0 B
+Ôö£ Ôùï /avg-gegevens-verwijderen    1.32 kB         125 kB
+Ôö£ Ôùï /contact                     8.03 kB         123 kB
+Ôö£ Ôùï /cookies                         0 B         124 kB
+Ôö£ Ôùï /faq                         13.1 kB         128 kB
+Ôö£ Ôùï /kennisbank                  7.91 kB         123 kB
+Ôö£ Ôùï /kennisbank/financien        5.59 kB         130 kB
+Ôö£ Ôùï /kennisbank/locatie          3.96 kB         119 kB
+Ôö£ Ôùï /kennisbank/meerwerk         5.39 kB         129 kB
+Ôö£ Ôùï /kennisbank/stappenplan       5.2 kB         129 kB
+Ôö£ Ôùï /over                            0 B         124 kB
+Ôö£ Ôùï /privacy                         0 B         124 kB
+Ôö£ Ôùï /terms                           0 B         124 kB
+Ôöö Ôùï /wizard                        28 kB         143 kB
++ First Load JS shared by all     132 kB
+  Ôö£ chunks/30f12c347258b92f.js   17.2 kB
+  Ôö£ chunks/c61d66d599c8c77e.js     13 kB
+  Ôöö chunks/db404dce9b4e2fa2.js   59.2 kB
+  Ôö£ chunks/2c1dc510758b3bf8.css  17.1 kB
+  Ôöö other shared chunks (total)  25.6 kB
+
+
+Ôùï  (Static)   prerendered as static content
+ãÆ  (Dynamic)  server-rendered on demand
+
+npm notice
+npm notice New major version of npm available! 10.9.3 -> 11.6.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.6.2
+npm notice To update run: npm install -g npm@11.6.2
+npm notice

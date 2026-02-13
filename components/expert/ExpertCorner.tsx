@@ -182,49 +182,6 @@ export default function ExpertCorner({
     }
   };
 
-  const [downloadingPdf, setDownloadingPdf] = useState(false);
-
-  const handleDownloadPdf = async () => {
-    setDownloadingPdf(true);
-    try {
-      const wizardState = useWizardState.getState();
-      const projectName =
-        wizardState.chapterAnswers?.basis?.projectNaam ||
-        wizardState.projectMeta?.projectNaam ||
-        "Mijn Project";
-
-      const res = await fetch("/api/pve/pdf", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chapterAnswers: wizardState.chapterAnswers,
-          triage: wizardState.triage,
-          projectName,
-        }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || `Download mislukt (${res.status})`);
-      }
-
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `pve-${(projectName || "project").toLowerCase().replace(/[^a-z0-9]+/g, "-") || "project"}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (error: any) {
-      console.error("[ExpertCorner] PDF download error:", error);
-      alert(`Download mislukt:\n\n${error?.message || "Onbekende fout"}`);
-    } finally {
-      setDownloadingPdf(false);
-    }
-  };
-
   return (
     <div className="flex flex-col p-4 w-full">
       {/* ✅ TEMP: Dev Action Bar */}
@@ -241,14 +198,6 @@ export default function ExpertCorner({
             className="px-3 py-1.5 text-xs rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
             type="button"
           >Reset Alles</button>
-          <button
-            onClick={handleDownloadPdf}
-            disabled={downloadingPdf}
-            className="px-3 py-1.5 text-xs rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-60"
-            type="button"
-          >
-            {downloadingPdf ? "Bezig..." : "Download PvE (preview)"}
-          </button>
         </div>
       </div>
 

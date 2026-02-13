@@ -1,0 +1,50 @@
+﻿48:49  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+54:57  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+70:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+102:12  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/utils/patch.ts
+14:27  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+39:61  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+93:65  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+108:37  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/wizard/CHAPTER_SCHEMAS.ts
+40:29  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+49:29  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+56:31  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+63:31  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+71:34  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+81:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+89:36  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+168:22  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+230:22  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+252:22  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+273:22  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+294:22  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+363:22  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+448:22  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+487:9  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+496:3  Warning: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free.  @typescript-eslint/ban-ts-comment
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+   Collecting page data ...
+   Generating static pages (0/61) ...
+   Generating static pages (15/61) 
+Error occurred prerendering page "/". Read more: https://nextjs
+.org/docs/messages/prerender-error
+Error: Attempted to call createMotionComponent() from the serve
+r but createMotionComponent is on the client. It's not possible
+ to invoke a client function from the server, it can only be re
+ndered as a Component or passed to props of a Client Component.
+    at <unknown> (E:\brikx\Brikxai\brikx-wizard\.next\server\ch
+unks\ssr\brikx_Brikxai_brikx-wizard_90e43536._.js:1:3857)
+    at Object.get (E:\brikx\Brikxai\brikx-wizard\.next\server\c
+hunks\ssr\brikx_Brikxai_brikx-wizard_90e43536._.js:1:106087)
+    at eT (E:\brikx\Brikxai\brikx-wizard\.next\server\chunks\ss
+r\brikx_Brikxai_brikx-wizard_90e43536._.js:1:113665)
+    at stringify (<anonymous>) {
+  digest: '3347919731'
+}
+Export encountered an error on /page: /, exiting the build.
+ Ô¿» Next.js build worker exited with code: 1 and signal: null

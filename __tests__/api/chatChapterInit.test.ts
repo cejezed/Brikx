@@ -18,7 +18,7 @@ vi.mock('@/lib/ai/orchestrateTurn', () => ({
 }));
 
 // SUT
-import * as ChatRoute from '@/app/api/chat/route';
+import * as ChatRoute from '@/app/api/chat/logic';
 import { ChapterInitializer } from '@/lib/ai/ChapterInitializer';
 import { orchestrateTurn } from '@/lib/ai/orchestrateTurn';
 

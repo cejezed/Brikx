@@ -252,9 +252,13 @@ export const FAQ_ITEMS: FAQItem[] = [
         answer:
             'Garantie verschilt per type: wettelijk, contractueel en productgebonden. Duidelijke documentatie en snelle melding bepalen of je claim sterk staat.',
         href: '/kennisbank/wat-moet-je-weten-over-garanties-bij-nieuwbouw-en-verbouwing',
+    },
+    {
+        cluster: 'Proces & risico\'s',
+        question: 'Hoe bereid je een bouwproject voor?',
+        answer:
+            'Goede voorbereiding voorkomt de meeste faalkosten. Werk in vijf stappen: PvE opstellen, budget realistisch maken, haalbaarheid toetsen, keuzetijdlijn vastleggen en het juiste team selecteren.',
+        href: '/kennisbank/hoe-bereid-je-een-bouwproject-voor',
     }
 ];
-
-
-
 

@@ -1115,10 +1115,107 @@ export const FAQ_ARTICLES: FaqArticle[] = [
       { label: 'Checklist Grip op Uitvoering & Meerwerk', href: '/kennisbank/meerwerk' },
       { label: 'Start direct met de wizard', href: '/wizard' },
     ],
+  },
+  {
+    slug: 'hoe-bereid-je-een-bouwproject-voor',
+    title: 'Hoe bereid je een bouwproject voor?',
+    metaTitle: 'Hoe bereid je een bouwproject voor? | Brikx Kennisbank',
+    metaDescription:
+      'Goede voorbereiding voorkomt EUR 20-60k faalkosten. Werk in vijf stappen: PvE, budget, haalbaarheid, keuzetijdlijn en team.',
+    intro:
+      'Een bouwproject voorbereiden is vaak belangrijker dan bouwen zelf. Goede voorbereiding voorkomt veel faalkosten, verkort doorlooptijd en verlaagt stress tijdens uitvoering.',
+    keyPoints: [
+      'Reserveer 4-8 weken voor voorbereiding; die tijd win je later dubbel terug.',
+      'Werk in vijf vaste stappen: PvE, budget, haalbaarheid, keuzetijdlijn, team.',
+      'Ga niet direct naar een aannemer zonder duidelijke scope en keuzes.',
+    ],
+    sections: [
+      {
+        title: 'Stap 1: Programma van Eisen (PvE) uitwerken',
+        paragraphs: [
+          'Het PvE is de inhoudelijke basis van je project. Hierin leg je per ruimte vast wat functie, maat, kwaliteit en prioriteit is.',
+          'Hoe concreter je PvE, hoe beter offertes vergelijkbaar worden en hoe kleiner de kans op discussie of meerwerk.',
+        ],
+        bullets: [
+          'Beschrijf gebruik per ruimte en gewenste m2.',
+          'Leg installaties en comforteisen vast.',
+          'Maak onderscheid tussen must-have en nice-to-have.',
+          'Gebruik de PvE-generator om niets te vergeten.',
+        ],
+      },
+      {
+        title: 'Stap 2: Budget realistisch maken',
+        paragraphs: [
+          'Veel mensen verwarren totaalbudget met bouwbudget. In de praktijk gaat een relevant deel naar ontwerp, vergunningen en onvoorzien.',
+          'Een realistisch budget geeft rust en voorkomt pijnlijke bijsturing midden in het traject.',
+        ],
+        bullets: [
+          'Reserveer voldoende onvoorzien (nieuwbouw lager, verbouw hoger).',
+          'Neem tijdelijke woonlasten en afrondingskosten mee.',
+          'Bepaal pas daarna je echte bouwsom.',
+          'Gebruik de budget-calculator voor een complete verdeling.',
+        ],
+      },
+      {
+        title: 'Stap 3: Haalbaarheid en risico vooraf toetsen',
+        paragraphs: [
+          'Voordat je ontwerpt, toets je of plan, budget en regelgeving op elkaar aansluiten. Dit voorkomt dure verrassingen in de vergunnings- of uitvoeringsfase.',
+          'Bij nieuwbouw betekent dit ook: kavel toetsen op bouwmogelijkheden voordat je definitief beslist.',
+        ],
+        bullets: [
+          'Check bestemmingsplan en randvoorwaarden tijdig.',
+          'Laat bij twijfel een quickscan doen.',
+          'Toets constructieve haalbaarheid bij ingrijpende verbouw.',
+          'Gebruik Kavel Alert en Kavelrapport in de kavel-fase.',
+        ],
+      },
+      {
+        title: 'Stap 4: Keuzetijdlijn opstellen',
+        paragraphs: [
+          'Veel vertraging ontstaat door keuzes die te laat vallen. Een keuzetijdlijn koppelt beslissingen aan uitvoeringsmomenten en levertijden.',
+          'Dit maakt planning voorspelbaar voor jou en voor de uitvoerende partijen.',
+        ],
+        bullets: [
+          'Plan keuken, sanitair en tegelkeuzes ruim vooraf.',
+          'Werk met reminders per beslismoment.',
+          'Leg alternatieven klaar voor kritieke producten.',
+          'Voorkom stilstand door late materiaalkeuzes.',
+        ],
+      },
+      {
+        title: 'Stap 5: Team en rolverdeling bepalen',
+        paragraphs: [
+          'Met een goed PvE, realistisch budget en duidelijke planning kun je het juiste team selecteren. Dan vergelijk je op inhoud in plaats van op aannames.',
+          'Goede voorbereiding zorgt dat architect, aannemer en opdrachtgever in hetzelfde ritme werken.',
+        ],
+        bullets: [
+          'Selecteer op ervaring met jouw projecttype.',
+          'Vergelijk minimaal drie offertes op dezelfde scope.',
+          'Leg meerwerkprocedure en besluitmomenten vast.',
+          'Gebruik periodieke voortgangscontrole tijdens uitvoering.',
+        ],
+      },
+    ],
+    callout:
+      'Voorbereiding kost tijd, maar voorkomt bijna altijd de duurste fouten in budget, planning en uitvoering.',
+    relatedFaqSlugs: [
+      'wat-is-een-programma-van-eisen-en-waarom-is-het-belangrijk',
+      'hoe-maak-ik-een-realistisch-budget-voor-bouwen-of-verbouwen',
+      'wat-zijn-faalkosten-en-hoe-voorkom-ik-ze',
+    ],
+    relatedLinks: [
+      { label: 'PvE Generator', href: '/tools/pve-generator' },
+      { label: 'Verbouwbudget Calculator', href: '/tools/verbouwbudget-calculator' },
+      { label: 'Keuzetijdlijn', href: '/tools/keuzetijdlijn' },
+      { label: 'Kavel Alert', href: 'https://kavelarchitect.nl/diensten/kavel-alert' },
+      { label: 'Kavelrapport', href: 'https://kavelarchitect.nl/diensten/kavelrapport' },
+      { label: 'Waar begin ik met bouwen of verbouwen?', href: 'https://architectenbureau-zwijsen.nl/kennisbank/vragen/architect-kosten-en-bouwen/waar-begin-ik-met-bouwen-of-verbouwen' },
+    ],
   }
 ];
 
 export const FAQ_ARTICLE_MAP = new Map(FAQ_ARTICLES.map((article) => [article.slug, article]))
+
 
 
 
