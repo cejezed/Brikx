@@ -18,7 +18,9 @@
       "Bash(Remove-Item \"e:\\\\brikx\\\\Brikxai\\\\brikx-wizard\\\\app\\\\api\\\\generate-pdf\\\\route.ts\" -Force)",
       "Bash(Remove-Item \"e:\\\\brikx\\\\Brikxai\\\\brikx-wizard\\\\app\\\\api\\\\pve\\\\pdf\\\\route.ts\" -Force)",
       "Bash(Remove-Item \"e:\\\\brikx\\\\Brikxai\\\\brikx-wizard\\\\app\\\\api\\\\pve\\\\send\\\\route.ts\" -Force)",
-      "Bash(Write-Host \"Done\")"
+      "Bash(Write-Host \"Done\")",
+      "Bash(npx next build:*)",
+      "Bash(find:*)"
     ]
   }
 }
