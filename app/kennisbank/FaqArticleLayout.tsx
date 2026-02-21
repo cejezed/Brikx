@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
+import BrikxCTA from '@/components/BrikxCTA'
 import { FAQ_ARTICLE_MAP, FaqArticle } from './faq-articles'
 import { FAQ_CARD_ITEMS } from './faq-cards'
 
@@ -135,6 +136,8 @@ export default function FaqArticleLayout({ article }: FaqArticleLayoutProps) {
             <div className="rounded-2xl bg-[#0b2b3e] text-white p-6 shadow-[0_12px_30px_rgba(13,61,77,0.25)]">
               <p className="text-lg">{article.callout}</p>
             </div>
+
+            <BrikxCTA />
           </article>
 
           <aside className="space-y-6">

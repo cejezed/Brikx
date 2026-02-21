@@ -53,7 +53,7 @@ export default function HowItWorks() {
             Hoe Het Werkt
           </h2>
           <p className="text-xl text-gray-700">
-            Secuur en volledig. Neem de tijd die nodig is voor een compleet PvE.
+            Brikx begeleidt je in vier stappen van ruwe ideeën naar een professioneel PvE dat je direct met architect of aannemer kunt delen.
           </p>
         </div>
 

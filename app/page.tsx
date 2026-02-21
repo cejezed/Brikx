@@ -6,6 +6,7 @@ import Solutions from '@/components/Solutions'
 
 import Cases from '@/components/Cases'
 import HowItWorks from '@/components/HowItWorks'
+import BrikxTools from '@/components/BrikxTools'
 import WhatYouGet from '@/components/WhatYouGet'
 import Pricing from '@/components/Pricing'
 import FAQ from '@/components/FAQ'
@@ -28,6 +29,8 @@ export default function Home() {
       <section id="werkwijze" className="scroll-mt-14">
         <HowItWorks />
       </section>
+
+      <BrikxTools />
 
       <section id="prijzen" className="scroll-mt-14">
         <Pricing />

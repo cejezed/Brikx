@@ -98,8 +98,11 @@ export default function HeroWithForm() {
                 Start met zekerheid.
               </h1>
 
+              <p className="text-base md:text-lg text-[#0d3d4d] font-medium mb-3 max-w-2xl">
+                Brikx is een AI-assistent die een professioneel Programma van Eisen (PvE) opstelt voor verbouw en nieuwbouw in Nederland — gebaseerd op 20 jaar architect-expertise.
+              </p>
               <p className="text-lg md:text-xl lg:text-2xl text-gray-600 leading-relaxed max-w-2xl">
-                Of je nu gaat verbouwen of nieuwbouwen: begin met een professioneel Programma van Eisen en voorkom dure fouten. Gebaseerd op 20 jaar architect-expertise.
+                Begin met een helder PvE en voorkom dure fouten. Brikx helpt particulieren om vóór de eerste offerte hun budget, risico's en wensen concreet te maken.
               </p>
             </motion.div>
 

@@ -8,7 +8,8 @@ export default function Cases() {
       title: 'Boerderij Behouden',
       subtitle: 'Renovatie > Sloop + Nieuwbouw',
       image: 'case-boerderij.jpg',
-      quote: 'Eigenaar dacht dat sloop + nieuwbouw goedkoper was. Gevels behouden = €80K bespaard + uniek karakter'
+      quote: 'Eigenaar dacht dat sloop + nieuwbouw goedkoper was. Gevels behouden = €80K bespaard + uniek karakter',
+      brikxNote: 'Brikx helpt dit soort renovatie-versus-sloop afwegingen vroeg zichtbaar maken, doordat de AI doorvraagt op bestaande kwaliteit en alternatieve scenario\'s.'
     },
     {
       badge: '2x Oppervlak',
@@ -16,7 +17,8 @@ export default function Cases() {
       title: 'BOPA-procedure',
       subtitle: 'Van 50m² naar 100m²',
       image: 'case-bopa.jpg',
-      quote: 'Bestemmingsplan leek uitbouw te blokkeren. Door kennis van BOPA werd woning 100m² groter'
+      quote: 'Bestemmingsplan leek uitbouw te blokkeren. Door kennis van BOPA werd woning 100m² groter',
+      brikxNote: 'Brikx signaleert vroeg of een BOPA-procedure relevant kan zijn, zodat je dit meeneemt in je tijdplanning en budgetopbouw.'
     },
     {
       badge: 'Half Budget',
@@ -24,9 +26,9 @@ export default function Cases() {
       title: 'Strategische Uitbouwen',
       subtitle: 'Licht door Slim Ontwerp',
       image: 'case-strategie.jpg',
-      quote: 'Grote aanbouw was de wens. Twee strategische uitbouwen gaven meer licht voor half geld'
+      quote: 'Grote aanbouw was de wens. Twee strategische uitbouwen gaven meer licht voor half geld',
+      brikxNote: 'Brikx vraagt door op doelen en budget, zodat slimme alternatieven — zoals twee kleinere uitbouwen — al in de voorfase naar boven komen.'
     },
-   
   ]
 
   return (
@@ -38,9 +40,15 @@ export default function Cases() {
           <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
             Bewezen Resultaten uit de Praktijk
           </h2>
-          <p className="text-xl text-gray-600">
+          <p className="text-xl text-gray-600 mb-8">
             Concrete voorbeelden van oplossingen door slimme vragen te stellen en verder te kijken dan de vraag.
           </p>
+          <blockquote className="max-w-2xl mx-auto border-l-4 border-[#4db8ba] pl-6 text-left">
+            <p className="text-lg italic text-gray-700">
+              "Een goed PvE voorkomt €10.000+ aan fouten voordat er een steen is verplaatst."
+            </p>
+            <cite className="block mt-2 text-sm text-gray-500 not-italic">— Jules Zwijsen, architect en oprichter Brikx</cite>
+          </blockquote>
         </div>
 
         {/* 3 Column Grid - 2 Rows */}
@@ -90,6 +98,9 @@ export default function Cases() {
 
                 <p className="text-sm italic text-gray-600 leading-relaxed">
                   "{caseItem.quote}"
+                </p>
+                <p className="text-xs text-[#1c7d86] mt-3 leading-relaxed border-t border-gray-100 pt-3">
+                  {caseItem.brikxNote}
                 </p>
               </div>
             </div>
