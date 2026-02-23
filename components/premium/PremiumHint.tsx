@@ -43,10 +43,8 @@ export default function PremiumHint({
   if (isPremium) return null;
 
   const handleUpgrade = () => {
-    // TODO: Redirect naar checkout of pricing page
-    console.log("[PremiumHint] Upgrade clicked for feature:", feature);
-    // Voor nu: sluit modal (later: redirect naar /checkout?feature=tech)
     setModalOpen(false);
+    window.location.href = `/?source=premium-hint&feature=${encodeURIComponent(feature)}#prijzen`;
   };
 
   return (

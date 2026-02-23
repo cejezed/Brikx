@@ -12,7 +12,7 @@ import type { MissingItem } from "@/lib/ai/missing";
 // CONSTANTS
 // ============================================================================
 
-export const RUBRIC_VERSION = "2026-02-13";
+export const RUBRIC_VERSION = "2026-02-23";
 
 // ============================================================================
 // INTAKE
@@ -38,6 +38,8 @@ export type PveDuurzaamheidsAmbitie =
   | "ambitieus"
   | "zeer_ambitieus";
 
+export type PveQuickAnswers = Record<string, string>;
+
 export type PveCheckIntakeData = {
   archetype: string;
   projectType: PveProjectType;
@@ -46,6 +48,11 @@ export type PveCheckIntakeData = {
   budgetRange: PveBudgetRange;
   bouwjaar?: string;
   duurzaamheidsAmbitie: PveDuurzaamheidsAmbitie;
+  /**
+   * User-provided answers from the "Snel aanvullen" flow.
+   * Key should match rubric item id (e.g. "budget.budgetTotaal").
+   */
+  quickAnswers?: PveQuickAnswers;
 };
 
 // ============================================================================
@@ -138,9 +145,11 @@ export type PveClassifyResult = {
   mappedData: Partial<ChapterDataMap>;
   fields: PveClassifiedField[];
   nudgeSummary: string | null;
+  /** LLM-generated 1-2 sentence summary of the document itself (replaces intake-context nudge) */
+  documentSummary?: string;
   evidenceSnippets: EvidenceRef[];
-  /** LLM-provided context per missing field (why missing + what's nearby) */
-  missingFieldContext: Map<string, PveMissingFieldContext>;
+  /** LLM-provided context per missing field (why missing + what's nearby). Plain object for JSON serializability. */
+  missingFieldContext: Record<string, PveMissingFieldContext>;
 };
 
 // ============================================================================
@@ -171,7 +180,10 @@ export type PveGap = {
   label: string;
   severity: GapSeverity;
   fixEffort: GapFixEffort;
+  /** Technical explanation (evidence/rubric driven) */
   reason: string;
+  /** Human-friendly explanation shown alongside the technical reason (A3) */
+  friendlyReason?: string;
   riskOverlay: string;
   evidence?: EvidenceRef;
   currentValue?: string;
@@ -218,6 +230,10 @@ export type PveCheckMappedData = {
     risks: Risk[];
     warnings: string[];
   };
+  /** Benchmark deltas — stored here to avoid a separate DB column */
+  benchmarkDeltas?: PveBenchmarkDelta[];
+  /** P3: compact top-5 action plan based on gaps/conflicts/chapter scores */
+  chunkSummary?: PveChunkSummary;
 };
 
 // ============================================================================
@@ -242,6 +258,30 @@ export type PveBenchmarkDelta = {
   value: number | null;
   benchmark: number;
   delta: number | null;
+};
+
+// ============================================================================
+// CHUNK SUMMARY (P3)
+// ============================================================================
+
+export type PveChunkActionItem = {
+  chapter: ChapterKey;
+  fieldId: string;
+  label: string;
+  severity: GapSeverity;
+  fixEffort: GapFixEffort;
+  impactScore: number;
+  whyNow: string;
+  suggestedNextStep: string;
+};
+
+export type PveChunkSummary = {
+  totalGapCount: number;
+  criticalCount: number;
+  weakestChapter: ChapterKey | null;
+  top5Actions: PveChunkActionItem[];
+  followUpQuestions: string[];
+  oneLineSummary: string;
 };
 
 // ============================================================================
@@ -277,6 +317,8 @@ export type PveCheckResult = {
   gaps: PveGap[];
   conflicts: HeadlineConflict[];
   mapped: PveCheckMappedData;
+  /** LLM-classified fields per rubric item — saved for DocumentReadSection */
+  classifyFields?: PveClassifiedField[];
   criticalGapCount: number;
   conflictCount: number;
   isPremium: boolean;

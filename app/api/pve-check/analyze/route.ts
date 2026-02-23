@@ -12,12 +12,13 @@ import { computeGaps } from "@/lib/pveCheck/gaps";
 import { computeConflicts } from "@/lib/pveCheck/conflicts";
 import { computePatchPlans } from "@/lib/pveCheck/patches";
 import { computeBenchmark } from "@/lib/pveCheck/benchmark";
+import { computeChunkSummary } from "@/lib/pveCheck/summary";
 import { PVE_RUBRIC } from "@/lib/pveCheck/rubric";
 import { computeMissingFields } from "@/lib/ai/missing";
 import { scan as scanRisks } from "@/lib/risk/scan";
 import { computeBudgetWarning } from "@/lib/report/heuristics";
 import { queryKnowledgeForGaps, enrichGapsWithKnowledge, buildKnowledgeContext } from "@/lib/pveCheck/knowledge";
-import type { PveCheckIntakeData, PveCheckMappedData, PveCheckResult } from "@/types/pveCheck";
+import type { PveCheckIntakeData, PveCheckMappedData, PveCheckResult, PveClassifyResult } from "@/types/pveCheck";
 import type { WizardState } from "@/types/project";
 
 export const runtime = "nodejs";
@@ -53,6 +54,7 @@ const analyzeSchema = z.object({
       "ambitieus",
       "zeer_ambitieus",
     ]),
+    quickAnswers: z.record(z.string(), z.string().max(500)).optional(),
   }),
 });
 
@@ -80,6 +82,60 @@ function stableHash(input: unknown): string {
 }
 
 // ============================================================================
+// QUICK ANSWERS (A6) -> promote user answers into classify fields
+// ============================================================================
+
+function applyQuickAnswersToClassify(
+  classify: PveClassifyResult,
+  quickAnswers?: Record<string, string>,
+): void {
+  if (!quickAnswers) return;
+
+  const existingByFieldId = new Map(
+    classify.fields.map((field) => [field.fieldId, field]),
+  );
+
+  for (const [rubricItemId, rawValue] of Object.entries(quickAnswers)) {
+    const answer = rawValue.trim();
+    if (!answer) continue;
+
+    const rubricItem = PVE_RUBRIC.items.find((item) => item.id === rubricItemId);
+    if (!rubricItem) continue;
+
+    const existing = existingByFieldId.get(rubricItemId);
+    if (existing) {
+      existing.value = answer;
+      existing.confidence = Math.max(existing.confidence, 0.9);
+      existing.vague = false;
+      existing.vagueReason = undefined;
+      existing.observation =
+        existing.observation ?? "Aangevuld via snelle vragen op resultatenpagina.";
+    } else {
+      const syntheticField: PveClassifyResult["fields"][number] = {
+        fieldId: rubricItem.id,
+        chapter: rubricItem.chapter,
+        value: answer,
+        confidence: 0.9,
+        vague: false,
+        observation: "Aangevuld via snelle vragen op resultatenpagina.",
+        weakness: undefined,
+        quote: undefined,
+      };
+      classify.fields.push(syntheticField);
+      existingByFieldId.set(rubricItem.id, syntheticField);
+    }
+
+    const chapterDataMap =
+      classify.mappedData as Record<string, Record<string, unknown> | undefined>;
+    const chapterData = { ...(chapterDataMap[rubricItem.chapter] ?? {}) };
+    chapterData[rubricItem.fieldId] = answer;
+    chapterDataMap[rubricItem.chapter] = chapterData;
+
+    delete classify.missingFieldContext[rubricItem.id];
+  }
+}
+
+// ============================================================================
 // RESULT BUILDER (DB row → PveCheckResult)
 // ============================================================================
 
@@ -99,6 +155,7 @@ function dbRowToResult(row: Record<string, unknown>): PveCheckResult {
     gaps: row.gaps as PveCheckResult["gaps"],
     conflicts: row.conflicts as PveCheckResult["conflicts"],
     mapped: row.mapped_data as PveCheckMappedData,
+    classifyFields: (row.classify_fields as PveCheckResult["classifyFields"]) ?? [],
     criticalGapCount: row.critical_gap_count as number,
     conflictCount: row.conflict_count as number,
     isPremium: (row.is_premium as boolean) ?? false,
@@ -137,7 +194,17 @@ export async function POST(request: Request) {
   try {
     const payload = analyzeSchema.parse(await request.json());
     const userId = auth.userId;
-    const intake = payload.intake as PveCheckIntakeData;
+    const quickAnswers = Object.fromEntries(
+      Object.entries(payload.intake.quickAnswers ?? {})
+        .map(([key, value]) => [key, value.trim()])
+        .filter(([, value]) => value.length > 0),
+    );
+
+    const intake = {
+      ...payload.intake,
+      quickAnswers:
+        Object.keys(quickAnswers).length > 0 ? quickAnswers : undefined,
+    } as PveCheckIntakeData;
     const intakeHash = stableHash(intake);
 
     // ---- IDEMPOTENCY CHECK ----
@@ -162,6 +229,59 @@ export async function POST(request: Request) {
         result: dbRowToResult(existing.data),
       });
     }
+
+    // ---- PREVIOUS RESULT CONTEXT (for premium/needs-adjustment loops) ----
+    const previousResult = await supabaseAdmin
+      .from("pve_check_results")
+      .select("is_premium, review_status, review_notes, created_at")
+      .eq("document_id", payload.documentId)
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (previousResult.error) {
+      return NextResponse.json(
+        { error: previousResult.error.message },
+        { status: 500 },
+      );
+    }
+
+    const wasPremium = Boolean(previousResult.data?.is_premium);
+    const previousReviewStatus =
+      (previousResult.data?.review_status as PveCheckResult["reviewStatus"] | null) ??
+      "none";
+    const hasQuickAnswers = Boolean(
+      intake.quickAnswers && Object.keys(intake.quickAnswers).length > 0,
+    );
+
+    let nextReviewStatus: PveCheckResult["reviewStatus"] = "none";
+    if (wasPremium) {
+      if (hasQuickAnswers) {
+        // P8: user supplied extra answers -> route back to architect review
+        nextReviewStatus = "pending";
+      } else if (previousReviewStatus === "approved") {
+        nextReviewStatus = "approved";
+      } else if (previousReviewStatus === "needs_adjustment") {
+        nextReviewStatus = "needs_adjustment";
+      } else {
+        nextReviewStatus = "pending";
+      }
+    }
+
+    const previousReviewNotes =
+      previousResult.data?.review_notes &&
+      typeof previousResult.data.review_notes === "object"
+        ? (previousResult.data.review_notes as Record<string, unknown>)
+        : {};
+    const nextReviewNotes = wasPremium
+      ? {
+          ...previousReviewNotes,
+          ...(hasQuickAnswers
+            ? { adjustmentSubmittedAt: new Date().toISOString() }
+            : {}),
+        }
+      : undefined;
 
     // ---- FETCH DOCUMENT ----
     const document = await supabaseAdmin
@@ -212,6 +332,8 @@ export async function POST(request: Request) {
       intake,
     });
 
+    applyQuickAnswersToClassify(classify, intake.quickAnswers);
+
     // ---- GAPS (3 layers) ----
     const gaps = computeGaps({
       rubric: PVE_RUBRIC,
@@ -238,6 +360,15 @@ export async function POST(request: Request) {
 
     // ---- PATCHES (LLM + CHAPTER_SCHEMAS validation + Kennisbank context) ----
     const patches = await computePatchPlans(gaps, extracted.text, knowledgeMap);
+
+    // ---- CHUNK SUMMARY (P3: top-5 action plan) ----
+    const chunkSummary = computeChunkSummary({
+      gaps,
+      conflicts,
+      chapterScores: score.chapterScores,
+      overallScore: score.overallScore,
+      intake,
+    });
 
     // ---- BENCHMARK ----
     const roomCount = Array.isArray(
@@ -281,6 +412,8 @@ export async function POST(request: Request) {
         risks,
         warnings: budgetWarning ? [budgetWarning] : [],
       },
+      benchmarkDeltas: benchmark,
+      chunkSummary,
     };
 
     // ---- DB INSERT ----
@@ -300,13 +433,27 @@ export async function POST(request: Request) {
         document_name: document.data.document_name,
         doc_stats: docStats,
         text_hash: extracted.textHash,
-        nudge_summary: classify.nudgeSummary,
+        nudge_summary: classify.documentSummary ?? classify.nudgeSummary,
         rubric_version: PVE_RUBRIC.version,
         overall_score: score.overallScore,
         chapter_scores: score.chapterScores,
         gaps,
         conflicts,
         mapped_data: mappedData,
+        classify_fields: classify.fields.map((f) => ({
+          fieldId: f.fieldId,
+          chapter: f.chapter,
+          confidence: f.confidence,
+          vague: f.vague,
+          vagueReason: f.vagueReason,
+          observation: f.observation,
+          weakness: f.weakness,
+          quote: f.quote,
+          evidence: f.evidence,
+        })),
+        is_premium: wasPremium,
+        review_status: nextReviewStatus,
+        review_notes: nextReviewNotes,
         critical_gap_count: gaps.filter((g) => g.severity === "critical")
           .length,
         conflict_count: conflicts.length,

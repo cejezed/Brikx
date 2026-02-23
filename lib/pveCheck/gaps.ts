@@ -11,6 +11,14 @@ import type {
   PveCheckIntakeData,
 } from "@/types/pveCheck";
 import { computeMissingFields } from "@/lib/ai/missing";
+import { GAP_FRIENDLY_REASONS } from "./friendlyReasons";
+
+function getFriendlyReason(
+  fieldId: string,
+  mode: "missing" | "vague",
+): string | undefined {
+  return GAP_FRIENDLY_REASONS[fieldId]?.[mode];
+}
 
 // ============================================================================
 // LAYER 1: STRUCTURAL GAPS — enriched with LLM missing field context
@@ -38,7 +46,7 @@ function structuralGaps(
   for (const item of rubric.items) {
     if (!classifiedFieldIds.has(item.id)) {
       // Not classified = not found in document. Use LLM missingFieldContext if available
-      const llmContext = classify.missingFieldContext.get(item.id);
+      const llmContext = classify.missingFieldContext[item.id];
 
       const reason = llmContext
         ? `${llmContext.whyMissing}${llmContext.nearbyContext && llmContext.nearbyContext !== "Geen gerelateerde tekst gevonden" ? ` Het document zegt wel: "${llmContext.nearbyContext.slice(0, 150)}"` : ""}`
@@ -52,6 +60,7 @@ function structuralGaps(
         severity: item.severity,
         fixEffort: item.fixEffort,
         reason,
+        friendlyReason: getFriendlyReason(item.id, "missing"),
         riskOverlay: item.riskOverlay,
         isVagueness: false,
         isConflict: false,
@@ -77,6 +86,7 @@ function structuralGaps(
       severity: rubricItem?.severity ?? "important",
       fixEffort: rubricItem?.fixEffort ?? "S",
       reason: `${missing.label} ontbreekt in het document.`,
+      friendlyReason: getFriendlyReason(rubricItem?.id ?? fieldId, "missing"),
       riskOverlay: rubricItem?.riskOverlay ?? "Ontbrekende informatie kan leiden tot verkeerde aannames.",
       isVagueness: false,
       isConflict: false,
@@ -129,6 +139,7 @@ function vagueGaps(
       severity: rubricItem.severity,
       fixEffort: rubricItem.fixEffort,
       reason,
+      friendlyReason: getFriendlyReason(rubricItem.id, "vague"),
       riskOverlay: rubricItem.riskOverlay,
       evidence: field.evidence,
       currentValue: typeof field.value === "string" ? field.value : undefined,
@@ -151,13 +162,43 @@ function contextGaps(
 ): PveGap[] {
   const gaps: PveGap[] = [];
   const fieldIds = new Set(classify.fields.map((f) => f.fieldId));
+  const contextText = classify.fields
+    .flatMap((field) => [
+      typeof field.value === "string" ? field.value : "",
+      field.quote ?? "",
+      field.observation ?? "",
+      field.weakness ?? "",
+    ])
+    .join(" ")
+    .toLowerCase();
+
+  function hasAnyKeyword(keywords: string[]): boolean {
+    return keywords.some((keyword) => contextText.includes(keyword));
+  }
+
+  function parseBouwjaarFromIntake(): number | null {
+    const raw = (intake.bouwjaar ?? "").trim();
+    const match = raw.match(/\d{4}/);
+    if (!match) return null;
+    const year = Number(match[0]);
+    return Number.isFinite(year) ? year : null;
+  }
+
+  function pushContextGap(nextGap: PveGap) {
+    if (gaps.some((gap) => gap.fieldId === nextGap.fieldId)) return;
+    gaps.push({
+      ...nextGap,
+      friendlyReason:
+        nextGap.friendlyReason ?? getFriendlyReason(nextGap.fieldId, "missing"),
+    });
+  }
 
   // Verbouwing without bouwjaar → critical
   if (intake.projectType === "verbouwing" && !fieldIds.has("basis.bouwjaar")) {
     const item = rubric.items.find((i) => i.id === "basis.bouwjaar");
-    const llmContext = classify.missingFieldContext.get("basis.bouwjaar");
+    const llmContext = classify.missingFieldContext["basis.bouwjaar"];
     if (item) {
-      gaps.push({
+      pushContextGap({
         id: "gap:context:verbouwing_bouwjaar",
         chapter: "basis",
         fieldId: "basis.bouwjaar",
@@ -181,9 +222,9 @@ function contextGaps(
     !fieldIds.has("duurzaam.energieLabel")
   ) {
     const item = rubric.items.find((i) => i.id === "duurzaam.energieLabel");
-    const llmContext = classify.missingFieldContext.get("duurzaam.energieLabel");
+    const llmContext = classify.missingFieldContext["duurzaam.energieLabel"];
     if (item) {
-      gaps.push({
+      pushContextGap({
         id: "gap:context:ambitieus_zonder_energiedoel",
         chapter: "duurzaam",
         fieldId: "duurzaam.energieLabel",
@@ -206,8 +247,8 @@ function contextGaps(
     !fieldIds.has("risico.planning") &&
     !fieldIds.has("risico.vergunning")
   ) {
-    const llmContext = classify.missingFieldContext.get("risico.planning");
-    gaps.push({
+    const llmContext = classify.missingFieldContext["risico.planning"];
+    pushContextGap({
       id: "gap:context:hoog_budget_geen_risico",
       chapter: "risico",
       fieldId: "risico.planning",
@@ -218,6 +259,110 @@ function contextGaps(
         ? `Bij een project van ${intake.budgetRange} is een expliciete risico- en beheerstrategie essentieel. ${llmContext.whyMissing}`
         : `Bij een project met budget ${intake.budgetRange} is een expliciete risico- en beheerstrategie essentieel.`,
       riskOverlay: "Zonder risicoparagraaf worden budgetoverschrijdingen pas laat ontdekt.",
+      isVagueness: false,
+      isConflict: false,
+    });
+  }
+
+  // Nieuwbouw without foundation strategy (example from P7)
+  if (
+    intake.projectType === "nieuwbouw" &&
+    !hasAnyKeyword(["fundering", "heipaal", "paalfundering", "sondering", "grondonderzoek"])
+  ) {
+    const item = rubric.items.find((i) => i.id === "risico.scope");
+    const llmContext = classify.missingFieldContext["risico.scope"];
+    pushContextGap({
+      id: "gap:context:nieuwbouw_geen_fundering",
+      chapter: "risico",
+      fieldId: "risico.scope",
+      label: "Funderingsaanpak ontbreekt bij nieuwbouw",
+      severity: "critical",
+      fixEffort: "S",
+      reason: llmContext
+        ? `Nieuwbouw zonder funderingsaanpak geeft grote uitvoeringsrisico's. ${llmContext.whyMissing}`
+        : "Nieuwbouw zonder funderingsaanpak (sondering, type fundering, uitgangspunten) geeft grote uitvoeringsrisico's.",
+      riskOverlay:
+        item?.riskOverlay ??
+        "Onbekende fundering zorgt vaak voor meerwerk en vertraging in uitvoer.",
+      isVagueness: false,
+      isConflict: false,
+    });
+  }
+
+  // Bijgebouw without permit check (example from P7)
+  if (
+    intake.projectType === "bijgebouw" &&
+    !fieldIds.has("risico.vergunning") &&
+    !hasAnyKeyword(["vergunning", "vergunningsvrij", "omgevingsvergunning", "welstand", "bestemmingsplan"])
+  ) {
+    const item = rubric.items.find((i) => i.id === "risico.vergunning");
+    const llmContext = classify.missingFieldContext["risico.vergunning"];
+    if (item) {
+      pushContextGap({
+        id: "gap:context:bijgebouw_geen_vergunningscheck",
+        chapter: "risico",
+        fieldId: "risico.vergunning",
+        label: "Vergunningscheck ontbreekt bij bijgebouw",
+        severity: "critical",
+        fixEffort: "XS",
+        reason: llmContext
+          ? `Bijgebouwen vallen vaak in een grensgebied van vergunningvrij/vergunningplichtig. ${llmContext.whyMissing}`
+          : "Bijgebouwen vallen vaak in een grensgebied van vergunningvrij en vergunningplichtig. Zonder check is de planning onbetrouwbaar.",
+        riskOverlay: item.riskOverlay,
+        isVagueness: false,
+        isConflict: false,
+      });
+    }
+  }
+
+  // High sustainability ambition should be translated into technical choices
+  if (
+    (intake.duurzaamheidsAmbitie === "ambitieus" ||
+      intake.duurzaamheidsAmbitie === "zeer_ambitieus") &&
+    !fieldIds.has("techniek.verwarming") &&
+    !fieldIds.has("techniek.ventilatie")
+  ) {
+    const item = rubric.items.find((i) => i.id === "techniek.verwarming");
+    const llmContext = classify.missingFieldContext["techniek.verwarming"];
+    if (item) {
+      pushContextGap({
+        id: "gap:context:duurzaam_geen_installatiekeuze",
+        chapter: "techniek",
+        fieldId: "techniek.verwarming",
+        label: "Duurzaamheidsambitie mist technische vertaling",
+        severity: "critical",
+        fixEffort: "S",
+        reason: llmContext
+          ? `Je duurzaamheidsambitie vraagt om expliciete installatiekeuzes. ${llmContext.whyMissing}`
+          : "Je duurzaamheidsambitie vraagt om expliciete installatiekeuzes (verwarming/ventilatie), maar die ontbreken.",
+        riskOverlay: item.riskOverlay,
+        isVagueness: false,
+        isConflict: false,
+      });
+    }
+  }
+
+  // Older renovation/hybrid project without asbestos check
+  const bouwjaar = parseBouwjaarFromIntake();
+  if (
+    (intake.projectType === "verbouwing" || intake.projectType === "hybride") &&
+    bouwjaar !== null &&
+    bouwjaar <= 1994 &&
+    !hasAnyKeyword(["asbest", "asbestinventarisatie", "asbestscan"])
+  ) {
+    const item = rubric.items.find((i) => i.id === "risico.scope");
+    pushContextGap({
+      id: "gap:context:oud_bouwjaar_geen_asbestcheck",
+      chapter: "risico",
+      fieldId: "risico.scope",
+      label: "Asbestcheck ontbreekt bij ouder bouwjaar",
+      severity: "critical",
+      fixEffort: "S",
+      reason:
+        "Bij oudere bouwjaren hoort een expliciete asbestcheck in de voorbereiding. Zonder die check is de uitvoeringsplanning kwetsbaar.",
+      riskOverlay:
+        item?.riskOverlay ??
+        "Ontbrekende asbesttoets kan leiden tot stopzetting en extra saneringskosten.",
       isVagueness: false,
       isConflict: false,
     });

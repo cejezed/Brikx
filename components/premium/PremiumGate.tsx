@@ -110,9 +110,8 @@ export default function PremiumGate({
           isOpen={modalOpen}
           onClose={() => setModalOpen(false)}
           onUpgrade={() => {
-            // TODO: Redirect naar checkout
-            console.log("[PremiumGate] Upgrade clicked for feature:", feature);
             setModalOpen(false);
+            window.location.href = `/checkout?feature=${feature ?? "pve"}&source=premium-gate`;
           }}
           feature={feature}
         />

@@ -140,13 +140,11 @@ export async function computePatchPlans(
     (gap) => gap.severity === "critical" || gap.severity === "important",
   );
 
-  const plans: PvePatchPlan[] = [];
-
-  for (const gap of patchableGaps) {
+  // P6: generate all patch plans in parallel
+  async function generatePlan(gap: PveGap): Promise<PvePatchPlan> {
     // Find a relevant document snippet for this gap (if not already in evidence)
     let snippet: string | undefined;
     if (documentText && !gap.evidence?.snippet) {
-      // Try to find nearby text using the gap's fieldId keywords
       const rubricItem = getRubricItem(gap.fieldId);
       if (rubricItem) {
         const lower = documentText.toLowerCase();
@@ -160,21 +158,13 @@ export async function computePatchPlans(
       }
     }
 
-    // Build Kennisbank context for this gap
     const kbContext = knowledgeMap ? buildKnowledgeContext(gap, knowledgeMap) : "";
 
-    // Step 1: LLM suggested text (document-aware + Kennisbank)
+    // Step 1: LLM suggested text
     const suggestedText = await llmSuggestText(gap, snippet, kbContext);
     if (!suggestedText) {
-      // Fallback: use rubric exampleGood
       const rubricItem = getRubricItem(gap.fieldId);
-      plans.push({
-        gapId: gap.id,
-        fieldId: gap.fieldId,
-        suggestedText: rubricItem?.exampleGood ?? "",
-        validated: false,
-      });
-      continue;
+      return { gapId: gap.id, fieldId: gap.fieldId, suggestedText: rubricItem?.exampleGood ?? "", validated: false };
     }
 
     // Step 2: Build PatchEvent
@@ -183,14 +173,14 @@ export async function computePatchPlans(
     // Step 3: Validate
     const validated = patchEvent ? validatePatch(patchEvent) : false;
 
-    plans.push({
+    return {
       gapId: gap.id,
       fieldId: gap.fieldId,
       suggestedText,
       patchEvent: validated ? patchEvent ?? undefined : undefined,
       validated,
-    });
+    };
   }
 
-  return plans;
+  return Promise.all(patchableGaps.map(generatePlan));
 }
