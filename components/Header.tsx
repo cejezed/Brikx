@@ -77,7 +77,7 @@ export default function Header({ className = '' }: { className?: string }) {
             <Link
               href="/"
               className="flex items-center gap-3 shrink-0"
-              aria-label="Brikx – naar boven"
+              aria-label="Brikx â€“ naar boven"
             >
               <Image
                 src="/images/brikx-logo.png"
@@ -134,6 +134,12 @@ export default function Header({ className = '' }: { className?: string }) {
                 Checklists
               </a>
               <Link
+                href="/nieuws"
+                className="text-white text-base hover:text-[#4db8ba] transition-colors"
+              >
+                Nieuws
+              </Link>
+              <Link
                 href="/login"
                 className="text-white text-base hover:text-[#4db8ba] transition-colors"
               >
@@ -153,7 +159,7 @@ export default function Header({ className = '' }: { className?: string }) {
               onClick={() => setOpen((v) => !v)}
               aria-label="Toggle menu"
             >
-              {open ? '✕' : '☰'}
+              {open ? 'âœ•' : 'â˜°'}
             </button>
           </header>
 
@@ -195,6 +201,13 @@ export default function Header({ className = '' }: { className?: string }) {
               >
                 FAQ
               </a>
+              <Link
+                href="/nieuws"
+                onClick={onNavClick}
+                className="text-white hover:text-[#4db8ba] transition-colors"
+              >
+                Nieuws
+              </Link>
               <Link
                 href="/login"
                 onClick={onNavClick}

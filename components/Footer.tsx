@@ -32,7 +32,7 @@ export default function Footer({ className = "" }: FooterProps) {
         <div className="bg-gradient-to-br from-[#082b3f] to-[#1c7d86] text-white rounded-t-[30px] shadow-lg">
           {/* Inhoud padding */}
           <div className="px-6 md:px-10 lg:px-12 py-12">
-            {/* Top grid — nu 5 kolommen op lg+ */}
+            {/* Top grid â€” nu 5 kolommen op lg+ */}
             <div className="grid gap-10 sm:gap-8 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
               <nav aria-label="Product" className="space-y-3">
                 <p className="text-base font-semibold tracking-wide">Brikx</p>
@@ -41,6 +41,7 @@ export default function Footer({ className = "" }: FooterProps) {
                   <li><a className="hover:text-white transition" href="/#werkwijze">Hoe het werkt</a></li>
                   <li><a className="hover:text-white transition" href="/#prijzen">Prijzen</a></li>
                   <li><a className="hover:text-white transition" href="/kennisbank">Checklists & Gidsen</a></li>
+                  <li><a className="hover:text-white transition" href="/nieuws">Nieuws</a></li>
                   <li>
                     <a
                       className="hover:text-white transition"
@@ -100,15 +101,15 @@ export default function Footer({ className = "" }: FooterProps) {
             {/* Bottom bar */}
             <div className="py-6 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between text-sm text-white/80">
               <div className="flex flex-wrap items-center gap-3">
-                <p>© {year} Brikx. Alle rechten voorbehouden.</p>
-                <span className="hidden sm:inline">•</span>
-                <p>📍 Loenen aan de Vecht, Nederland</p>
-                <span className="hidden sm:inline">•</span>
-                <a href="mailto:info@brikxai.nl" className="hover:text-white transition">📧 info@brikxai.nl</a>
+                <p>Â© {year} Brikx. Alle rechten voorbehouden.</p>
+                <span className="hidden sm:inline">â€¢</span>
+                <p>ðŸ“ Loenen aan de Vecht, Nederland</p>
+                <span className="hidden sm:inline">â€¢</span>
+                <a href="mailto:info@brikxai.nl" className="hover:text-white transition">ðŸ“§ info@brikxai.nl</a>
               </div>
               <div className="flex items-center gap-3">
-                <p>SSL-beveiligd ✓</p>
-                <span className="hidden sm:inline">•</span>
+                <p>SSL-beveiligd âœ“</p>
+                <span className="hidden sm:inline">â€¢</span>
                 <span className="text-xs bg-white/10 px-2 py-1 rounded">v{version}</span>
               </div>
             </div>
