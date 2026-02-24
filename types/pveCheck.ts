@@ -38,6 +38,8 @@ export type PveDuurzaamheidsAmbitie =
   | "ambitieus"
   | "zeer_ambitieus";
 
+export type PveAnalyseDoel = "architect" | "aannemer";
+
 export type PveQuickAnswers = Record<string, string>;
 
 export type PveCheckIntakeData = {
@@ -48,6 +50,7 @@ export type PveCheckIntakeData = {
   budgetRange: PveBudgetRange;
   bouwjaar?: string;
   duurzaamheidsAmbitie: PveDuurzaamheidsAmbitie;
+  analyseDoel?: PveAnalyseDoel;
   /**
    * User-provided answers from the "Snel aanvullen" flow.
    * Key should match rubric item id (e.g. "budget.budgetTotaal").

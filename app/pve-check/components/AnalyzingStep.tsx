@@ -112,7 +112,7 @@ export function AnalyzingStep() {
 
   // Build context for step labels
   const projectLabel = intake
-    ? `${intake.archetype} (${intake.projectType})`
+    ? `${intake.archetype} (${intake.projectType}, doel: ${intake.analyseDoel ?? "architect"})`
     : "Project";
   const ctx: StepContext = {
     wordCount: docStats?.wordCount ?? 0,

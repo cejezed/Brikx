@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { usePveCheckStore } from "@/lib/stores/usePveCheckStore";
 import { useWizardState } from "@/lib/stores/useWizardState";
 import { PVE_RUBRIC } from "@/lib/pveCheck/rubric";
+import { filterUnansweredQuickFillQuestions } from "@/lib/pveCheck/intakeAnswers";
 import type {
   PveGap,
   HeadlineConflict,
@@ -301,15 +302,16 @@ export function ResultsPage() {
     currentResult.gaps,
     currentResult.chapterScores,
   );
+  const storedQuickAnswers = currentResult.intake.quickAnswers ?? {};
   const shouldShowQuickFill = !isPremium || needsAdjustment;
   const quickFillQuestions = shouldShowQuickFill
-    ? baseQuickFillQuestions.map((question, index) => ({
+    ? filterUnansweredQuickFillQuestions(baseQuickFillQuestions.map((question, index) => ({
         ...question,
         prompt:
           needsAdjustment && pendingQuestions[index]
             ? pendingQuestions[index]
             : question.prompt,
-      }))
+      })), storedQuickAnswers)
     : [];
   const hasQuickAnswer = quickFillQuestions.some(
     (question) => (quickAnswers[question.fieldId] ?? "").trim().length > 0,

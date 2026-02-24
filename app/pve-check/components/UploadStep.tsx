@@ -3,6 +3,11 @@
 import { useCallback, useState } from "react";
 import { usePveCheckStore } from "@/lib/stores/usePveCheckStore";
 
+function formatAnalyseDoel(value?: string): string {
+  if (value === "aannemer") return "aannemer";
+  return "architect";
+}
+
 export function UploadStep() {
   const { uploadDocument, isUploading, error, documentName, setStep, intake } =
     usePveCheckStore();
@@ -48,7 +53,7 @@ export function UploadStep() {
         {intake && (
           <p className="text-xs text-slate-400 mt-1">
             Project: {intake.archetype} ({intake.projectType}) &mdash;{" "}
-            {intake.locatie}
+            {intake.locatie} &mdash; Doel: {formatAnalyseDoel(intake.analyseDoel)}
           </p>
         )}
       </div>

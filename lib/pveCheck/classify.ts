@@ -93,6 +93,7 @@ export function buildNudge(intake: PveCheckIntakeData): string {
   parts.push(`Locatie: ${intake.locatie}`);
   parts.push(`Budget: ${intake.budgetRange}`);
   parts.push(`Duurzaamheid: ${intake.duurzaamheidsAmbitie}`);
+  parts.push(`Doel: ${intake.analyseDoel ?? "architect"}`);
   if (intake.bouwjaar) parts.push(`Bouwjaar: ${intake.bouwjaar}`);
   const quickEntries = Object.entries(intake.quickAnswers ?? {}).filter(
     ([, value]) => value.trim().length > 0,
@@ -105,6 +106,14 @@ export function buildNudge(intake: PveCheckIntakeData): string {
     parts.push(`Aanvullende antwoorden gebruiker: ${formatted}`);
   }
   return parts.join(". ") + ".";
+}
+
+function buildGoalDirective(intake: PveCheckIntakeData): string {
+  const doel = intake.analyseDoel ?? "architect";
+  if (doel === "aannemer") {
+    return "FOCUS AANNEMER: beoordeel extra streng op uitvoeringsduidelijkheid (maatvoering, materialen, planning, verantwoordelijkheden, toetsbare eisen voor offerte).";
+  }
+  return "FOCUS ARCHITECT: beoordeel extra streng op ontwerpkaders (ruimteprogramma, functionele eisen, kwaliteitsniveau, prioriteiten en randvoorwaarden).";
 }
 
 // ============================================================================
@@ -133,7 +142,12 @@ type LLMClassifyResponse = {
   documentSummary?: string;
 };
 
-function buildSystemPrompt(rubric: PveRubric, nudgeSummary: string, chunkInfo: string): string {
+function buildSystemPrompt(
+  rubric: PveRubric,
+  nudgeSummary: string,
+  chunkInfo: string,
+  goalDirective: string,
+): string {
   const fieldList = rubric.items
     .map(
       (item) =>
@@ -145,6 +159,7 @@ function buildSystemPrompt(rubric: PveRubric, nudgeSummary: string, chunkInfo: s
 
 CONTEXT: ${nudgeSummary}
 ${chunkInfo}
+${goalDirective}
 
 RUBRIC VELDEN (beoordeel ALLEEN deze velden — voeg geen andere toe):
 ${fieldList}
@@ -190,6 +205,7 @@ async function llmClassifyChunk(
   rubric: PveRubric,
   nudgeSummary: string,
   chunkInfo: string,
+  goalDirective: string,
 ): Promise<LLMClassifyResponse> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY is not configured");
@@ -206,7 +222,7 @@ async function llmClassifyChunk(
       max_tokens: 3000,
       response_format: { type: "json_object" },
       messages: [
-        { role: "system", content: buildSystemPrompt(rubric, nudgeSummary, chunkInfo) },
+        { role: "system", content: buildSystemPrompt(rubric, nudgeSummary, chunkInfo, goalDirective) },
         { role: "user", content: `Beoordeel dit PvE-fragment:\n\n${chunk}` },
       ],
     }),
@@ -328,6 +344,7 @@ export async function classifyDocument(params: {
 }): Promise<PveClassifyResult> {
   // Step 1: Build nudge
   const nudgeSummary = buildNudge(params.intake);
+  const goalDirective = buildGoalDirective(params.intake);
 
   // Step 2: Split into chunks + classify each in parallel (P2)
   const chunks = splitIntoChunks(params.text);
@@ -343,6 +360,7 @@ export async function classifyDocument(params: {
         totalChunks > 1
           ? `Dit is fragment ${i + 1} van ${totalChunks} van het document.`
           : "Dit is het volledige document.",
+        goalDirective,
       ).catch((err) => {
         console.error(`[classify] Chunk ${i + 1} failed:`, err);
         return { fields: [], missingFields: [] } as LLMClassifyResponse;

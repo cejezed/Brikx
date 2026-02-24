@@ -18,6 +18,10 @@ import { computeMissingFields } from "@/lib/ai/missing";
 import { scan as scanRisks } from "@/lib/risk/scan";
 import { computeBudgetWarning } from "@/lib/report/heuristics";
 import { queryKnowledgeForGaps, enrichGapsWithKnowledge, buildKnowledgeContext } from "@/lib/pveCheck/knowledge";
+import {
+  deriveQuickAnswersFromIntake,
+  normalizeClassifyValue,
+} from "@/lib/pveCheck/intakeAnswers";
 import type { PveCheckIntakeData, PveCheckMappedData, PveCheckResult, PveClassifyResult } from "@/types/pveCheck";
 import type { WizardState } from "@/types/project";
 
@@ -54,6 +58,7 @@ const analyzeSchema = z.object({
       "ambitieus",
       "zeer_ambitieus",
     ]),
+    analyseDoel: z.enum(["architect", "aannemer"]).default("architect"),
     quickAnswers: z.record(z.string(), z.string().max(500)).optional(),
   }),
 });
@@ -101,10 +106,11 @@ function applyQuickAnswersToClassify(
 
     const rubricItem = PVE_RUBRIC.items.find((item) => item.id === rubricItemId);
     if (!rubricItem) continue;
+    const normalizedValue = normalizeClassifyValue(rubricItem.id, answer);
 
     const existing = existingByFieldId.get(rubricItemId);
     if (existing) {
-      existing.value = answer;
+      existing.value = normalizedValue;
       existing.confidence = Math.max(existing.confidence, 0.9);
       existing.vague = false;
       existing.vagueReason = undefined;
@@ -114,7 +120,7 @@ function applyQuickAnswersToClassify(
       const syntheticField: PveClassifyResult["fields"][number] = {
         fieldId: rubricItem.id,
         chapter: rubricItem.chapter,
-        value: answer,
+        value: normalizedValue,
         confidence: 0.9,
         vague: false,
         observation: "Aangevuld via snelle vragen op resultatenpagina.",
@@ -128,7 +134,7 @@ function applyQuickAnswersToClassify(
     const chapterDataMap =
       classify.mappedData as Record<string, Record<string, unknown> | undefined>;
     const chapterData = { ...(chapterDataMap[rubricItem.chapter] ?? {}) };
-    chapterData[rubricItem.fieldId] = answer;
+    chapterData[rubricItem.fieldId] = normalizedValue;
     chapterDataMap[rubricItem.chapter] = chapterData;
 
     delete classify.missingFieldContext[rubricItem.id];
@@ -194,11 +200,16 @@ export async function POST(request: Request) {
   try {
     const payload = analyzeSchema.parse(await request.json());
     const userId = auth.userId;
-    const quickAnswers = Object.fromEntries(
+    const manualQuickAnswers = Object.fromEntries(
       Object.entries(payload.intake.quickAnswers ?? {})
         .map(([key, value]) => [key, value.trim()])
         .filter(([, value]) => value.length > 0),
     );
+    const inferredQuickAnswers = deriveQuickAnswersFromIntake(payload.intake);
+    const quickAnswers = {
+      ...inferredQuickAnswers,
+      ...manualQuickAnswers,
+    };
 
     const intake = {
       ...payload.intake,

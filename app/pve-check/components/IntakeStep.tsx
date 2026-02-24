@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { usePveCheckStore } from "@/lib/stores/usePveCheckStore";
 import type {
+  PveAnalyseDoel,
   PveBudgetRange,
   PveDuurzaamheidsAmbitie,
   PveProjectType,
@@ -31,6 +32,11 @@ const DUURZAAMHEID: { value: PveDuurzaamheidsAmbitie; label: string }[] = [
   { value: "zeer_ambitieus", label: "Zeer ambitieus (NOM)" },
 ];
 
+const ANALYSE_DOELEN: { value: PveAnalyseDoel; label: string }[] = [
+  { value: "architect", label: "Voor architect (ontwerpkeuzes)" },
+  { value: "aannemer", label: "Voor aannemer (offerte/uitvoering)" },
+];
+
 export function IntakeStep() {
   const setIntake = usePveCheckStore((s) => s.setIntake);
   const setStep = usePveCheckStore((s) => s.setStep);
@@ -43,6 +49,7 @@ export function IntakeStep() {
   const [bouwjaar, setBouwjaar] = useState("");
   const [duurzaamheid, setDuurzaamheid] =
     useState<PveDuurzaamheidsAmbitie>("normaal");
+  const [analyseDoel, setAnalyseDoel] = useState<PveAnalyseDoel>("architect");
 
   const canSubmit = archetype.trim() && locatie.trim();
 
@@ -58,6 +65,7 @@ export function IntakeStep() {
       budgetRange,
       bouwjaar: bouwjaar.trim() || undefined,
       duurzaamheidsAmbitie: duurzaamheid,
+      analyseDoel,
     });
     setStep("upload");
   }
@@ -162,6 +170,20 @@ export function IntakeStep() {
           {DUURZAAMHEID.map((d) => (
             <option key={d.value} value={d.value}>
               {d.label}
+            </option>
+          ))}
+        </select>
+      </Field>
+
+      <Field label="Doel van dit PvE">
+        <select
+          value={analyseDoel}
+          onChange={(e) => setAnalyseDoel(e.target.value as PveAnalyseDoel)}
+          className="w-full mt-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#0d3d4d]/40"
+        >
+          {ANALYSE_DOELEN.map((doel) => (
+            <option key={doel.value} value={doel.value}>
+              {doel.label}
             </option>
           ))}
         </select>
